@@ -12,3 +12,9 @@ data/synthetic/kz/*
 !data/synthetic/kz/.gitkeep
 # scratch outputs of scripts/check_env.py
 build/
+# uploaded packages and reports of the web service
+data/uploads/
+# local tool state (Claude Code plugins)
+.claude-flow/
+.claude/*
+!.claude/launch.json
