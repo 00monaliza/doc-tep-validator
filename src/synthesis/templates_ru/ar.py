@@ -22,7 +22,7 @@ def build(ctx: Ctx) -> Document:
     a, b = (fmt_num(x, 1) for x in v.axes_m)
     basement = ", с техническим подвалом" if v.has_basement else ""
     doc.para(f"Здание {v.floors}-этажное{basement}, прямоугольное в плане, с размерами в осях {a} × {b} м. "
-             f"Высота этажа — {fmt_num(v.floor_height_m, 1)} м.")
+             f"Высота этажа — {fmt_num(v.floor_height_m, 1)} м.", {"floors": ctx.fmt(S, "floors")})
     doc.para(ctx.pick(
         "Расстановка мебели и технологического оборудования выполнена в соответствии с "
         "функциональным назначением помещений.",

@@ -22,7 +22,7 @@ def build(ctx: Ctx) -> Document:
     a, b = (fmt_num(x, 1) for x in v.axes_m)
     basement = ", техникалық жертөлесі бар" if v.has_basement else ""
     doc.para(f"Ғимарат {v.floors} қабатты{basement}, жоспарда тікбұрышты, осьтердегі өлшемдері {a} × {b} м. "
-             f"Қабат биіктігі — {fmt_num(v.floor_height_m, 1)} м.")
+             f"Қабат биіктігі — {fmt_num(v.floor_height_m, 1)} м.", {"floors": ctx.fmt(S, "floors")})
     doc.para(ctx.pick(
         "Жиһаз бен технологиялық жабдықтарды орналастыру үй-жайлардың функционалдық мақсатына сәйкес "
         "орындалды.",

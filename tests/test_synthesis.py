@@ -63,6 +63,8 @@ def test_anchors_present_in_pdf_and_docx(sets, lang, seed):
             assert entry["anchors"], f"{section}.{fld} not anchored"
             for a in entry["anchors"]:
                 assert norm(a["text"]) in pdf_text, f"{section}.{fld}: {a['text']!r} not in PDF"
+                if "context" in a:  # paragraph anchors: context + value must be contiguous in the text layer
+                    assert norm(a["context"] + a["text"]) in pdf_text, f"{section}.{fld}: context not found"
                 assert norm(a["text"]) in docx_text, f"{section}.{fld}: {a['text']!r} not in DOCX"
 
 

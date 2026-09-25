@@ -32,7 +32,7 @@ from src.synthesis.render import render_docx, render_pdf
 from src.synthesis.scan import make_scan
 from src.synthesis.values import generate_values
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"  # 1.1: documents[].tables, paragraph anchor context
 YEAR = 2026
 LANGS = ("ru", "kz")
 BUILDERS = {"ru": templates_ru.BUILDERS, "kz": templates_kz.BUILDERS}
@@ -125,7 +125,7 @@ def generate_set(lang: str, seed: int, out_root: Path, inject: set[DiscrepancyTy
         render_pdf(doc, pdf)
         render_docx(doc, docx_path)
         entry = {"code": doc.code, "title": doc.title, "text_pdf": str(pdf.relative_to(set_dir)),
-                 "docx": str(docx_path.relative_to(set_dir))}
+                 "docx": str(docx_path.relative_to(set_dir)), "tables": doc.tables()}
         if scans:
             scan_pdf = set_dir / "scan" / f"{sec}.pdf"
             pages, params = make_scan(pdf, scan_pdf, scan_rng)

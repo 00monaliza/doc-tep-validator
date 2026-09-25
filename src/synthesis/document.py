@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 BlockKind = Literal["title", "heading", "para", "table"]
+CONTEXT_CHARS = 40
 
 
 @dataclass
@@ -30,11 +31,14 @@ class Anchor:
     text: str  # exact string as rendered
     row: int | None = None  # 0-based data row index (header excluded)
     col: int | None = None
+    context: str | None = None  # paragraph text right before the value (disambiguates '2')
 
     def to_json(self) -> dict:
         d = {"block_id": self.block_id, "text": self.text}
         if self.row is not None:
             d |= {"row": self.row, "col": self.col}
+        if self.context is not None:
+            d["context"] = self.context
         return d
 
 
@@ -85,7 +89,9 @@ class Document:
         self.blocks.append(block)
         for fld, value_text in (mentions or {}).items():
             assert value_text in text, f"{value_text!r} not in paragraph"
-            self.anchors.setdefault(fld, []).append(Anchor(block.id, value_text))
+            i = text.index(value_text)
+            self.anchors.setdefault(fld, []).append(
+                Anchor(block.id, value_text, context=text[max(0, i - CONTEXT_CHARS):i]))
         return block.id
 
     def table(
@@ -104,6 +110,10 @@ class Document:
         for fld, (r, c) in (cells or {}).items():
             self.anchors.setdefault(fld, []).append(Anchor(block.id, rows[r][c], r, c))
         return block.id
+
+    def tables(self) -> list[dict]:
+        """Tables in reading order, for mapping anchors onto extracted tables."""
+        return [{"block_id": b.id, "header": b.header} for b in self.blocks if b.kind == "table"]
 
     def add_rows(self, header: list[str], t: TableRows, col_widths: list[float], block_id: str) -> str:
         return self.table(header, t.rows, col_widths, t.cells, t.bold, block_id)

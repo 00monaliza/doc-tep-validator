@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "set_id": "ru_00001",
   "lang": "ru",
   "seed": 1,
@@ -36,6 +36,17 @@
       "title": "Раздел 1. Пояснительная записка",
       "text_pdf": "text/PZ.pdf",
       "docx": "text/PZ.docx",
+      "tables": [
+        {
+          "block_id": "tbl_tep",
+          "header": [
+            "№ п/п",
+            "Наименование показателя",
+            "Ед. изм.",
+            "Значение"
+          ]
+        }
+      ],
       "scan_pdf": "scan/PZ.pdf",
       "scan_pages": [
         "scan/PZ_p1.jpg"
@@ -59,6 +70,26 @@
       "title": "Раздел 3. Архитектурные решения. Текстовая часть",
       "text_pdf": "text/AR.pdf",
       "docx": "text/AR.docx",
+      "tables": [
+        {
+          "block_id": "tbl_ar_tep",
+          "header": [
+            "№ п/п",
+            "Показатель",
+            "Ед. изм.",
+            "Значение"
+          ]
+        },
+        {
+          "block_id": "tbl_explication",
+          "header": [
+            "№ пом.",
+            "Наименование",
+            "Площадь, м²",
+            "Кат."
+          ]
+        }
+      ],
       "scan_pdf": "scan/AR.pdf",
       "scan_pages": [
         "scan/AR_p1.jpg",
@@ -94,6 +125,17 @@
       "title": "Раздел 4. Конструктивные решения. Текстовая часть",
       "text_pdf": "text/KR.pdf",
       "docx": "text/KR.docx",
+      "tables": [
+        {
+          "block_id": "tbl_materials",
+          "header": [
+            "№ п/п",
+            "Наименование конструкций, материалов",
+            "Ед. изм.",
+            "Количество"
+          ]
+        }
+      ],
       "scan_pdf": "scan/KR.pdf",
       "scan_pages": [
         "scan/KR_p1.jpg"
@@ -117,6 +159,38 @@
       "title": "Раздел 9. Сметная документация",
       "text_pdf": "text/SMETA.pdf",
       "docx": "text/SMETA.docx",
+      "tables": [
+        {
+          "block_id": "tbl_local",
+          "header": [
+            "№ п/п",
+            "Шифр норматива",
+            "Наименование работ и затрат",
+            "Ед. изм.",
+            "Кол-во",
+            "Цена за ед., тенге",
+            "Стоимость, тенге"
+          ]
+        },
+        {
+          "block_id": "tbl_object",
+          "header": [
+            "№ п/п",
+            "Номер сметы",
+            "Наименование работ и затрат",
+            "Сметная стоимость, тыс. тенге"
+          ]
+        },
+        {
+          "block_id": "tbl_summary",
+          "header": [
+            "№ п/п",
+            "Номер сметы",
+            "Наименование глав, объектов, работ и затрат",
+            "Сметная стоимость, тыс. тенге"
+          ]
+        }
+      ],
       "scan_pdf": "scan/SMETA.pdf",
       "scan_pages": [
         "scan/SMETA_p1.jpg",
@@ -583,7 +657,8 @@
           },
           {
             "block_id": "p4",
-            "text": "1 247,79"
+            "text": "1 247,79",
+            "context": "Общая площадь здания составляет "
           }
         ]
       },
@@ -600,7 +675,8 @@
           },
           {
             "block_id": "p4",
-            "text": "8 833,38"
+            "text": "8 833,38",
+            "context": "вляет 1 247,79 м², строительный объём — "
           }
         ]
       },
@@ -643,6 +719,11 @@
         "unit": "floor",
         "present": true,
         "anchors": [
+          {
+            "block_id": "p2",
+            "text": "3",
+            "context": "Здание "
+          },
           {
             "block_id": "tbl_ar_tep",
             "text": "3",
@@ -1401,7 +1482,8 @@
         "anchors": [
           {
             "block_id": "p3",
-            "text": "845,31"
+            "text": "845,31",
+            "context": "ий расход монолитного бетона составляет "
           }
         ]
       }
@@ -1935,7 +2017,8 @@
             },
             {
               "block_id": "p4",
-              "text": "1 247,79"
+              "text": "1 247,79",
+              "context": "Общая площадь здания составляет "
             }
           ]
         },
