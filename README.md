@@ -8,24 +8,18 @@
 
 ```bash
 uv sync                                   # Python 3.12 + зависимости в .venv
-./scripts/fetch_assets.sh                 # шрифты DejaVu + tessdata rus/kaz (не в git)
+brew install tesseract-lang                # Tesseract rus + kaz (обязательно)
 uv run python scripts/check_env.py        # smoke-тест окружения
 uv run pytest                             # тесты генератора
 uv run python scripts/generate_synthetic.py --lang ru kz --seeds 1-100   # корпус
-```
-
-Системный OCR для русского и казахского (рекомендуется; без него используется
-локальная копия `assets/tessdata/`):
-
-```bash
-brew install tesseract-lang
 ```
 
 ## Структура
 
 ```
 src/
-  ingestion/common/    PDF (pdfplumber, PyMuPDF), DOCX, Tesseract-обёртка
+  ingestion/common/    PDF (pdfplumber, PyMuPDF), DOCX, Tesseract-обёртка,
+                       normalize.py — восстановление м²/м³ после OCR
   synthesis/           генератор синтетических наборов
     values.py          ТЭП и внесение несоответствий (не зависит от языка)
     templates_ru/      шаблоны ПЗ/АР/КР/смета на русском
@@ -38,7 +32,7 @@ src/
 data/synthetic/{ru,kz}/  сгенерированные корпуса (в .gitignore)
 data/synthetic/samples/  пробные наборы ru_00001, kz_00001 (в git)
 data/real/               реальные документы (пусто)
-scripts/                 check_env.py, generate_synthetic.py, fetch_assets.sh
+scripts/                 check_env.py, generate_synthetic.py, eval_ocr_units.py, fetch_assets.sh
 api/                     FastAPI-заготовка (/health)
 ```
 
@@ -86,10 +80,32 @@ api/                     FastAPI-заготовка (/health)
 Токенизация строки ТЭП на казахском: у XLM-R и kaz-roberta 0 `[UNK]`, у rubert-tiny2 4 `[UNK]`.
 Для RU rubert-tiny2 даёт `[UNK]` на длинном тире «—», поэтому тире нужно нормализовать.
 
-## Известные ограничения окружения
+## OCR-путь
 
-- **EasyOCR 1.7.2 не поддерживает казахский**: кода `kk`/`kaz` нет в `all_lang_list`.
-  Казахский OCR идёт только через Tesseract `kaz`.
-- Tesseract `rus`/`kaz` не распознаёт `²`/`³`: «м²» читается как «м?» или «м2».
-  В OCR-пути нужна нормализация единиц.
+Единственный OCR-движок — Tesseract (`rus`, `kaz`). **EasyOCR удалён**: в его кириллических
+моделях (`cyrillic_g1/g2`) в алфавите нет Ә ә Ң ң Ұ ұ Һ һ, то есть сеть физически не может их
+выдать. Использовать его можно только после собственного дообучения распознавателя, а это вне скоупа.
+
+Tesseract не знает `²`/`³`. На сканах «м²» превращается в `м2`, `м3`, `мз`, `м?`, `м*` или просто `м`,
+причём цифре доверять нельзя: у кладки кирпича OCR выдавал `м2`, хотя там м³.
+`src/ingestion/common/normalize.py` определяет степень по ближайшему ключевому слову в строке
+(площадь/ауданы → м²; объём/көлемі/бетон/кладка/қалау → м³). Цифра из OCR используется
+как запасная подсказка, если ключевого слова нет. `мм`, `ММ`, `М200`, W6→`М/6` и метры не трогаются.
+Каждое решение пишется в журнал (`context`, `context_overrides_ocr`, `ocr_hint`, `unresolved`).
+
+`scripts/eval_ocr_units.py` сравнивает единицы на скане с текстовым слоем того же документа.
+Правила подбирались на наборах seeds 1, 11–15 (dev), честная оценка сделана на невиденных seeds 101–105 (held-out):
+
+| | наивно 2→², 3/з→³ (held-out) | нормализация, held-out | нормализация, dev (оптимистично) |
+|---|---|---|---|
+| RU | 66,7 % | **90,5 %** (19/21) | 89,7 % (26/29) |
+| KZ | 47,6 % | **81,0 %** (17/21) | 92,9 % (26/28) |
+
+Выборка маленькая (около 20 единиц на язык), поэтому доверительный интервал ±10–15 п. п.
+
+Сопоставить удаётся только около 28 % единиц: строки таблиц на скане Tesseract (`--psm 6`) часто
+превращает в мусор. Следующий шаг OCR-пути — распознавание таблиц по ячейкам.
+
+## Прочее
+
 - natasha импортирует `pkg_resources`, поэтому setuptools закреплён на `<81`.

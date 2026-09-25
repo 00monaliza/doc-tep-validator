@@ -2,7 +2,7 @@
 
 Run:  uv run python scripts/check_env.py
 Exit code is non-zero if any REQUIRED check fails. Known limitations
-(e.g. EasyOCR without Kazakh) are reported as WARN and do not fail the run.
+(e.g. Tesseract reading 'м²' as 'м?') are reported as WARN and do not fail the run.
 
 The PDF round-trip check renders RU and KZ text with reportlab and fpdf2 using
 the embedded DejaVu Sans TTF, extracts it back with pdfplumber (text layer) and
@@ -61,7 +61,7 @@ def check_imports() -> None:
     modules = [
         ("pdfplumber", "pdfplumber"), ("pymupdf", "PyMuPDF"), ("docx", "python-docx"),
         ("reportlab", "reportlab"), ("fpdf", "fpdf2"), ("pytesseract", "pytesseract"),
-        ("easyocr", "easyocr"), ("natasha", "natasha"), ("torch", "torch"),
+        ("natasha", "natasha"), ("torch", "torch"),
         ("transformers", "transformers"), ("datasets", "datasets"), ("pandas", "pandas"),
         ("sklearn", "scikit-learn"), ("faker", "faker"), ("fastapi", "fastapi"),
         ("uvicorn", "uvicorn"), ("pydantic", "pydantic"), ("PIL", "Pillow"),
@@ -104,31 +104,13 @@ def check_tesseract() -> None:
     from src.ingestion.common import ocr
 
     sys_langs = ocr.system_languages()
-    record("OK" if sys_langs else "FAIL", "system tesseract languages", ", ".join(sorted(sys_langs)))
+    record("OK" if sys_langs else "FAIL", "system tesseract", f"{len(sys_langs)} languages installed")
     for code in ("rus", "kaz"):
         if code in sys_langs:
-            record("OK", f"system tesseract '{code}'")
+            record("OK", f"tesseract '{code}'")
         else:
-            extra = " Kazakh OCR quality will be worse without it." if code == "kaz" else ""
-            record("WARN", f"system tesseract '{code}' MISSING",
-                   f"install: `{ocr.BREW_INSTALL_HINT}`.{extra}")
-        try:
-            src = ocr.resolve_language(code)
-            record("OK", f"tesseract '{code}' resolved", f"{src.origin} ({src.tessdata_dir or 'default'})")
-        except RuntimeError as e:
-            record("FAIL", f"tesseract '{code}' unavailable", str(e))
-
-
-def check_easyocr() -> None:
-    import easyocr
-    from easyocr.config import all_lang_list
-
-    has_kk = any(c in all_lang_list for c in ("kk", "kaz", "kz"))
-    if has_kk:
-        record("OK", "easyocr Kazakh language code", f"easyocr {easyocr.__version__}")
-    else:
-        record("WARN", "easyocr has NO Kazakh language code (known limitation)",
-               f"easyocr {easyocr.__version__}; Kazakh OCR goes through Tesseract 'kaz' only")
+            extra = " Kazakh OCR is impossible without it." if code == "kaz" else ""
+            record("FAIL", f"tesseract '{code}' MISSING", f"install: `{ocr.BREW_INSTALL_HINT}`.{extra}")
 
 
 # ---------------------------------------------------------------- PDF round-trip
@@ -236,7 +218,7 @@ def check_pdf_roundtrip() -> dict[str, bool]:
         engine_ok[engine] = ok
     if superscript_lost:
         record("WARN", "tesseract reads 'м²'/'м³' as 'м?'/'м2' (known OCR limitation)",
-               f"in {', '.join(sorted(superscript_lost))}; normalise units in the OCR extraction path")
+               f"in {', '.join(sorted(superscript_lost))}; handled by src/ingestion/common/normalize.py")
     return engine_ok
 
 
@@ -258,7 +240,7 @@ def check_negative_control() -> None:
 
 
 def main() -> int:
-    for step in (check_imports, check_torch, check_natasha, check_tesseract, check_easyocr):
+    for step in (check_imports, check_torch, check_natasha, check_tesseract):
         try:
             step()
         except Exception:  # noqa: BLE001
