@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+# Tesseract language data is fetched by scripts/fetch_assets.sh (~60 MB)
+assets/tessdata/
+# Generated synthetic corpora (regenerate with scripts/generate_synthetic.py);
+# small sample sets are kept under data/synthetic/samples/
+data/synthetic/ru/*
+data/synthetic/kz/*
+!data/synthetic/ru/.gitkeep
+!data/synthetic/kz/.gitkeep
+# scratch outputs of scripts/check_env.py
+build/

@@ -1,0 +1,1880 @@
+{
+  "schema_version": "1.0",
+  "set_id": "kz_00001",
+  "lang": "kz",
+  "seed": 1,
+  "injected_types": [
+    "AREA_PZ_VS_AR_EXPLICATION",
+    "COST_OBJECT_ESTIMATE_VS_SUMMARY",
+    "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+    "MISSING_MANDATORY_TEP"
+  ],
+  "object": {
+    "object_name": "850 орындық жалпы білім беретін орта мектеп",
+    "city": "Павлодар",
+    "address": "Павлодар қ., Тәуелсіздік даңғылы, 47",
+    "customer": "«Павлодар қаласының денсаулық сақтау басқармасы» ММ",
+    "designer": "«Сәулет-Құрылыс Жоба» ЖШС",
+    "chief_engineer": "Қасымов Е. С.",
+    "project_code": "669-2026",
+    "year": 2026,
+    "building_type": "school",
+    "capacity": 850,
+    "floors": 2,
+    "fire_class": "Ф4.1",
+    "floor_height_m": 3.3,
+    "has_basement": true,
+    "axes_m": [
+      54.7,
+      29.2
+    ],
+    "foundation_thickness_mm": 900
+  },
+  "documents": {
+    "PZ": {
+      "code": "669-2026-ТЖ",
+      "title": "1-бөлім. Түсіндірме жазба",
+      "text_pdf": "text/PZ.pdf",
+      "docx": "text/PZ.docx",
+      "scan_pdf": "scan/PZ.pdf",
+      "scan_pages": [
+        "scan/PZ_p1.jpg"
+      ],
+      "scan_params": [
+        {
+          "page": 1,
+          "dpi": 200,
+          "rotation_deg": -0.961,
+          "blur_radius": 0.793,
+          "noise_sigma": 7.82,
+          "brightness": 0.935,
+          "contrast": 0.913,
+          "specks": 419,
+          "jpeg_quality": 60
+        }
+      ]
+    },
+    "AR": {
+      "code": "669-2026-СШ",
+      "title": "3-бөлім. Сәулет шешімдері. Мәтіндік бөлігі",
+      "text_pdf": "text/AR.pdf",
+      "docx": "text/AR.docx",
+      "scan_pdf": "scan/AR.pdf",
+      "scan_pages": [
+        "scan/AR_p1.jpg",
+        "scan/AR_p2.jpg"
+      ],
+      "scan_params": [
+        {
+          "page": 1,
+          "dpi": 200,
+          "rotation_deg": -0.612,
+          "blur_radius": 0.501,
+          "noise_sigma": 10.6,
+          "brightness": 0.996,
+          "contrast": 0.936,
+          "specks": 588,
+          "jpeg_quality": 75
+        },
+        {
+          "page": 2,
+          "dpi": 200,
+          "rotation_deg": -0.525,
+          "blur_radius": 0.833,
+          "noise_sigma": 10.94,
+          "brightness": 1.009,
+          "contrast": 1.043,
+          "specks": 325,
+          "jpeg_quality": 66
+        }
+      ]
+    },
+    "KR": {
+      "code": "669-2026-КШ",
+      "title": "4-бөлім. Конструктивтік шешімдер. Мәтіндік бөлігі",
+      "text_pdf": "text/KR.pdf",
+      "docx": "text/KR.docx",
+      "scan_pdf": "scan/KR.pdf",
+      "scan_pages": [
+        "scan/KR_p1.jpg"
+      ],
+      "scan_params": [
+        {
+          "page": 1,
+          "dpi": 200,
+          "rotation_deg": -0.62,
+          "blur_radius": 0.83,
+          "noise_sigma": 10.34,
+          "brightness": 1.009,
+          "contrast": 0.94,
+          "specks": 234,
+          "jpeg_quality": 80
+        }
+      ]
+    },
+    "SMETA": {
+      "code": "669-2026-СҚ",
+      "title": "9-бөлім. Сметалық құжаттама",
+      "text_pdf": "text/SMETA.pdf",
+      "docx": "text/SMETA.docx",
+      "scan_pdf": "scan/SMETA.pdf",
+      "scan_pages": [
+        "scan/SMETA_p1.jpg",
+        "scan/SMETA_p2.jpg"
+      ],
+      "scan_params": [
+        {
+          "page": 1,
+          "dpi": 200,
+          "rotation_deg": -0.437,
+          "blur_radius": 0.456,
+          "noise_sigma": 11.85,
+          "brightness": 0.963,
+          "contrast": 1.024,
+          "specks": 302,
+          "jpeg_quality": 71
+        },
+        {
+          "page": 2,
+          "dpi": 200,
+          "rotation_deg": -1.176,
+          "blur_radius": 0.411,
+          "noise_sigma": 7.42,
+          "brightness": 1.001,
+          "contrast": 1.045,
+          "specks": 348,
+          "jpeg_quality": 60
+        }
+      ]
+    }
+  },
+  "ar_explication": [
+    {
+      "floor": 1,
+      "number": "101",
+      "kind": "vestibule",
+      "area_m2": 58.04,
+      "category": "—",
+      "name": "Вестибюль"
+    },
+    {
+      "floor": 1,
+      "number": "102",
+      "kind": "canteen",
+      "area_m2": 263.09,
+      "category": "—",
+      "name": "Асхана"
+    },
+    {
+      "floor": 1,
+      "number": "103",
+      "kind": "kitchen",
+      "area_m2": 103.59,
+      "category": "—",
+      "name": "Ас блогы"
+    },
+    {
+      "floor": 1,
+      "number": "104",
+      "kind": "sportshall",
+      "area_m2": 411.21,
+      "category": "—",
+      "name": "Спорт залы"
+    },
+    {
+      "floor": 1,
+      "number": "105",
+      "kind": "medical",
+      "area_m2": 19.29,
+      "category": "—",
+      "name": "Медициналық кабинет"
+    },
+    {
+      "floor": 1,
+      "number": "106",
+      "kind": "storage",
+      "area_m2": 12.45,
+      "category": "В4",
+      "name": "Қойма"
+    },
+    {
+      "floor": 1,
+      "number": "107",
+      "kind": "tech",
+      "area_m2": 16.86,
+      "category": "Д",
+      "name": "Техникалық үй-жай"
+    },
+    {
+      "floor": 1,
+      "number": "108",
+      "kind": "classroom",
+      "area_m2": 50.39,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 1,
+      "number": "109",
+      "kind": "classroom",
+      "area_m2": 64.22,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 1,
+      "number": "110",
+      "kind": "classroom",
+      "area_m2": 62.99,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 1,
+      "number": "111",
+      "kind": "classroom",
+      "area_m2": 60.38,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 1,
+      "number": "112",
+      "kind": "classroom",
+      "area_m2": 53.07,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 1,
+      "number": "113",
+      "kind": "classroom",
+      "area_m2": 62.0,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 1,
+      "number": "114",
+      "kind": "corridor",
+      "area_m2": 88.87,
+      "category": "—",
+      "name": "Дәліз"
+    },
+    {
+      "floor": 1,
+      "number": "115",
+      "kind": "stair",
+      "area_m2": 18.07,
+      "category": "—",
+      "name": "Баспалдақ торы"
+    },
+    {
+      "floor": 1,
+      "number": "116",
+      "kind": "stair",
+      "area_m2": 19.83,
+      "category": "—",
+      "name": "Баспалдақ торы"
+    },
+    {
+      "floor": 1,
+      "number": "117",
+      "kind": "wc",
+      "area_m2": 9.62,
+      "category": "—",
+      "name": "Санитариялық торап"
+    },
+    {
+      "floor": 1,
+      "number": "118",
+      "kind": "wc",
+      "area_m2": 7.18,
+      "category": "—",
+      "name": "Санитариялық торап"
+    },
+    {
+      "floor": 2,
+      "number": "201",
+      "kind": "library",
+      "area_m2": 94.26,
+      "category": "—",
+      "name": "Кітапхана"
+    },
+    {
+      "floor": 2,
+      "number": "202",
+      "kind": "teachers",
+      "area_m2": 46.96,
+      "category": "—",
+      "name": "Мұғалімдер бөлмесі"
+    },
+    {
+      "floor": 2,
+      "number": "203",
+      "kind": "lab",
+      "area_m2": 78.29,
+      "category": "—",
+      "name": "Зертхана"
+    },
+    {
+      "floor": 2,
+      "number": "204",
+      "kind": "storage",
+      "area_m2": 13.83,
+      "category": "В4",
+      "name": "Қойма"
+    },
+    {
+      "floor": 2,
+      "number": "205",
+      "kind": "classroom",
+      "area_m2": 50.05,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 2,
+      "number": "206",
+      "kind": "classroom",
+      "area_m2": 64.04,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 2,
+      "number": "207",
+      "kind": "classroom",
+      "area_m2": 57.44,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 2,
+      "number": "208",
+      "kind": "classroom",
+      "area_m2": 50.29,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 2,
+      "number": "209",
+      "kind": "classroom",
+      "area_m2": 55.31,
+      "category": "—",
+      "name": "Сынып бөлмесі"
+    },
+    {
+      "floor": 2,
+      "number": "210",
+      "kind": "corridor",
+      "area_m2": 33.59,
+      "category": "—",
+      "name": "Дәліз"
+    },
+    {
+      "floor": 2,
+      "number": "211",
+      "kind": "stair",
+      "area_m2": 24.12,
+      "category": "—",
+      "name": "Баспалдақ торы"
+    },
+    {
+      "floor": 2,
+      "number": "212",
+      "kind": "stair",
+      "area_m2": 23.3,
+      "category": "—",
+      "name": "Баспалдақ торы"
+    },
+    {
+      "floor": 2,
+      "number": "213",
+      "kind": "wc",
+      "area_m2": 12.35,
+      "category": "—",
+      "name": "Санитариялық торап"
+    },
+    {
+      "floor": 2,
+      "number": "214",
+      "kind": "wc",
+      "area_m2": 15.27,
+      "category": "—",
+      "name": "Санитариялық торап"
+    },
+    {
+      "floor": 2,
+      "number": "215",
+      "kind": "storage",
+      "area_m2": 9.58,
+      "category": "В4",
+      "name": "Қойма"
+    }
+  ],
+  "tep": {
+    "PZ": {
+      "floors": {
+        "value": 2,
+        "unit": "floor",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_tep",
+            "text": "2",
+            "row": 0,
+            "col": 3
+          }
+        ]
+      },
+      "building_area_m2": {
+        "value": 1598.59,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_tep",
+            "text": "1 598,59",
+            "row": 1,
+            "col": 3
+          }
+        ]
+      },
+      "total_area_m2": {
+        "value": 2118.34,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_tep",
+            "text": "2 118,34",
+            "row": 2,
+            "col": 3
+          },
+          {
+            "block_id": "p4",
+            "text": "2 118,34"
+          }
+        ]
+      },
+      "construction_volume_m3": {
+        "value": 16945.05,
+        "unit": "m3",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_tep",
+            "text": "16 945,05",
+            "row": 3,
+            "col": 3
+          },
+          {
+            "block_id": "p4",
+            "text": "16 945,05"
+          }
+        ]
+      },
+      "underground_volume_m3": {
+        "value": 4476.05,
+        "unit": "m3",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_tep",
+            "text": "4 476,05",
+            "row": 4,
+            "col": 3
+          }
+        ]
+      },
+      "estimated_cost_ktg": {
+        "value": 1161782.862,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_tep",
+            "text": "1 161 782,862",
+            "row": 5,
+            "col": 3
+          },
+          {
+            "block_id": "p5",
+            "text": "1 161 782,862"
+          }
+        ]
+      },
+      "construction_duration_months": {
+        "value": 13,
+        "unit": "month",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_tep",
+            "text": "13",
+            "row": 6,
+            "col": 3
+          }
+        ]
+      }
+    },
+    "AR": {
+      "floors": {
+        "value": 2,
+        "unit": "floor",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_ar_tep",
+            "text": "2",
+            "row": 0,
+            "col": 3
+          }
+        ]
+      },
+      "explication_total_area_m2": {
+        "value": 2009.83,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "2 009,83",
+            "row": 37,
+            "col": 2
+          }
+        ]
+      },
+      "building_area_m2": {
+        "value": 1598.59,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_ar_tep",
+            "text": "1 598,59",
+            "row": 1,
+            "col": 3
+          }
+        ]
+      },
+      "construction_volume_m3": {
+        "value": 16945.05,
+        "unit": "m3",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_ar_tep",
+            "text": "16 945,05",
+            "row": 2,
+            "col": 3
+          }
+        ]
+      },
+      "room.101.area_m2": {
+        "value": 58.04,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "58,04",
+            "row": 1,
+            "col": 2
+          }
+        ]
+      },
+      "room.102.area_m2": {
+        "value": 263.09,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "263,09",
+            "row": 2,
+            "col": 2
+          }
+        ]
+      },
+      "room.103.area_m2": {
+        "value": 103.59,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "103,59",
+            "row": 3,
+            "col": 2
+          }
+        ]
+      },
+      "room.104.area_m2": {
+        "value": 411.21,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "411,21",
+            "row": 4,
+            "col": 2
+          }
+        ]
+      },
+      "room.105.area_m2": {
+        "value": 19.29,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "19,29",
+            "row": 5,
+            "col": 2
+          }
+        ]
+      },
+      "room.106.area_m2": {
+        "value": 12.45,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "12,45",
+            "row": 6,
+            "col": 2
+          }
+        ]
+      },
+      "room.107.area_m2": {
+        "value": 16.86,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "16,86",
+            "row": 7,
+            "col": 2
+          }
+        ]
+      },
+      "room.108.area_m2": {
+        "value": 50.39,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "50,39",
+            "row": 8,
+            "col": 2
+          }
+        ]
+      },
+      "room.109.area_m2": {
+        "value": 64.22,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "64,22",
+            "row": 9,
+            "col": 2
+          }
+        ]
+      },
+      "room.110.area_m2": {
+        "value": 62.99,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "62,99",
+            "row": 10,
+            "col": 2
+          }
+        ]
+      },
+      "room.111.area_m2": {
+        "value": 60.38,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "60,38",
+            "row": 11,
+            "col": 2
+          }
+        ]
+      },
+      "room.112.area_m2": {
+        "value": 53.07,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "53,07",
+            "row": 12,
+            "col": 2
+          }
+        ]
+      },
+      "room.113.area_m2": {
+        "value": 62.0,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "62,00",
+            "row": 13,
+            "col": 2
+          }
+        ]
+      },
+      "room.114.area_m2": {
+        "value": 88.87,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "88,87",
+            "row": 14,
+            "col": 2
+          }
+        ]
+      },
+      "room.115.area_m2": {
+        "value": 18.07,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "18,07",
+            "row": 15,
+            "col": 2
+          }
+        ]
+      },
+      "room.116.area_m2": {
+        "value": 19.83,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "19,83",
+            "row": 16,
+            "col": 2
+          }
+        ]
+      },
+      "room.117.area_m2": {
+        "value": 9.62,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "9,62",
+            "row": 17,
+            "col": 2
+          }
+        ]
+      },
+      "room.118.area_m2": {
+        "value": 7.18,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "7,18",
+            "row": 18,
+            "col": 2
+          }
+        ]
+      },
+      "room.201.area_m2": {
+        "value": 94.26,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "94,26",
+            "row": 21,
+            "col": 2
+          }
+        ]
+      },
+      "room.202.area_m2": {
+        "value": 46.96,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "46,96",
+            "row": 22,
+            "col": 2
+          }
+        ]
+      },
+      "room.203.area_m2": {
+        "value": 78.29,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "78,29",
+            "row": 23,
+            "col": 2
+          }
+        ]
+      },
+      "room.204.area_m2": {
+        "value": 13.83,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "13,83",
+            "row": 24,
+            "col": 2
+          }
+        ]
+      },
+      "room.205.area_m2": {
+        "value": 50.05,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "50,05",
+            "row": 25,
+            "col": 2
+          }
+        ]
+      },
+      "room.206.area_m2": {
+        "value": 64.04,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "64,04",
+            "row": 26,
+            "col": 2
+          }
+        ]
+      },
+      "room.207.area_m2": {
+        "value": 57.44,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "57,44",
+            "row": 27,
+            "col": 2
+          }
+        ]
+      },
+      "room.208.area_m2": {
+        "value": 50.29,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "50,29",
+            "row": 28,
+            "col": 2
+          }
+        ]
+      },
+      "room.209.area_m2": {
+        "value": 55.31,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "55,31",
+            "row": 29,
+            "col": 2
+          }
+        ]
+      },
+      "room.210.area_m2": {
+        "value": 33.59,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "33,59",
+            "row": 30,
+            "col": 2
+          }
+        ]
+      },
+      "room.211.area_m2": {
+        "value": 24.12,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "24,12",
+            "row": 31,
+            "col": 2
+          }
+        ]
+      },
+      "room.212.area_m2": {
+        "value": 23.3,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "23,30",
+            "row": 32,
+            "col": 2
+          }
+        ]
+      },
+      "room.213.area_m2": {
+        "value": 12.35,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "12,35",
+            "row": 33,
+            "col": 2
+          }
+        ]
+      },
+      "room.214.area_m2": {
+        "value": 15.27,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "15,27",
+            "row": 34,
+            "col": 2
+          }
+        ]
+      },
+      "room.215.area_m2": {
+        "value": 9.58,
+        "unit": "m2",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_explication",
+            "text": "9,58",
+            "row": 35,
+            "col": 2
+          }
+        ]
+      }
+    },
+    "KR": {
+      "concrete_b25_foundation_m3": {
+        "value": 1510.67,
+        "unit": "m3",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_materials",
+            "text": "1 510,67",
+            "row": 0,
+            "col": 3
+          }
+        ]
+      },
+      "concrete_b30_frame_m3": {
+        "value": 412.11,
+        "unit": "m3",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_materials",
+            "text": "412,11",
+            "row": 1,
+            "col": 3
+          }
+        ]
+      },
+      "rebar_a500c_t": {
+        "value": 200.119,
+        "unit": "t",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_materials",
+            "text": "200,119",
+            "row": 2,
+            "col": 3
+          }
+        ]
+      },
+      "brick_masonry_m3": {
+        "value": 259.45,
+        "unit": "m3",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_materials",
+            "text": "259,45",
+            "row": 3,
+            "col": 3
+          }
+        ]
+      },
+      "steel_structures_t": {
+        "value": null,
+        "unit": "t",
+        "present": false,
+        "anchors": []
+      },
+      "concrete_total_m3": {
+        "value": 1922.78,
+        "unit": "m3",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "p3",
+            "text": "1 922,78"
+          }
+        ]
+      }
+    },
+    "SMETA": {
+      "local_qty.concrete_b25_foundation_m3": {
+        "value": 1510.67,
+        "unit": "m3",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "1 510,67",
+            "row": 0,
+            "col": 4
+          }
+        ]
+      },
+      "local_unit_price_tg.concrete_b25_foundation_m3": {
+        "value": 89478.25,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "89 478,25",
+            "row": 0,
+            "col": 5
+          }
+        ]
+      },
+      "local_cost_tg.concrete_b25_foundation_m3": {
+        "value": 135172107.93,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "135 172 107,93",
+            "row": 0,
+            "col": 6
+          }
+        ]
+      },
+      "local_qty.concrete_b30_frame_m3": {
+        "value": 412.11,
+        "unit": "m3",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "412,11",
+            "row": 1,
+            "col": 4
+          }
+        ]
+      },
+      "local_unit_price_tg.concrete_b30_frame_m3": {
+        "value": 118839.47,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "118 839,47",
+            "row": 1,
+            "col": 5
+          }
+        ]
+      },
+      "local_cost_tg.concrete_b30_frame_m3": {
+        "value": 48974933.98,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "48 974 933,98",
+            "row": 1,
+            "col": 6
+          }
+        ]
+      },
+      "local_qty.rebar_a500c_t": {
+        "value": 156.86,
+        "unit": "t",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "156,860",
+            "row": 2,
+            "col": 4
+          }
+        ]
+      },
+      "local_unit_price_tg.rebar_a500c_t": {
+        "value": 545048.34,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "545 048,34",
+            "row": 2,
+            "col": 5
+          }
+        ]
+      },
+      "local_cost_tg.rebar_a500c_t": {
+        "value": 85496282.61,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "85 496 282,61",
+            "row": 2,
+            "col": 6
+          }
+        ]
+      },
+      "local_qty.brick_masonry_m3": {
+        "value": 259.45,
+        "unit": "m3",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "259,45",
+            "row": 3,
+            "col": 4
+          }
+        ]
+      },
+      "local_unit_price_tg.brick_masonry_m3": {
+        "value": 61083.81,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "61 083,81",
+            "row": 3,
+            "col": 5
+          }
+        ]
+      },
+      "local_cost_tg.brick_masonry_m3": {
+        "value": 15848194.5,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "15 848 194,50",
+            "row": 3,
+            "col": 6
+          }
+        ]
+      },
+      "local_qty.steel_structures_t": {
+        "value": 16.15,
+        "unit": "t",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "16,150",
+            "row": 4,
+            "col": 4
+          }
+        ]
+      },
+      "local_unit_price_tg.steel_structures_t": {
+        "value": 746327.43,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "746 327,43",
+            "row": 4,
+            "col": 5
+          }
+        ]
+      },
+      "local_cost_tg.steel_structures_t": {
+        "value": 12053187.99,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "12 053 187,99",
+            "row": 4,
+            "col": 6
+          }
+        ]
+      },
+      "local.direct_tg": {
+        "value": 297544707.01,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "297 544 707,01",
+            "row": 5,
+            "col": 6
+          }
+        ]
+      },
+      "local.overhead_pct": {
+        "value": 10.0,
+        "unit": "%",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "Үстеме шығыстар, 10,0 %",
+            "row": 6,
+            "col": 2
+          }
+        ]
+      },
+      "local.overhead_tg": {
+        "value": 29754470.7,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "29 754 470,70",
+            "row": 6,
+            "col": 6
+          }
+        ]
+      },
+      "local.profit_pct": {
+        "value": 8.0,
+        "unit": "%",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "Сметалық пайда, 8,0 %",
+            "row": 7,
+            "col": 2
+          }
+        ]
+      },
+      "local.profit_tg": {
+        "value": 26183934.22,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "26 183 934,22",
+            "row": 7,
+            "col": 6
+          }
+        ]
+      },
+      "local.total_tg": {
+        "value": 353483111.93,
+        "unit": "KZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_local",
+            "text": "353 483 111,93",
+            "row": 8,
+            "col": 6
+          }
+        ]
+      },
+      "os.ls_02-01-01_ktg": {
+        "value": 353483.112,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_object",
+            "text": "353 483,112",
+            "row": 0,
+            "col": 3
+          }
+        ]
+      },
+      "os.ls_02-01-02_ktg": {
+        "value": 255565.104,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_object",
+            "text": "255 565,104",
+            "row": 1,
+            "col": 3
+          }
+        ]
+      },
+      "os.ls_02-01-03_ktg": {
+        "value": 65499.333,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_object",
+            "text": "65 499,333",
+            "row": 2,
+            "col": 3
+          }
+        ]
+      },
+      "os.ls_02-01-04_ktg": {
+        "value": 44552.749,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_object",
+            "text": "44 552,749",
+            "row": 3,
+            "col": 3
+          }
+        ]
+      },
+      "os.ls_02-01-05_ktg": {
+        "value": 68059.507,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_object",
+            "text": "68 059,507",
+            "row": 4,
+            "col": 3
+          }
+        ]
+      },
+      "os.ls_02-01-06_ktg": {
+        "value": 33936.219,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_object",
+            "text": "33 936,219",
+            "row": 5,
+            "col": 3
+          }
+        ]
+      },
+      "os.total_ktg": {
+        "value": 821096.024,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_object",
+            "text": "821 096,024",
+            "row": 6,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.ch1_ktg": {
+        "value": 17958.572,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "17 958,572",
+            "row": 0,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.ch2.os_02-01_ktg": {
+        "value": 863533.426,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "863 533,426",
+            "row": 2,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.ch7_ktg": {
+        "value": 40891.92,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "40 891,920",
+            "row": 3,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.ch8_ktg": {
+        "value": 16330.079,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "16 330,079",
+            "row": 4,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.ch9_ktg": {
+        "value": 33541.089,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "33 541,089",
+            "row": 5,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.ch12_ktg": {
+        "value": 44711.705,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "44 711,705",
+            "row": 6,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.subtotal_ktg": {
+        "value": 1016966.791,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "1 016 966,791",
+            "row": 7,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.reserve_ktg": {
+        "value": 20339.336,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "20 339,336",
+            "row": 8,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.with_reserve_ktg": {
+        "value": 1037306.127,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "1 037 306,127",
+            "row": 9,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.vat_ktg": {
+        "value": 124476.735,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "124 476,735",
+            "row": 10,
+            "col": 3
+          }
+        ]
+      },
+      "ssr.total_ktg": {
+        "value": 1161782.862,
+        "unit": "kKZT",
+        "present": true,
+        "anchors": [
+          {
+            "block_id": "tbl_summary",
+            "text": "1 161 782,862",
+            "row": 11,
+            "col": 3
+          }
+        ]
+      }
+    }
+  },
+  "discrepancies": [
+    {
+      "type": "AREA_PZ_VS_AR_EXPLICATION",
+      "field": "total_area_m2",
+      "refs": [
+        {
+          "section": "PZ",
+          "field": "total_area_m2",
+          "value": 2118.34,
+          "tep_ref": "PZ.total_area_m2",
+          "anchors": [
+            {
+              "block_id": "tbl_tep",
+              "text": "2 118,34",
+              "row": 2,
+              "col": 3
+            },
+            {
+              "block_id": "p4",
+              "text": "2 118,34"
+            }
+          ]
+        },
+        {
+          "section": "AR",
+          "field": "explication_total_area_m2",
+          "value": 2009.83,
+          "derived_from": "sum(AR.rooms[].area_m2)",
+          "tep_ref": "AR.explication_total_area_m2",
+          "anchors": [
+            {
+              "block_id": "tbl_explication",
+              "text": "2 009,83",
+              "row": 37,
+              "col": 2
+            }
+          ]
+        }
+      ],
+      "delta_abs": 108.51,
+      "delta_rel": 0.05399,
+      "tolerance": {
+        "rel": 0.005,
+        "abs": 0.1
+      },
+      "expected_verdict": "MISMATCH",
+      "id": "D1"
+    },
+    {
+      "type": "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+      "field": "rebar_a500c_t",
+      "refs": [
+        {
+          "section": "KR",
+          "field": "rebar_a500c_t",
+          "value": 200.119,
+          "tep_ref": "KR.rebar_a500c_t",
+          "anchors": [
+            {
+              "block_id": "tbl_materials",
+              "text": "200,119",
+              "row": 2,
+              "col": 3
+            }
+          ]
+        },
+        {
+          "section": "SMETA",
+          "field": "local_qty.rebar_a500c_t",
+          "value": 156.86,
+          "tep_ref": "SMETA.local_qty.rebar_a500c_t",
+          "anchors": [
+            {
+              "block_id": "tbl_local",
+              "text": "156,860",
+              "row": 2,
+              "col": 4
+            }
+          ]
+        }
+      ],
+      "delta_abs": 43.259,
+      "delta_rel": 0.27578,
+      "tolerance": {
+        "rel": 0.01,
+        "abs": 0.01
+      },
+      "expected_verdict": "MISMATCH",
+      "id": "D2"
+    },
+    {
+      "type": "COST_OBJECT_ESTIMATE_VS_SUMMARY",
+      "field": "object_estimate_total_ktg",
+      "refs": [
+        {
+          "section": "SMETA",
+          "field": "os.total_ktg",
+          "value": 821096.024,
+          "tep_ref": "SMETA.os.total_ktg",
+          "anchors": [
+            {
+              "block_id": "tbl_object",
+              "text": "821 096,024",
+              "row": 6,
+              "col": 3
+            }
+          ]
+        },
+        {
+          "section": "SMETA",
+          "field": "ssr.ch2.os_02-01_ktg",
+          "value": 863533.426,
+          "tep_ref": "SMETA.ssr.ch2.os_02-01_ktg",
+          "anchors": [
+            {
+              "block_id": "tbl_summary",
+              "text": "863 533,426",
+              "row": 2,
+              "col": 3
+            }
+          ]
+        }
+      ],
+      "delta_abs": -42437.402,
+      "delta_rel": -0.04914,
+      "tolerance": {
+        "rel": 0.0,
+        "abs": 0.001
+      },
+      "expected_verdict": "MISMATCH",
+      "id": "D3"
+    },
+    {
+      "type": "MISSING_MANDATORY_TEP",
+      "field": "steel_structures_t",
+      "refs": [
+        {
+          "section": "KR",
+          "field": "steel_structures_t",
+          "value": null,
+          "present": false,
+          "tep_ref": "KR.steel_structures_t",
+          "anchors": []
+        },
+        {
+          "section": "SMETA",
+          "field": "local_qty.steel_structures_t",
+          "value": 16.15,
+          "present": true,
+          "tep_ref": "SMETA.local_qty.steel_structures_t",
+          "anchors": [
+            {
+              "block_id": "tbl_local",
+              "text": "16,150",
+              "row": 4,
+              "col": 4
+            }
+          ]
+        }
+      ],
+      "missing_in": "KR",
+      "expected_verdict": "MISSING",
+      "id": "D4"
+    }
+  ],
+  "consistent_checks": [
+    {
+      "type": "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+      "field": "concrete_b25_foundation_m3",
+      "refs": [
+        {
+          "section": "KR",
+          "field": "concrete_b25_foundation_m3",
+          "value": 1510.67,
+          "tep_ref": "KR.concrete_b25_foundation_m3",
+          "anchors": [
+            {
+              "block_id": "tbl_materials",
+              "text": "1 510,67",
+              "row": 0,
+              "col": 3
+            }
+          ]
+        },
+        {
+          "section": "SMETA",
+          "field": "local_qty.concrete_b25_foundation_m3",
+          "value": 1510.67,
+          "tep_ref": "SMETA.local_qty.concrete_b25_foundation_m3",
+          "anchors": [
+            {
+              "block_id": "tbl_local",
+              "text": "1 510,67",
+              "row": 0,
+              "col": 4
+            }
+          ]
+        }
+      ],
+      "delta_abs": 0.0,
+      "delta_rel": 0.0,
+      "tolerance": {
+        "rel": 0.01,
+        "abs": 0.01
+      },
+      "expected_verdict": "MATCH",
+      "id": "C1"
+    },
+    {
+      "type": "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+      "field": "concrete_b30_frame_m3",
+      "refs": [
+        {
+          "section": "KR",
+          "field": "concrete_b30_frame_m3",
+          "value": 412.11,
+          "tep_ref": "KR.concrete_b30_frame_m3",
+          "anchors": [
+            {
+              "block_id": "tbl_materials",
+              "text": "412,11",
+              "row": 1,
+              "col": 3
+            }
+          ]
+        },
+        {
+          "section": "SMETA",
+          "field": "local_qty.concrete_b30_frame_m3",
+          "value": 412.11,
+          "tep_ref": "SMETA.local_qty.concrete_b30_frame_m3",
+          "anchors": [
+            {
+              "block_id": "tbl_local",
+              "text": "412,11",
+              "row": 1,
+              "col": 4
+            }
+          ]
+        }
+      ],
+      "delta_abs": 0.0,
+      "delta_rel": 0.0,
+      "tolerance": {
+        "rel": 0.01,
+        "abs": 0.01
+      },
+      "expected_verdict": "MATCH",
+      "id": "C2"
+    },
+    {
+      "type": "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+      "field": "brick_masonry_m3",
+      "refs": [
+        {
+          "section": "KR",
+          "field": "brick_masonry_m3",
+          "value": 259.45,
+          "tep_ref": "KR.brick_masonry_m3",
+          "anchors": [
+            {
+              "block_id": "tbl_materials",
+              "text": "259,45",
+              "row": 3,
+              "col": 3
+            }
+          ]
+        },
+        {
+          "section": "SMETA",
+          "field": "local_qty.brick_masonry_m3",
+          "value": 259.45,
+          "tep_ref": "SMETA.local_qty.brick_masonry_m3",
+          "anchors": [
+            {
+              "block_id": "tbl_local",
+              "text": "259,45",
+              "row": 3,
+              "col": 4
+            }
+          ]
+        }
+      ],
+      "delta_abs": 0.0,
+      "delta_rel": 0.0,
+      "tolerance": {
+        "rel": 0.01,
+        "abs": 0.01
+      },
+      "expected_verdict": "MATCH",
+      "id": "C3"
+    }
+  ]
+}
