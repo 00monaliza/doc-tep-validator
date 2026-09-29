@@ -18,3 +18,6 @@ data/uploads/
 .claude-flow/
 .claude/*
 !.claude/launch.json
+# Real project documents: never commit (client data)
+data/real/*
+!data/real/.gitkeep
