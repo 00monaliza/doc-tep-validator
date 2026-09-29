@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from src.crossvalidation.objects import SITE_RE, ObjectIndex, PageText, discover_objects, page_texts, resolve
+from src.crossvalidation.objects import ObjectIndex, PageText, discover_objects, page_texts, resolve
 from src.evaluation.schema import Finding, Ref
 from src.ingestion.common.numbers import NUMBER_RE, normalize_unit, number_readings
 from src.ingestion.real import Page, PageTable, norm_ws
@@ -35,6 +35,11 @@ TOTAL_TOLERANCE = TOLERANCES[DiscrepancyType.TABLE_TOTAL_MISMATCH]
 _UNIT = r"(?P<unit>[мm]\.?\s?[23²³]|кв\.\s?[мm]|куб\.\s?[мm])(?!\s*/)"
 _NUM = rf"(?P<num>{NUMBER_RE.pattern})"
 SEISMIC_RE = re.compile(r"(?:сейсмичн|сейсмикал)\w*\D{0,40}?(?P<num>\d{1,2})\s*балл\w*", re.IGNORECASE)
+# KZ word order: the number comes first ("8 балдық сейсмикалығы")
+SEISMIC_KZ_RE = re.compile(r"(?P<num>\d{1,2})\s*балд\w*\s+сейсмикал\w*", re.IGNORECASE)
+SITE_SCOPE_RE = re.compile(r"площадк|район|участ\w* (?:строительств|работ)|местност|алаң|аудан\w*да\b|өңір",
+                           re.IGNORECASE)
+BUILDING_SCOPE_RE = re.compile(r"здани|корпус|сооружени|ғимарат", re.IGNORECASE)
 AXES_RE = re.compile(rf"в\s+осях\s+(?P<a>{NUMBER_RE.pattern})\s*[хx×*]\s*(?P<b>{NUMBER_RE.pattern})\s*м\b",
                      re.IGNORECASE)
 AXES_KZ_RE = re.compile(rf"(?P<a>{NUMBER_RE.pattern})\s*[хx×*]\s*(?P<b>{NUMBER_RE.pattern})\s*м\b[^.]{{0,20}}?өстер",
@@ -194,20 +199,42 @@ def check_cross_section(mentions: list[Mention]) -> list[Finding]:
     return out
 
 
+def _scope(pt: PageText, index: ObjectIndex, start: int, end: int) -> str:
+    """'site' unless the sentence is about one building and not about the site/district."""
+    sentence = pt.sentence(start, end)
+    if SITE_SCOPE_RE.search(sentence):
+        return "site"
+    obj, how = resolve(pt, index, start, end)
+    if obj is not None and (how == "mention" or BUILDING_SCOPE_RE.search(sentence)):
+        return obj
+    return "site"
+
+
 def check_seismicity(pts: list[PageText], index: ObjectIndex) -> list[Finding]:
-    """Seismicity is a property of the site: more than one value in the document is a contradiction."""
-    refs = []
+    """Seismicity belongs to the site by default; a document may state it for one building.
+
+    Contradictions: several site values; several values of one building; a building value
+    that differs from the site value(s).
+    """
+    by_scope: dict[str, list[Ref]] = {}
     for pt in pts:
-        for m in SEISMIC_RE.finditer(pt.text):
-            obj, _ = resolve(pt, index, m.start(), m.end())
-            if SITE_RE.search(pt.sentence(m.start(), m.end())) and obj is None:
-                obj = "site"
-            refs.append(Ref(page=pt.page, quote=_quote(pt.text, m.group()), object=obj or "site",
-                            value=int(m.group("num"))))
-    if len({r.value for r in refs}) < 2:
-        return []
-    return [_finding(DiscrepancyType.PARAMETER_CONTRADICTION, "seismicity_points", "site", refs,
-                     note="values: " + ", ".join(str(v) for v in sorted({r.value for r in refs})))]
+        for rx in (SEISMIC_RE, SEISMIC_KZ_RE):
+            for m in rx.finditer(pt.text):
+                scope = _scope(pt, index, m.start(), m.end())
+                ref = Ref(page=pt.page, quote=_quote(pt.text, m.group()), object=scope, value=int(m.group("num")))
+                by_scope.setdefault(scope, []).append(ref)
+    out = []
+    site = by_scope.pop("site", [])
+    site_values = {r.value for r in site}
+    if len(site_values) > 1:
+        out.append(_finding(DiscrepancyType.PARAMETER_CONTRADICTION, "seismicity_points", "site", site,
+                            note="site values: " + ", ".join(str(v) for v in sorted(site_values))))
+    for obj, refs in by_scope.items():
+        values = {r.value for r in refs}
+        if len(values) > 1 or (site_values and values - site_values):
+            out.append(_finding(DiscrepancyType.PARAMETER_CONTRADICTION, "seismicity_points", obj, refs + site,
+                                note=f"building values {sorted(values)}, site values {sorted(site_values)}"))
+    return out
 
 
 def check_geometry(pts: list[PageText], index: ObjectIndex, mentions: list[Mention],

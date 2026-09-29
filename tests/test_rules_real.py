@@ -104,3 +104,22 @@ def test_map_objects_and_match():
     assert [g.id for g in res.missed] == ["R2", "R3"] and [p.id for p in res.false] == ["P2"]
     assert res.precision == 0.5 and res.recall == 1 / 3
     assert res.by_level()["artifact"] == {"found": 0, "missed": 1, "false": 0}
+
+
+def test_seismicity_building_level_and_vs_site():
+    lines = ["1. Общие данные", "Сейсмичность площадки строительства - 8 баллов.",
+             "3.1 Складской корпус", "Здание корпуса рассчитано на сейсмичность 9 баллов.",
+             "3.2 Бытовой блок", "Здание рассчитано на сейсмичность 8 баллов.",
+             "Проект выполнен для района с сейсмичностью 8 баллов."]
+    r = run_rules([page(1, lines)])
+    seis = [f for f in r.findings if f.type == T.PARAMETER_CONTRADICTION]
+    assert [(f.object, sorted({ref.value for ref in f.refs})) for f in seis] == [("obj1", [8, 9])]
+    assert {ref.object for ref in seis[0].refs} == {"obj1", "site"}
+
+
+def test_seismicity_kz_number_first():
+    lines = ["Құрылыс алаңының сейсмикалығы — 7 балл.", "Конструктивтік шешімдер 8 балдық сейсмикалығы бар "
+             "ауданда салуды ескере отырып қабылданды."]
+    r = run_rules([page(1, lines)])
+    seis = [f for f in r.findings if f.type == T.PARAMETER_CONTRADICTION]
+    assert [(f.object, sorted({ref.value for ref in f.refs})) for f in seis] == [("site", [7, 8])]
