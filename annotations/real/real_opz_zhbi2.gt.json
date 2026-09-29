@@ -1,0 +1,331 @@
+{
+  "schema_version": "real-0.1",
+  "document_id": "real_opz_zhbi2",
+  "source_file": "data/real/ОПЗ ЖБИ2.pdf",
+  "lang": "ru",
+  "doc_type": "ОПЗ (рабочий проект)",
+  "year": 2023,
+  "pages": 22,
+  "text_layer": true,
+  "extractor": "pdfplumber 0.11 extract_text(); page numbers are 1-based, quotes are exact substrings of that page's text (normalize whitespace when normalize_whitespace=true)",
+  "objects": {
+    "abk": "Административно-бытовой корпус",
+    "ceh": "Здание цеха",
+    "site": "Площадка",
+    "all": "Все здания",
+    "document": "Документ в целом"
+  },
+  "tep": {
+    "abk": {
+      "axes_m": [
+        12.0,
+        24.0
+      ],
+      "building_area_m2": 312.91,
+      "construction_volume_m3": 3116.37,
+      "useful_area_m2": 531.16,
+      "total_area_m2": 547.72,
+      "page": 12
+    },
+    "ceh": {
+      "axes_m": [
+        8.5,
+        24.0
+      ],
+      "floors": 1,
+      "building_area_m2": 199.5,
+      "construction_volume_m3": [
+        518.7,
+        4963.84
+      ],
+      "useful_area_m2": 113.28,
+      "total_area_m2": [
+        119.28,
+        113.28
+      ],
+      "page": 13
+    },
+    "site": {
+      "seismicity_points": [
+        7,
+        8
+      ],
+      "construction_duration_months": 4
+    }
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "level": "numeric",
+      "type": "TEP_CROSS_SECTION_MISMATCH",
+      "field": "construction_volume_m3",
+      "object": "ceh",
+      "refs": [
+        {
+          "page": 13,
+          "quote": "199,50 518,70 113,28 119,28",
+          "object": "ceh",
+          "value": 518.7,
+          "unit": "m3",
+          "section": "PZ.5.2 объемно-планировочные показатели",
+          "col": "Строительный объем"
+        },
+        {
+          "page": 16,
+          "quote": "Объем здания цеха равен - 4963.84 м3",
+          "object": "ceh",
+          "value": 4963.84,
+          "unit": "m3",
+          "section": "PZ.6.1 водопровод и канализация"
+        }
+      ],
+      "delta_rel": -0.8955,
+      "confidence": "certain",
+      "note": "Один и тот же ТЭП одного здания в двух разделах ПЗ, расхождение ~9,6 раза. Какое значение верное, из документа не следует."
+    },
+    {
+      "id": "R2",
+      "level": "numeric",
+      "type": "TABLE_TOTAL_MISMATCH",
+      "field": "total_area_m2",
+      "object": "ceh",
+      "refs": [
+        {
+          "page": 13,
+          "quote": "199,50 518,70 113,28 119,28",
+          "object": "ceh",
+          "value": 119.28,
+          "unit": "m2",
+          "row": "Здание офиса",
+          "col": "Общая площадь"
+        },
+        {
+          "page": 13,
+          "quote": "ИТОГО 199,50 518,70 113,28 113,28",
+          "object": "ceh",
+          "value": 113.28,
+          "unit": "m2",
+          "row": "ИТОГО",
+          "col": "Общая площадь"
+        }
+      ],
+      "confidence": "certain",
+      "note": "Таблица из одной строки, итог не равен строке. Итог совпадает с полезной площадью: вероятно, скопирован из соседнего столбца."
+    },
+    {
+      "id": "R3",
+      "level": "domain_rule",
+      "type": "TEP_CALCULATION_METHOD",
+      "field": "construction_volume_m3",
+      "object": "ceh",
+      "refs": [
+        {
+          "page": 13,
+          "quote": "199,50 518,70",
+          "object": "ceh",
+          "derived": "518,70 = 199,50 x 2,6"
+        },
+        {
+          "page": 13,
+          "quote": "Высота помещений в чистоте от\nпола до низа потолка 2,6м",
+          "object": "ceh",
+          "value": 2.6,
+          "unit": "m"
+        }
+      ],
+      "confidence": "needs_expert",
+      "note": "Объём = площадь застройки x высота в чистоте. Строительный объём считается по наружному обмеру до верха покрытия; вероятная причина R1."
+    },
+    {
+      "id": "R4",
+      "level": "domain_rule",
+      "type": "GEOMETRY_INCONSISTENCY",
+      "field": "building_area_m2",
+      "object": "ceh",
+      "refs": [
+        {
+          "page": 13,
+          "quote": "размерами в осях 8,5х24,0м",
+          "object": "ceh",
+          "value": 204.0,
+          "unit": "m2",
+          "derived": "8,5 x 24,0"
+        },
+        {
+          "page": 13,
+          "quote": "199,50 518,70",
+          "object": "ceh",
+          "value": 199.5,
+          "unit": "m2",
+          "col": "Площадь застройки"
+        }
+      ],
+      "confidence": "needs_expert",
+      "note": "Площадь застройки меньше площади в осях. Обычно застройка (по внешнему контуру) не меньше; допускаю, что оси заданы иначе."
+    },
+    {
+      "id": "R5",
+      "level": "categorical",
+      "type": "PARAMETER_CONTRADICTION",
+      "field": "seismicity_points",
+      "object": "site",
+      "refs": [
+        {
+          "page": 12,
+          "quote": "Сейсмичность площадки - 7 баллов",
+          "object": "abk",
+          "value": 7
+        },
+        {
+          "page": 12,
+          "quote": "с сейсмичностью 8",
+          "object": "abk",
+          "value": 8
+        },
+        {
+          "page": 13,
+          "quote": "Сейсмичность площадки - 7 баллов",
+          "object": "ceh",
+          "value": 7
+        },
+        {
+          "page": 13,
+          "quote": "с сейсмичностью 8",
+          "object": "ceh",
+          "value": 8
+        },
+        {
+          "page": 9,
+          "quote": "8 8 0,13 0,25 II 0,292",
+          "object": "site",
+          "value": 8,
+          "section": "PZ.2.5 сейсмичность, таблица по СП РК 2.03-30-2017"
+        }
+      ],
+      "confidence": "certain",
+      "note": "Для обоих зданий 7 и 8 баллов в соседних абзацах; изыскания дают 8."
+    },
+    {
+      "id": "R6",
+      "level": "numeric",
+      "type": "VALUE_CROSS_SECTION_MISMATCH",
+      "field": "absolute_elevation_m",
+      "object": "site",
+      "refs": [
+        {
+          "page": 12,
+          "quote": "абсолютной отметке - 489,79",
+          "object": "abk",
+          "value": 489.79,
+          "unit": "m"
+        },
+        {
+          "page": 13,
+          "quote": "абсолютной отметке - 489,79",
+          "object": "ceh",
+          "value": 489.79,
+          "unit": "m"
+        },
+        {
+          "page": 5,
+          "quote": "314,75 м до 315,04 м",
+          "object": "site",
+          "value": [
+            314.75,
+            315.04
+          ],
+          "unit": "m",
+          "section": "PZ.2 рельеф"
+        }
+      ],
+      "confidence": "needs_expert",
+      "note": "Отметка 0.000 на ~175 м выше рельефа площадки. Одно из значений, вероятно, из другого проекта."
+    },
+    {
+      "id": "R7",
+      "level": "logical",
+      "type": "STATEMENT_CONTRADICTION",
+      "field": "fire_water_supply",
+      "object": "ceh",
+      "refs": [
+        {
+          "page": 16,
+          "quote": "противопожарный водопровод не требуется",
+          "object": "ceh",
+          "value": false
+        },
+        {
+          "page": 20,
+          "quote": "предусмотрен пожарный водопровод",
+          "object": "all",
+          "value": true
+        }
+      ],
+      "confidence": "certain",
+      "note": "Прямое противоречие утверждений. Правилами по числам не ловится: кандидат для NLI/LLM."
+    },
+    {
+      "id": "R8",
+      "level": "artifact",
+      "type": "COPY_PASTE_LABEL",
+      "field": "object_label",
+      "object": "ceh",
+      "refs": [
+        {
+          "page": 13,
+          "quote": "Здание офиса\n199,50",
+          "object": "ceh",
+          "section": "PZ.5.2 Здание цеха"
+        }
+      ],
+      "confidence": "certain",
+      "note": "Таблица раздела 'Здание цеха' подписана 'Здание офиса'."
+    },
+    {
+      "id": "R9",
+      "level": "categorical",
+      "type": "PARAMETER_CONTRADICTION",
+      "field": "blind_area",
+      "object": "all",
+      "refs": [
+        {
+          "page": 14,
+          "quote": "Отмостка - бетонная кл. В 7.5, шириной 1000 мм",
+          "object": "ceh",
+          "value": "бетон, 1000 мм"
+        },
+        {
+          "page": 15,
+          "quote": "асфальтобетонная отмостка шириной 1,5м",
+          "object": "all",
+          "value": "асфальтобетон, 1500 мм"
+        }
+      ],
+      "confidence": "certain",
+      "note": "Материал и ширина отмостки не совпадают (у АБК ширина 1500 мм совпадает, материал нет)."
+    },
+    {
+      "id": "R10",
+      "level": "artifact",
+      "type": "IRRELEVANT_REFERENCE",
+      "field": "normative_refs",
+      "object": "document",
+      "refs": [
+        {
+          "page": 20,
+          "quote": "учреждений здравоохранения",
+          "normalize_whitespace": true
+        },
+        {
+          "page": 22,
+          "quote": "ГОСТ 12.1.003-83",
+          "occurrences": 2
+        }
+      ],
+      "confidence": "needs_expert",
+      "note": "Нормы для учреждений здравоохранения в проекте завода ЖБИ; один ГОСТ под двумя разными названиями. Метаданные PDF: title='ТОО «Аргентина»'."
+    }
+  ],
+  "annotator": "draft by Claude, to be verified by Rizz",
+  "status": "draft"
+}
