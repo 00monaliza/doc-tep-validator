@@ -14,7 +14,7 @@ import re
 import pytest
 
 from src.ingestion.common import docx_reader, pdf
-from src.ner.common.taxonomy import TOLERANCES, DiscrepancyType, Verdict
+from src.ner.common.taxonomy import SYNTHETIC_TYPES, TOLERANCES, DiscrepancyType, Verdict
 from src.synthesis.formatting import fmt_num, parse_num
 from src.synthesis.generator import generate_set
 
@@ -36,7 +36,7 @@ def sets(tmp_path_factory):
     result = {}
     for lang in ("ru", "kz"):
         for seed in SEEDS:
-            inject = set(DiscrepancyType) if seed == 1 else (set() if seed == 2 else None)
+            inject = set(SYNTHETIC_TYPES) if seed == 1 else (set() if seed == 2 else None)
             result[(lang, seed)] = generate_set(lang, seed, out, inject, scans=seed == 1)
     return result
 
@@ -72,7 +72,7 @@ def test_anchors_present_in_pdf_and_docx(sets, lang, seed):
 def test_all_four_discrepancy_types_with_valid_refs(sets, lang):
     set_dir = sets[(lang, 1)]
     gt = load(set_dir)
-    assert {d["type"] for d in gt["discrepancies"]} == {t.value for t in DiscrepancyType}
+    assert {d["type"] for d in gt["discrepancies"]} == {t.value for t in SYNTHETIC_TYPES}
     for d in gt["discrepancies"]:
         refs = d["refs"]
         for r in refs:  # tep_ref resolves to the same value stored in the tep map

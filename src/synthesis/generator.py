@@ -23,7 +23,7 @@ from pathlib import Path
 
 from faker import Faker
 
-from src.ner.common.taxonomy import DiscrepancyType, Section
+from src.ner.common.taxonomy import SYNTHETIC_TYPES, DiscrepancyType, Section
 from src.synthesis import templates_kz, templates_ru
 from src.synthesis.context import Ctx, Meta
 from src.synthesis.data import kz_lexicon, ru_lexicon
@@ -106,7 +106,7 @@ def generate_set(lang: str, seed: int, out_root: Path, inject: set[DiscrepancyTy
     assert lang in LANGS
     rng = random.Random(f"{lang}:{seed}")
     if inject is None:  # random subset; an empty set yields a fully consistent (negative) sample
-        inject = {t for t in DiscrepancyType if rng.random() < 0.5}
+        inject = {t for t in SYNTHETIC_TYPES if rng.random() < 0.5}
 
     values = generate_values(rng, inject)
     meta = _meta(lang, rng, values.building_type, values.capacity)

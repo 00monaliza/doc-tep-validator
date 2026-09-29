@@ -18,11 +18,87 @@ class Section(StrEnum):
     SMETA = "SMETA"  # Сметная документация (ЛС + ОС + ССР) / Сметалық құжаттама
 
 
+class Level(StrEnum):
+    """How a discrepancy is detected, from easiest to hardest for rules."""
+
+    NUMERIC = "numeric"  # two numbers that must agree (with tolerance)
+    CATEGORICAL = "categorical"  # a categorical parameter with several values
+    LOGICAL = "logical"  # contradicting statements in text
+    DOMAIN_RULE = "domain_rule"  # violates engineering knowledge (method, geometry)
+    ARTIFACT = "artifact"  # copy-paste traces: wrong labels, foreign references
+
+
 class DiscrepancyType(StrEnum):
+    """Discrepancy types (taxonomy v2).
+
+    The first four come from v1 and are what the synthetic generator injects.
+    ``COST_OBJECT_ESTIMATE_VS_SUMMARY`` occurs only in synthetic data: the real
+    estimate package seen so far (АВС) had no object estimates, the chain there
+    is local estimate → Form 2 → Form 1 (see ``LOCAL_ESTIMATE_VS_SUMMARY``).
+    """
+
     AREA_PZ_VS_AR_EXPLICATION = "AREA_PZ_VS_AR_EXPLICATION"
     MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE = "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE"
-    COST_OBJECT_ESTIMATE_VS_SUMMARY = "COST_OBJECT_ESTIMATE_VS_SUMMARY"
+    COST_OBJECT_ESTIMATE_VS_SUMMARY = "COST_OBJECT_ESTIMATE_VS_SUMMARY"  # synthetic only
     MISSING_MANDATORY_TEP = "MISSING_MANDATORY_TEP"
+    # v2, derived from real documents
+    TEP_CROSS_SECTION_MISMATCH = "TEP_CROSS_SECTION_MISMATCH"  # same TEP of one object differs between sections
+    TABLE_TOTAL_MISMATCH = "TABLE_TOTAL_MISMATCH"  # table total != sum of its rows
+    VALUE_CROSS_SECTION_MISMATCH = "VALUE_CROSS_SECTION_MISMATCH"  # non-TEP value (e.g. elevation) differs
+    PARAMETER_CONTRADICTION = "PARAMETER_CONTRADICTION"  # seismicity, fire resistance, material... differ
+    STATEMENT_CONTRADICTION = "STATEMENT_CONTRADICTION"  # contradicting statements in text
+    TEP_CALCULATION_METHOD = "TEP_CALCULATION_METHOD"  # value computed by a wrong method
+    GEOMETRY_INCONSISTENCY = "GEOMETRY_INCONSISTENCY"  # e.g. building area < area within axes
+    COPY_PASTE_LABEL = "COPY_PASTE_LABEL"  # wrong object/table label
+    IRRELEVANT_REFERENCE = "IRRELEVANT_REFERENCE"  # normative reference unrelated to the object
+    LOCAL_ESTIMATE_VS_SUMMARY = "LOCAL_ESTIMATE_VS_SUMMARY"  # local estimate total != summary estimate row
+
+
+TYPE_LEVEL: dict[DiscrepancyType, Level] = {
+    DiscrepancyType.AREA_PZ_VS_AR_EXPLICATION: Level.NUMERIC,
+    DiscrepancyType.MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE: Level.NUMERIC,
+    DiscrepancyType.COST_OBJECT_ESTIMATE_VS_SUMMARY: Level.NUMERIC,
+    DiscrepancyType.MISSING_MANDATORY_TEP: Level.NUMERIC,
+    DiscrepancyType.TEP_CROSS_SECTION_MISMATCH: Level.NUMERIC,
+    DiscrepancyType.TABLE_TOTAL_MISMATCH: Level.NUMERIC,
+    DiscrepancyType.VALUE_CROSS_SECTION_MISMATCH: Level.NUMERIC,
+    DiscrepancyType.LOCAL_ESTIMATE_VS_SUMMARY: Level.NUMERIC,
+    DiscrepancyType.PARAMETER_CONTRADICTION: Level.CATEGORICAL,
+    DiscrepancyType.STATEMENT_CONTRADICTION: Level.LOGICAL,
+    DiscrepancyType.TEP_CALCULATION_METHOD: Level.DOMAIN_RULE,
+    DiscrepancyType.GEOMETRY_INCONSISTENCY: Level.DOMAIN_RULE,
+    DiscrepancyType.COPY_PASTE_LABEL: Level.ARTIFACT,
+    DiscrepancyType.IRRELEVANT_REFERENCE: Level.ARTIFACT,
+}
+
+# Types the synthetic generator can inject, in a fixed order (the order drives
+# the RNG, so appending keeps old seeds reproducible for the old types).
+SYNTHETIC_TYPES: tuple[DiscrepancyType, ...] = (
+    DiscrepancyType.AREA_PZ_VS_AR_EXPLICATION,
+    DiscrepancyType.MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE,
+    DiscrepancyType.COST_OBJECT_ESTIMATE_VS_SUMMARY,
+    DiscrepancyType.MISSING_MANDATORY_TEP,
+)
+
+
+@dataclass(frozen=True)
+class ObjectRef:
+    """One object (building, site) of a project; a package may describe several.
+
+    ``id`` is a stable short key used in ground truth and findings (``abk``,
+    ``ceh``, ``b1``); two reserved ids exist: ``site`` (the plot as a whole) and
+    ``document`` (findings about the document rather than a building).
+    """
+
+    id: str
+    name: str = ""
+
+    def __str__(self) -> str:
+        return self.id
+
+
+SITE = ObjectRef("site", "Площадка")
+DOCUMENT = ObjectRef("document", "Документ в целом")
 
 
 class Verdict(StrEnum):

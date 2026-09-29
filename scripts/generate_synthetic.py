@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.ner.common.taxonomy import DiscrepancyType  # noqa: E402
+from src.ner.common.taxonomy import SYNTHETIC_TYPES, DiscrepancyType  # noqa: E402
 from src.synthesis.generator import LANGS, generate_set  # noqa: E402
 
 
@@ -32,7 +32,7 @@ def parse_inject(spec: str) -> set[DiscrepancyType] | None:
     if spec == "random":
         return None
     if spec == "all":
-        return set(DiscrepancyType)
+        return set(SYNTHETIC_TYPES)
     if spec == "none":
         return set()
     return {DiscrepancyType(s.strip()) for s in spec.split(",")}
@@ -43,7 +43,7 @@ def main() -> None:
     ap.add_argument("--lang", nargs="+", choices=LANGS, default=list(LANGS))
     ap.add_argument("--seeds", default="1", help="e.g. '1', '1-50', '3,7,10-12'")
     ap.add_argument("--inject", default="random",
-                    help="random | all | none | comma list of " + ", ".join(t.value for t in DiscrepancyType))
+                    help="random | all | none | comma list of " + ", ".join(t.value for t in SYNTHETIC_TYPES))
     ap.add_argument("--out", type=Path, default=ROOT / "data" / "synthetic")
     ap.add_argument("--no-scans", action="store_true", help="skip the (slower) scan rendering")
     args = ap.parse_args()
