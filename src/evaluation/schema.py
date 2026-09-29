@@ -17,6 +17,8 @@ from src.ner.common.taxonomy import TYPE_LEVEL, DiscrepancyType, Level
 
 Value = float | int | bool | str | list[float | int | bool | str]
 Confidence = Literal["certain", "needs_expert"]
+# The type is the observed symptom; the suspected cause is recorded separately.
+SuspectedCause = Literal["copy_paste", "calculation_method", "typo", "unit_error", "unknown"]
 
 
 class Ref(BaseModel):
@@ -45,6 +47,7 @@ class Finding(BaseModel):
     object: str
     refs: list[Ref] = Field(min_length=1)
     confidence: Confidence = "certain"
+    suspected_cause: SuspectedCause | None = None
     delta_rel: float | None = None
     note: str = ""
 

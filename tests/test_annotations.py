@@ -58,3 +58,26 @@ def test_value_may_be_any_scalar_or_list():
         f = Finding.model_validate(_finding(refs=[{"page": 1, "quote": "q", "value": v}]))
         assert f.refs[0].value == v
     json.dumps(f.model_dump(mode="json"))
+
+
+def test_suspected_cause_optional_and_validated():
+    assert Finding.model_validate(_finding()).suspected_cause is None
+    assert Finding.model_validate(_finding(suspected_cause="copy_paste")).suspected_cause == "copy_paste"
+    with pytest.raises(ValidationError):
+        Finding.model_validate(_finding(suspected_cause="bad_luck"))
+
+
+def test_real_annotation_causes():
+    ann = load_annotation(ANNOTATIONS_DIR / "real_opz_zhbi2.gt.json")
+    causes = {f.id: f.suspected_cause for f in ann.findings}
+    assert causes["R6"] == "copy_paste" and causes["R3"] == "calculation_method"
+    assert next(f for f in ann.findings if f.id == "R3").type == "TEP_CALCULATION_METHOD"
+
+
+def test_seismicity_allowed_per_building():
+    """Seismicity defaults to the site, but a document may state it for one building."""
+    f = Finding.model_validate(_finding(type="PARAMETER_CONTRADICTION", level="categorical", object="b1",
+                                        field="seismicity_points",
+                                        refs=[{"page": 1, "quote": "q", "object": "b1", "value": 8},
+                                              {"page": 2, "quote": "q", "object": "site", "value": 7}]))
+    assert {r.object for r in f.refs} == {"b1", "site"}
