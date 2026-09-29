@@ -6,8 +6,8 @@ import random
 from dataclasses import dataclass
 
 from src.ner.common.taxonomy import Section
-from src.synthesis.formatting import fmt_num
-from src.synthesis.values import SetValues
+from src.synthesis.formatting import NUMBER_STYLE_WEIGHTS, NUMBER_STYLES, fmt_num, fmt_styled
+from src.synthesis.values import PzPlan, SetValues
 
 # Synthetic normative codes for local-estimate lines (placeholders, not real СН РК codes).
 NORM_CODES = {
@@ -37,11 +37,23 @@ class Ctx:
     v: SetValues
     meta: Meta
     rng: random.Random  # phrasing variants only; numbers are fixed in `v`
+    plan: PzPlan | None = None  # profile v2: several buildings in the ПЗ
+    vrng: random.Random | None = None  # profile v2 surface variation (labels, formats, column order)
+
+    @property
+    def v2(self) -> bool:
+        return self.plan is not None
+
+    def style(self) -> str:
+        """A number style for one table or sentence (always the v1 style in profile v1)."""
+        if self.vrng is None:
+            return "space_comma"
+        return self.vrng.choices(NUMBER_STYLES, NUMBER_STYLE_WEIGHTS)[0]
 
     def get(self, section: Section, fld: str):
         return self.v.tep[section][fld]
 
-    def fmt(self, section: Section, fld: str) -> str:
+    def fmt(self, section: Section, fld: str, style: str = "space_comma") -> str:
         """Format a TEP value with the decimals the documents use for its unit."""
         value = self.v.tep[section][fld]
         if isinstance(value, int):
@@ -57,7 +69,7 @@ class Ctx:
             decimals = 3
         else:
             decimals = 2
-        return fmt_num(value, decimals)
+        return fmt_num(value, decimals) if style == "space_comma" else fmt_styled(value, decimals, style)
 
     def pick(self, *variants: str) -> str:
         return self.rng.choice(variants)

@@ -1,7 +1,9 @@
 """ПЗ — пояснительная записка (RU)."""
 
 from src.ner.common.taxonomy import Section
+from src.synthesis import pz_objects
 from src.synthesis.context import Ctx
+from src.synthesis.data import ru_lexicon as lex
 from src.synthesis.document import Document, TableRows
 
 S = Section.PZ
@@ -24,8 +26,10 @@ def build(ctx: Ctx) -> Document:
     doc.para(f"Уровень ответственности здания — II (нормальный). Степень огнестойкости — II. "
              f"Класс функциональной пожарной опасности — {v.fire_class}.")
 
+    if ctx.v2:
+        pz_objects.site_seismic(ctx, doc, lex)
+
     doc.heading("2. Технико-экономические показатели")
-    t = TableRows()
     rows = [
         ("floors", "Этажность", "этаж"),
         ("building_area_m2", "Площадь застройки", "м²"),
@@ -35,15 +39,20 @@ def build(ctx: Ctx) -> Document:
         ("estimated_cost_ktg", "Сметная стоимость строительства в текущих ценах (с НДС)", "тыс. тенге"),
         ("construction_duration_months", "Продолжительность строительства", "мес."),
     ]
-    for fld, label, unit in rows:
-        if ctx.get(S, fld) is not None:
-            t.add([t.next_no, label, unit, ctx.fmt(S, fld)], {fld: 3})
-    doc.add_rows(["№ п/п", "Наименование показателя", "Ед. изм.", "Значение"], t,
-                 [0.09, 0.55, 0.14, 0.22], "tbl_tep")
+    if ctx.v2:
+        pz_objects.tep_table(ctx, doc, rows, lex)
+    else:
+        t = TableRows()
+        for fld, label, unit in rows:
+            if ctx.get(S, fld) is not None:
+                t.add([t.next_no, label, unit, ctx.fmt(S, fld)], {fld: 3})
+        doc.add_rows(["№ п/п", "Наименование показателя", "Ед. изм.", "Значение"], t,
+                     [0.09, 0.55, 0.14, 0.22], "tbl_tep")
 
-    area = ctx.fmt(S, "total_area_m2")
+    style = ctx.style()
+    area = ctx.fmt(S, "total_area_m2", style)
     if ctx.get(S, "construction_volume_m3") is not None:
-        vol = ctx.fmt(S, "construction_volume_m3")
+        vol = ctx.fmt(S, "construction_volume_m3", style)
         doc.para(ctx.pick(
             f"Общая площадь здания составляет {area} м², строительный объём — {vol} м³.",
             f"Проектом принята общая площадь здания {area} м² при строительном объёме {vol} м³.",
@@ -51,7 +60,12 @@ def build(ctx: Ctx) -> Document:
     else:
         doc.para(f"Общая площадь здания составляет {area} м².", {"total_area_m2": area})
 
-    doc.heading("3. Сведения о сметной стоимости")
+    no = 3
+    if ctx.v2:
+        pz_objects.summary_table(ctx, doc, lex)
+        no = pz_objects.object_sections(ctx, doc, lex, no)
+
+    doc.heading(f"{no}. Сведения о сметной стоимости")
     if ctx.get(S, "estimated_cost_ktg") is not None:
         cost = ctx.fmt(S, "estimated_cost_ktg")
         doc.para(f"Сметная стоимость строительства определена ресурсным методом в текущих ценах "

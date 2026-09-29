@@ -308,3 +308,194 @@ def generate_values(rng: random.Random, inject: set[DiscrepancyType]) -> SetValu
         axes_m=axes, foundation_thickness_mm=thickness_mm, duration_months=int(pz["construction_duration_months"]),
         rooms=rooms, tep=tep, discrepancies=discrepancies, consistent_checks=checks,
     )
+
+
+# ================================================================== profile v2
+# Several buildings in one package, and TEP/parameters repeated across sections
+# of the explanatory note (ПЗ). Only the ПЗ describes the extra buildings; AR,
+# KR and the estimate stay about the primary building b1.
+
+AUX_KINDS: dict[str, tuple[tuple[int, int], tuple[float, float], tuple[float, float], tuple[float, float]]] = {
+    # floors, axis A (m), axis B (m), storey height (m)
+    "boiler": ((1, 1), (9, 18), (6, 12), (4.2, 6.0)),
+    "warehouse": ((1, 1), (12, 36), (9, 18), (4.8, 7.2)),
+    "checkpoint": ((1, 1), (4.5, 9), (3, 6), (3.0, 3.3)),
+    "garage": ((1, 1), (12, 24), (6, 12), (3.6, 4.8)),
+    "substation": ((1, 1), (6, 12), (4.5, 6), (3.6, 4.2)),
+    "utility": ((1, 2), (9, 18), (6, 12), (3.0, 3.6)),
+}
+OBJECT_FIELDS = ("floors", "building_area_m2", "total_area_m2", "construction_volume_m3")
+SUMMARY_FIELDS = ("building_area_m2", "total_area_m2", "construction_volume_m3")
+TEXT_FIELDS = ("construction_volume_m3", "total_area_m2")
+FIRE_GRADES = ("I", "II", "III", "IV")
+SEISMIC_POINTS = (6, 7, 8, 9)
+
+
+def mention_key(obj: str, place: str, fld: str) -> str:
+    """Anchor key of one statement of a value: object : place in the ПЗ : field."""
+    return f"{obj}:{place}:{fld}"
+
+
+@dataclass
+class Building:
+    id: str
+    kind: str  # building type for b1, AUX_KINDS key otherwise
+    primary: bool
+    tep: dict[str, float | int | None]  # OBJECT_FIELDS
+    axes_m: tuple[float, float] | None
+    fire_resistance: str
+    responsibility: str
+
+
+@dataclass
+class PzPlan:
+    buildings: list[Building]
+    seismicity: int
+    values: dict[str, float | int | str]  # mention_key -> value as written in the ПЗ
+    decimals: dict[str, int]  # mention_key -> decimals used when writing (text mentions)
+    text_mentions: list[tuple[str, str]]  # (object, field) stated in the engineering section
+    summary_fields: tuple[str, ...]
+    discrepancies: list[dict] = field(default_factory=list)
+    consistent_checks: list[dict] = field(default_factory=list)
+
+
+def _aux_building(rng: random.Random, bid: str, kind: str) -> Building:
+    floors_rng, a_rng, b_rng, h_rng = AUX_KINDS[kind]
+    floors = rng.randint(*floors_rng)
+    a, b = round(rng.uniform(*a_rng) * 2) / 2, round(rng.uniform(*b_rng) * 2) / 2
+    building_area = round(a * b * rng.uniform(1.02, 1.07), 2)  # outer contour > area within axes
+    total_area = round(building_area * floors * rng.uniform(0.80, 0.90), 2)
+    volume = round(building_area * (floors * rng.uniform(*h_rng) + 0.5), 2)
+    return Building(bid, kind, False,
+                    {"floors": floors, "building_area_m2": building_area, "total_area_m2": total_area,
+                     "construction_volume_m3": volume},
+                    (a, b), rng.choice(FIRE_GRADES[1:]), rng.choice(("II", "III")))
+
+
+def _near_tolerance(rng: random.Random, value: float, tol_rel: float, tol_abs: float) -> float:
+    """A value 1.2–3 tolerances away from `value` (a borderline MISMATCH)."""
+    tol = max(tol_abs, tol_rel * abs(value))
+    return round(value + rng.choice((-1, 1)) * rng.uniform(1.2, 3.0) * tol, 2)
+
+
+def plan_objects(rng: random.Random, v: SetValues, inject: set[DiscrepancyType]) -> PzPlan:
+    pz = v.tep[Section.PZ]
+    b1 = Building("b1", v.building_type, True, {f: pz[f] for f in OBJECT_FIELDS}, None, "II", "II")
+    n_aux = rng.choice((0, 1, 1, 2))
+    buildings = [b1] + [_aux_building(rng, f"b{i}", kind)
+                        for i, kind in enumerate(rng.sample(sorted(AUX_KINDS), n_aux), start=2)]
+    seismicity = rng.choice(SEISMIC_POINTS)
+    # a TEP deliberately missing from the ПЗ (D4) stays missing everywhere in the ПЗ
+    summary_fields = tuple(f for f in SUMMARY_FIELDS if b1.tep[f] is not None)
+
+    values: dict[str, float | int | str] = {}
+    for b in buildings:
+        for f in OBJECT_FIELDS:
+            if b.tep[f] is not None:
+                values[mention_key(b.id, "object_table", f)] = b.tep[f]
+        for f in summary_fields:
+            values[mention_key(b.id, "summary_table", f)] = b.tep[f]
+        values[mention_key(b.id, "object_section", "seismicity_points")] = seismicity
+        values[mention_key(b.id, "object_section", "fire_resistance")] = b.fire_resistance
+        values[mention_key(b.id, "fire_section", "fire_resistance")] = b.fire_resistance
+    for f in summary_fields:
+        values[mention_key("all", "summary_total", f)] = round(sum(b.tep[f] for b in buildings), 2)
+    values[mention_key("site", "site_general", "seismicity_points")] = seismicity
+
+    # engineering-section sentences repeating a TEP ("объём здания ... равен ... м³"),
+    # sometimes rounded differently from the table (still a MATCH)
+    tol = TOLERANCES[DiscrepancyType.TEP_CROSS_SECTION_MISMATCH]
+    text_mentions, decimals = [], {}
+    for b in buildings:
+        fields = [f for f in TEXT_FIELDS if b.tep[f] is not None]
+        if fields and rng.random() < 0.6:
+            text_mentions.append((b.id, rng.choice(fields)))
+    if DiscrepancyType.TEP_CROSS_SECTION_MISMATCH in inject and not text_mentions:
+        b = rng.choice([b for b in buildings if any(b.tep[f] is not None for f in TEXT_FIELDS)])
+        text_mentions.append((b.id, rng.choice([f for f in TEXT_FIELDS if b.tep[f] is not None])))
+    by_id = {b.id: b for b in buildings}
+    for obj, f in text_mentions:
+        value = float(by_id[obj].tep[f])
+        options = [2, 2, 1] + ([0, 0] if 0.5 / value < tol.rel / 2 else [])
+        d = rng.choice(options)
+        key = mention_key(obj, "engineering_text", f)
+        values[key], decimals[key] = round(value, d), d
+
+    discrepancies: list[dict] = []
+    if DiscrepancyType.TEP_CROSS_SECTION_MISMATCH in inject:
+        obj, f = rng.choice(text_mentions)
+        key, true = mention_key(obj, "engineering_text", f), float(by_id[obj].tep[f])
+        mode = rng.choice(("borderline", "large", "method"))
+        if mode == "borderline":
+            new = _near_tolerance(rng, true, tol.rel, tol.abs)
+        elif mode == "large":
+            new = _perturb(rng, true, 0.05, 0.6, 2)
+        else:  # e.g. volume computed with a wrong height: several times off
+            new = round(true * rng.uniform(3, 10), 2)
+        values[key], decimals[key] = new, 2
+
+    tot_tol = TOLERANCES[DiscrepancyType.TABLE_TOTAL_MISMATCH]
+    if DiscrepancyType.TABLE_TOTAL_MISMATCH in inject and summary_fields:
+        f = rng.choice(summary_fields)
+        key = mention_key("all", "summary_total", f)
+        true = float(values[key])
+        mode = rng.choice(("borderline", "large", "neighbour"))
+        others = [g for g in summary_fields if g != f
+                  and not tot_tol.matches(float(values[mention_key("all", "summary_total", g)]), true)]
+        if mode == "neighbour" and others:  # total copied from the next column
+            new = values[mention_key("all", "summary_total", rng.choice(others))]
+        elif mode == "borderline":
+            new = _near_tolerance(rng, true, tot_tol.rel, tot_tol.abs)
+        else:
+            new = _perturb(rng, true, 0.02, 0.2, 2)
+        values[key] = new
+
+    param_kind = None
+    if DiscrepancyType.PARAMETER_CONTRADICTION in inject:
+        param_kind = rng.choice(("seismicity", "fire"))
+        b = rng.choice(buildings)
+        if param_kind == "seismicity":
+            other = [p for p in SEISMIC_POINTS if abs(p - seismicity) == 1]
+            values[mention_key(b.id, "object_section", "seismicity_points")] = rng.choice(other)
+        else:
+            other = [g for g in FIRE_GRADES if g != b.fire_resistance]
+            values[mention_key(b.id, "fire_section", "fire_resistance")] = rng.choice(other)
+
+    # ---------------------------------------------------------- ground truth records
+    def ref(obj: str, place: str, fld: str) -> dict:
+        key = mention_key(obj, place, fld)
+        return {"object": obj, "section": Section.PZ.value, "field": fld, "place": place,
+                "value": values[key], "mention": key}
+
+    checks: list[dict] = []
+
+    def numeric(dtype: DiscrepancyType, obj: str, fld: str, refs: list[dict], a: float, b: float) -> None:
+        t = TOLERANCES[dtype]
+        verdict = Verdict.MATCH if t.matches(a, b) else Verdict.MISMATCH
+        rec = {"type": dtype.value, "object": obj, "field": fld, "refs": refs,
+               "delta_abs": round(a - b, 3), "delta_rel": round((a - b) / b, 5) if b else None,
+               "tolerance": {"rel": t.rel, "abs": t.abs}, "expected_verdict": verdict.value}
+        (discrepancies if verdict == Verdict.MISMATCH else checks).append(rec)
+
+    for f in summary_fields:
+        rows = [ref(b.id, "summary_table", f) for b in buildings]
+        total = ref("all", "summary_total", f)
+        numeric(DiscrepancyType.TABLE_TOTAL_MISMATCH, "all", f, rows + [total],
+                float(total["value"]), round(sum(float(r["value"]) for r in rows), 2))
+    for obj, f in text_mentions:
+        a, b = ref(obj, "object_table", f), ref(obj, "engineering_text", f)
+        numeric(DiscrepancyType.TEP_CROSS_SECTION_MISMATCH, obj, f, [a, b], float(b["value"]), float(a["value"]))
+
+    def categorical(obj: str, fld: str, refs: list[dict]) -> None:
+        verdict = Verdict.MISMATCH if len({r["value"] for r in refs}) > 1 else Verdict.MATCH
+        rec = {"type": DiscrepancyType.PARAMETER_CONTRADICTION.value, "object": obj, "field": fld, "refs": refs,
+               "values": sorted({str(r["value"]) for r in refs}), "expected_verdict": verdict.value}
+        (discrepancies if verdict == Verdict.MISMATCH else checks).append(rec)
+
+    categorical("site", "seismicity_points", [ref("site", "site_general", "seismicity_points")]
+                + [ref(b.id, "object_section", "seismicity_points") for b in buildings])
+    for b in buildings:
+        categorical(b.id, "fire_resistance", [ref(b.id, "object_section", "fire_resistance"),
+                                              ref(b.id, "fire_section", "fire_resistance")])
+
+    return PzPlan(buildings, seismicity, values, decimals, text_mentions, summary_fields, discrepancies, checks)

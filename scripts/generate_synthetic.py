@@ -16,8 +16,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.ner.common.taxonomy import SYNTHETIC_TYPES, DiscrepancyType  # noqa: E402
-from src.synthesis.generator import LANGS, generate_set  # noqa: E402
+from src.ner.common.taxonomy import SYNTHETIC_TYPES, SYNTHETIC_TYPES_V1, DiscrepancyType  # noqa: E402
+from src.synthesis.generator import LANGS, PROFILES, generate_set  # noqa: E402
 
 
 def parse_seeds(spec: str) -> list[int]:
@@ -28,11 +28,11 @@ def parse_seeds(spec: str) -> list[int]:
     return seeds
 
 
-def parse_inject(spec: str) -> set[DiscrepancyType] | None:
+def parse_inject(spec: str, profile: str) -> set[DiscrepancyType] | None:
     if spec == "random":
         return None
     if spec == "all":
-        return set(SYNTHETIC_TYPES)
+        return set(SYNTHETIC_TYPES if profile == "v2" else SYNTHETIC_TYPES_V1)
     if spec == "none":
         return set()
     return {DiscrepancyType(s.strip()) for s in spec.split(",")}
@@ -46,12 +46,15 @@ def main() -> None:
                     help="random | all | none | comma list of " + ", ".join(t.value for t in SYNTHETIC_TYPES))
     ap.add_argument("--out", type=Path, default=ROOT / "data" / "synthetic")
     ap.add_argument("--no-scans", action="store_true", help="skip the (slower) scan rendering")
+    ap.add_argument("--profile", choices=PROFILES, default="v2",
+                    help="v2: several buildings and realistic variation (default); v1: original single-building sets")
     args = ap.parse_args()
 
-    inject = parse_inject(args.inject)
+    inject = parse_inject(args.inject, args.profile)
     for lang in args.lang:
         for seed in parse_seeds(args.seeds):
-            set_dir = generate_set(lang, seed, args.out, inject, scans=not args.no_scans)
+            set_dir = generate_set(lang, seed, args.out, inject, scans=not args.no_scans,
+                                   profile=args.profile)
             gt = json.loads((set_dir / "ground_truth.json").read_text(encoding="utf-8"))
             kinds = ", ".join(f"{d['id']}:{d['type']}" for d in gt["discrepancies"]) or "none"
             print(f"{set_dir.relative_to(ROOT) if set_dir.is_relative_to(ROOT) else set_dir}  "

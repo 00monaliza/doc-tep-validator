@@ -83,13 +83,18 @@ class Document:
     def heading(self, text: str) -> None:
         self.blocks.append(Block(self._id("h"), "heading", text=text))
 
-    def para(self, text: str, mentions: dict[str, str] | None = None) -> str:
-        """Add a paragraph; `mentions` maps TEP field -> substring holding its value."""
+    def para(self, text: str, mentions: dict[str, str | tuple[str, int]] | None = None) -> str:
+        """Add a paragraph; `mentions` maps TEP field -> substring holding its value,
+        or (substring, position) when the substring occurs more than once."""
         block = Block(self._id("p"), "para", text=text)
         self.blocks.append(block)
         for fld, value_text in (mentions or {}).items():
-            assert value_text in text, f"{value_text!r} not in paragraph"
-            i = text.index(value_text)
+            if isinstance(value_text, tuple):
+                value_text, i = value_text
+                assert text[i:i + len(value_text)] == value_text, f"{value_text!r} not at {i}"
+            else:
+                assert value_text in text, f"{value_text!r} not in paragraph"
+                i = text.index(value_text)
             self.anchors.setdefault(fld, []).append(
                 Anchor(block.id, value_text, context=text[max(0, i - CONTEXT_CHARS):i]))
         return block.id

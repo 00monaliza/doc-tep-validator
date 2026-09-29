@@ -14,7 +14,7 @@ import re
 import pytest
 
 from src.ingestion.common import docx_reader, pdf
-from src.ner.common.taxonomy import SYNTHETIC_TYPES, TOLERANCES, DiscrepancyType, Verdict
+from src.ner.common.taxonomy import SYNTHETIC_TYPES, SYNTHETIC_TYPES_V1, TOLERANCES, DiscrepancyType, Verdict
 from src.synthesis.formatting import fmt_num, parse_num
 from src.synthesis.generator import generate_set
 
@@ -24,6 +24,13 @@ SEEDS = [1, 2, 3, 4, 5, 6]
 
 def norm(s: str) -> str:
     return re.sub(r"\s+", " ", s)
+
+
+def body_text(path) -> str:
+    """PDF text without the running header (first line) and sheet number (last line) of every page,
+    so a paragraph broken across pages reads contiguously."""
+    pages = pdf.extract_text(path).split("\f")
+    return norm(" ".join(" ".join(p.split("\n")[1:-1]) for p in pages))
 
 
 def load(set_dir):
@@ -55,6 +62,7 @@ def test_anchors_present_in_pdf_and_docx(sets, lang, seed):
     for section, fields in gt["tep"].items():
         doc = gt["documents"][section]
         pdf_text = norm(pdf.extract_text(set_dir / doc["text_pdf"]))
+        body = body_text(set_dir / doc["text_pdf"])
         docx_text = norm(docx_reader.extract_text(set_dir / doc["docx"]))
         for fld, entry in fields.items():
             if not entry["present"]:
@@ -64,8 +72,53 @@ def test_anchors_present_in_pdf_and_docx(sets, lang, seed):
             for a in entry["anchors"]:
                 assert norm(a["text"]) in pdf_text, f"{section}.{fld}: {a['text']!r} not in PDF"
                 if "context" in a:  # paragraph anchors: context + value must be contiguous in the text layer
-                    assert norm(a["context"] + a["text"]) in pdf_text, f"{section}.{fld}: context not found"
+                    assert norm(a["context"] + a["text"]) in body, f"{section}.{fld}: context not found"
                 assert norm(a["text"]) in docx_text, f"{section}.{fld}: {a['text']!r} not in DOCX"
+
+
+@pytest.mark.parametrize("lang", ["ru", "kz"])
+@pytest.mark.parametrize("seed", SEEDS)
+def test_object_mentions_anchored_in_pz(sets, lang, seed):
+    """Every v2 statement (object tables, summary, sentences) is findable in the ПЗ text layer."""
+    set_dir = sets[(lang, seed)]
+    gt = load(set_dir)
+    doc = gt["documents"]["PZ"]
+    pdf_text = norm(pdf.extract_text(set_dir / doc["text_pdf"]))
+    docx_text = norm(docx_reader.extract_text(set_dir / doc["docx"]))
+    refs = [r for rec in gt["discrepancies"] + gt["consistent_checks"] for r in rec["refs"] if "mention" in r]
+    assert refs
+    for r in refs:
+        for a in r["anchors"]:
+            assert norm(a["text"]) in pdf_text and norm(a["text"]) in docx_text, r["mention"]
+            if "context" in a:
+                assert norm(a["context"] + a["text"]) in body_text(set_dir / doc["text_pdf"]), r["mention"]
+    assert set(gt["objects"]) >= {r["object"] for r in refs} - {"all", "site"}
+
+
+def test_v2_keeps_primary_building_values(tmp_path):
+    """v2 only adds to v1: the primary building's TEP of a seed are the same in both profiles."""
+    v1 = load(generate_set("ru", 5, tmp_path / "v1", scans=False, profile="v1"))
+    v2 = load(generate_set("ru", 5, tmp_path / "v2", scans=False, profile="v2"))
+    values = lambda g: {s: {f: e["value"] for f, e in fs.items()} for s, fs in g["tep"].items()}  # noqa: E731
+    assert values(v1) == values(v2)
+    assert v1["profile"] == "v1" and list(v1["objects"]) == ["b1"]
+    assert not any(d["type"] not in {t.value for t in SYNTHETIC_TYPES_V1} for d in v1["discrepancies"])
+
+
+def test_borderline_cases_present(tmp_path):
+    """Some injected mismatches lie within 1-3 tolerances; some matches differ only by rounding."""
+    near, rounded = 0, 0
+    for seed in range(40, 60):
+        gt = load(generate_set("ru", seed, tmp_path, set(SYNTHETIC_TYPES), scans=False))
+        for d in gt["discrepancies"]:
+            if d["type"] in ("TEP_CROSS_SECTION_MISMATCH", "TABLE_TOTAL_MISMATCH"):
+                a, b = (d["refs"][-1]["value"], sum(r["value"] for r in d["refs"][:-1])) \
+                    if d["type"] == "TABLE_TOTAL_MISMATCH" else (d["refs"][1]["value"], d["refs"][0]["value"])
+                t = d["tolerance"]
+                near += abs(a - b) <= 3 * max(t["abs"], t["rel"] * max(abs(a), abs(b))) + 1e-9
+        rounded += sum(c["type"] == "TEP_CROSS_SECTION_MISMATCH" and c["refs"][0]["value"] != c["refs"][1]["value"]
+                       for c in gt["consistent_checks"])
+    assert near >= 3 and rounded >= 3
 
 
 @pytest.mark.parametrize("lang", ["ru", "kz"])
@@ -73,8 +126,23 @@ def test_all_four_discrepancy_types_with_valid_refs(sets, lang):
     set_dir = sets[(lang, 1)]
     gt = load(set_dir)
     assert {d["type"] for d in gt["discrepancies"]} == {t.value for t in SYNTHETIC_TYPES}
+    v1_types = {t.value for t in SYNTHETIC_TYPES_V1}
     for d in gt["discrepancies"]:
         refs = d["refs"]
+        assert d["object"] and all(r["object"] for r in refs) and d["level"]
+        if d["type"] not in v1_types:  # v2: refs point at ПЗ mentions, not the tep map
+            assert all(r["mention"] and r["anchors"] for r in refs)
+            if d["type"] == DiscrepancyType.PARAMETER_CONTRADICTION:
+                assert len({r["value"] for r in refs}) > 1
+            else:
+                assert d["expected_verdict"] == Verdict.MISMATCH
+                assert d["delta_abs"] != 0
+                tol = TOLERANCES[DiscrepancyType(d["type"])]
+                if d["type"] == DiscrepancyType.TABLE_TOTAL_MISMATCH:
+                    assert not tol.matches(refs[-1]["value"], sum(r["value"] for r in refs[:-1]))
+                else:
+                    assert not tol.matches(refs[0]["value"], refs[1]["value"])
+            continue
         for r in refs:  # tep_ref resolves to the same value stored in the tep map
             section, fld = r["tep_ref"].split(".", 1)
             assert gt["tep"][section][fld]["value"] == r["value"]
@@ -98,7 +166,15 @@ def test_clean_set_has_no_discrepancies(sets, lang):
     assert gt["discrepancies"] == []
     for c in gt["consistent_checks"]:
         assert c["expected_verdict"] == Verdict.MATCH
-        assert c["refs"][0]["value"] == c["refs"][1]["value"]
+        refs = c["refs"]
+        if c["type"] == DiscrepancyType.TABLE_TOTAL_MISMATCH:
+            assert refs[-1]["value"] == pytest.approx(sum(r["value"] for r in refs[:-1]), abs=0.005)
+        elif c["type"] == DiscrepancyType.TEP_CROSS_SECTION_MISMATCH:  # may be rounded differently
+            assert TOLERANCES[DiscrepancyType(c["type"])].matches(refs[0]["value"], refs[1]["value"])
+        elif c["type"] == DiscrepancyType.PARAMETER_CONTRADICTION:
+            assert len({r["value"] for r in refs}) == 1
+        else:
+            assert refs[0]["value"] == refs[1]["value"]
 
 
 @pytest.mark.parametrize("lang", ["ru", "kz"])

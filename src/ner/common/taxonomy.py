@@ -72,13 +72,20 @@ TYPE_LEVEL: dict[DiscrepancyType, Level] = {
 }
 
 # Types the synthetic generator can inject, in a fixed order (the order drives
-# the RNG, so appending keeps old seeds reproducible for the old types).
-SYNTHETIC_TYPES: tuple[DiscrepancyType, ...] = (
+# the RNG). Profile v1 injects only the first four; v2 adds the rest, drawn
+# from a separate RNG stream so v1 values of a seed stay reproducible.
+SYNTHETIC_TYPES_V1: tuple[DiscrepancyType, ...] = (
     DiscrepancyType.AREA_PZ_VS_AR_EXPLICATION,
     DiscrepancyType.MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE,
     DiscrepancyType.COST_OBJECT_ESTIMATE_VS_SUMMARY,
     DiscrepancyType.MISSING_MANDATORY_TEP,
 )
+SYNTHETIC_TYPES_V2_EXTRA: tuple[DiscrepancyType, ...] = (
+    DiscrepancyType.TEP_CROSS_SECTION_MISMATCH,
+    DiscrepancyType.TABLE_TOTAL_MISMATCH,
+    DiscrepancyType.PARAMETER_CONTRADICTION,
+)
+SYNTHETIC_TYPES: tuple[DiscrepancyType, ...] = SYNTHETIC_TYPES_V1 + SYNTHETIC_TYPES_V2_EXTRA
 
 
 @dataclass(frozen=True)
@@ -124,6 +131,8 @@ TOLERANCES: dict[DiscrepancyType, Tolerance] = {
     DiscrepancyType.AREA_PZ_VS_AR_EXPLICATION: Tolerance(rel=0.005, abs=0.1),
     DiscrepancyType.MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE: Tolerance(rel=0.01, abs=0.01),
     DiscrepancyType.COST_OBJECT_ESTIMATE_VS_SUMMARY: Tolerance(rel=0.0, abs=0.001),
+    DiscrepancyType.TEP_CROSS_SECTION_MISMATCH: Tolerance(rel=0.005, abs=0.1),
+    DiscrepancyType.TABLE_TOTAL_MISMATCH: Tolerance(rel=0.0, abs=0.05),  # rows are rounded to 0.01
 }
 
 

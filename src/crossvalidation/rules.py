@@ -25,12 +25,12 @@ from src.evaluation.schema import Finding, Ref
 from src.ingestion.common.numbers import NUMBER_RE, normalize_unit, number_readings
 from src.ingestion.real import Page, PageTable, norm_ws
 from src.ner.common.field_patterns import FIELD_TEXT, FIELD_UNITS, header_field
-from src.ner.common.taxonomy import TYPE_LEVEL, DiscrepancyType, Tolerance
+from src.ner.common.taxonomy import TOLERANCES, TYPE_LEVEL, DiscrepancyType, Tolerance
 
 TOTAL_RE = re.compile(r"^(?:итого|всего|барлығы|жиыны|жиынтығы)\b", re.IGNORECASE)
-TEP_TOLERANCE = Tolerance(rel=0.005, abs=0.1)
+TEP_TOLERANCE = TOLERANCES[DiscrepancyType.TEP_CROSS_SECTION_MISMATCH]
 GEOMETRY_TOLERANCE = Tolerance(rel=0.005, abs=0.1)
-SUM_ABS_PER_ROW = 0.01  # rounding of every summed cell to 2 decimals
+TOTAL_TOLERANCE = TOLERANCES[DiscrepancyType.TABLE_TOTAL_MISMATCH]
 
 _UNIT = r"(?P<unit>[мm]\.?\s?[23²³]|кв\.\s?[мm]|куб\.\s?[мm])(?!\s*/)"
 _NUM = rf"(?P<num>{NUMBER_RE.pattern})"
@@ -107,7 +107,7 @@ def check_table_totals(pages: list[Page], pts: list[PageText], carried: list[str
                     if total is None or not values:
                         continue
                     s = round(sum(values), 6)
-                    if abs(s - total) <= SUM_ABS_PER_ROW * len(values) + 1e-9:
+                    if TOTAL_TOLERANCE.matches(s, total):
                         continue
                     header = table.header[col] if col < len(table.header) else ""
                     fld = header_field(header) or f"col:{header or col}"
