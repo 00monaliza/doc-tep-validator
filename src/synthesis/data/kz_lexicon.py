@@ -128,8 +128,11 @@ PZ_V2 = {
                        "Алаңның сейсмикалығы — {s} балл."),
     "eng_heading": "Инженерлік қамтамасыз ету",
     "eng_intro": "Объектілерді сумен жабдықтау және кәріз қолданыстағы желілерден көзделген.",
-    "eng_construction_volume_m3": ("{gen_cap} көлемі — {v} м³.", "{gen_cap} құрылыс көлемі {v} м³ құрайды."),
-    "eng_total_area_m2": ("{gen_cap} жалпы ауданы {v} м² құрайды.", "{gen_cap} жалпы ауданы — {v} м²."),
+    # the last variant of each puts the number before the keyword (Kazakh word order)
+    "eng_construction_volume_m3": ("{gen_cap} көлемі — {v} м³.", "{gen_cap} құрылыс көлемі {v} м³ құрайды.",
+                                   "{gen_cap} {v} м³ құрылыс көлемі жобада қабылданған."),
+    "eng_total_area_m2": ("{gen_cap} жалпы ауданы {v} м² құрайды.", "{gen_cap} жалпы ауданы — {v} м².",
+                          "{gen_cap} {v} м² жалпы ауданы жобада қабылданған."),
     "fire_heading": "Өртке қарсы іс-шаралар",
     "fire_line": "{gen_cap} отқа төзімділік дәрежесі — {fire}.",
 }
