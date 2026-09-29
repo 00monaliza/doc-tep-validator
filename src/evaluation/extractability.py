@@ -21,15 +21,7 @@ from dataclasses import asdict, dataclass
 from src.evaluation.schema import RealAnnotation
 from src.ingestion.common.numbers import find_numbers
 from src.ingestion.real import Page
-
-# generic header keywords per TEP field (RU/KZ), matched against repaired table headers
-FIELD_HEADERS: dict[str, tuple[str, ...]] = {
-    "floors": ("этажн", "қабат"),
-    "building_area_m2": ("застройк", "құрылыс салу ауданы"),
-    "construction_volume_m3": ("строительн\\w* объ[её]м", "құрылыс көлем", "объ[её]м"),
-    "useful_area_m2": ("полезн", "пайдалы"),
-    "total_area_m2": ("общ\\w* площад", "площад\\w* общ", "жалпы аудан"),
-}
+from src.ner.common.field_patterns import FIELD_HEADERS
 
 
 @dataclass

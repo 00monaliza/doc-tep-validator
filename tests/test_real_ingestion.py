@@ -44,3 +44,18 @@ def test_load_real_pages(path):
         for t in p.tables:
             assert len(t.header) == len(t.rows[0])
             assert all("\n" not in c for row in t.rows for c in row)
+
+
+@pytest.mark.parametrize("path", sorted(ANNOTATIONS_DIR.glob("*.json")), ids=lambda p: p.stem)
+def test_rule_findings_quote_real_pages(path):
+    from src.crossvalidation.rules import run_rules
+    from src.evaluation.annotations import check_quotes, norm_ws
+
+    ann = load_annotation(path)
+    pdf = source_path(ann)
+    if not pdf.exists():
+        pytest.skip(f"real document {ann.source_file} is not available (never committed)")
+    pages = load_pages(pdf)
+    report = run_rules(pages)
+    pred = ann.model_copy(update={"findings": report.findings})
+    assert check_quotes(pred, [norm_ws(p.text) for p in pages]) == []
