@@ -74,6 +74,18 @@ def test_unresolved_values_are_logged_not_compared():
     assert all(ref.value != 990.0 for f in r.findings for ref in f.refs)
 
 
+def test_row_label_after_number_column():
+    pages = make_doc()
+    summary = table([["№", "Наименование", "Общая площадь, м²"], ["1", "Бытовой блок", "700,00"],
+                     ["2", "Складской корпус", "550,00"], ["", "Итого", "1250,00"]], 300)
+    summary.bbox = (0, 85, 500, 115)  # around the three text lines added below
+    lines = [ln.text for ln in pages[0].lines] + ["1 Бытовой блок 700,00", "2 Складской корпус 550,00", "Итого 1250,00"]
+    pages[0] = page(1, lines, pages[0].tables + [summary])
+    r = run_rules(pages)
+    got = {(m.object, m.value, m.how) for m in r.mentions if m.page == 1 and m.how == "row label"}
+    assert got == {("obj2", 700.0, "row label"), ("obj1", 550.0, "row label")}
+
+
 def _f(id_, type_, obj, pages, level="numeric"):
     return Finding(id=id_, level=level, type=type_, field="x", object=obj,
                    refs=[{"page": p, "quote": "q"} for p in pages])

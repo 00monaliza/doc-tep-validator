@@ -26,6 +26,7 @@ from src.ingestion.real import Page, TextLine
 OBJECT_NOUN_RE = re.compile(
     r"здани|корпус|\bцех|блок|сооружени|склад|пристройк|котельн|гараж|навес|ғимарат|ангар", re.IGNORECASE
 )
+TRAILING_VALUE_RE = re.compile(r"\d[.,]\d+$")  # a table row the table finder missed, not a heading
 HEADING_RE = re.compile(r"^(\d{1,2}(?:\.\d{1,2})*)\.?\s*([^\W\d_].{2,80}?)\s*\.?$")
 # words too common to identify an object on their own
 GENERIC_WORDS = frozenset({"здание", "здания", "сооружение", "объект", "строение", "ғимарат", "ғимараты", "блок"})
@@ -72,7 +73,7 @@ def _in_table(page: Page, line: TextLine) -> bool:
 def _heading(page: Page, line: TextLine) -> tuple[int, str] | None:
     """(level, title) if the line looks like a numbered heading outside tables."""
     m = HEADING_RE.match(line.text)
-    if not m or _in_table(page, line) or len(m.group(2).split()) > 8:
+    if not m or _in_table(page, line) or len(m.group(2).split()) > 8 or TRAILING_VALUE_RE.search(m.group(2)):
         return None
     return m.group(1).count(".") + 1, m.group(2).strip(" .")
 

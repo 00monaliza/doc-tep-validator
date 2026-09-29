@@ -136,7 +136,7 @@ def table_mentions(pages: list[Page], pts: list[PageText], carried: list[str | N
                 first = next((c for c in row if c), "")
                 if TOTAL_RE.match(first):
                     continue
-                label = row[0] if row else ""
+                label = next((c for c in row if re.search(r"[^\W\d_]", c)), "")  # skip a "№" column
                 named = index.mentioned(label) if label else set()
                 obj, how = (next(iter(named)), "row label") if len(named) == 1 else (ctx, "heading")
                 for col, fld in cols.items():
