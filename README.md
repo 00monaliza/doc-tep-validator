@@ -11,7 +11,7 @@ uv sync                                   # Python 3.12 + зависимости
 brew install tesseract-lang                # Tesseract rus + kaz (обязательно)
 uv run python scripts/check_env.py        # smoke-тест окружения
 uv run pytest                             # тесты генератора
-uv run python scripts/generate_synthetic.py --lang ru kz --seeds 1-100   # корпус
+uv run python scripts/generate_synthetic.py --lang ru kz --seeds 1-100   # корпус (профиль v2)
 ```
 
 ## MVP: веб-сервис сверки ТЭП
@@ -35,7 +35,8 @@ uv run uvicorn api.main:app --port 8000     # затем открыть http://1
 → `crossvalidation/engine.py` (4 типа проверок с допусками из `taxonomy.py`)
 → `api/` (FastAPI + одностраничный интерфейс, pdf.js с CDN).
 
-Оценка `scripts/eval_pipeline.py` на новых синтетических наборах (seeds 1000–1099, 2000–2009):
+Оценка `scripts/eval_pipeline.py` на новых синтетических наборах профиля v1 (seeds 1000–1099, 2000–2009;
+MVP-экстрактор написан под структуру v1, на v2 он не рассчитан):
 
 | Вход | Извлечение ТЭП | Обнаружение несоответствий (P / R) |
 |---|---|---|
@@ -53,22 +54,67 @@ uv run uvicorn api.main:app --port 8000     # затем открыть http://1
 ```
 src/
   ingestion/common/    PDF (pdfplumber, PyMuPDF), DOCX, Tesseract-обёртка,
-                       normalize.py — восстановление м²/м³ после OCR
+                       normalize.py — восстановление м²/м³ после OCR,
+                       numbers.py — числа (1 247,79 / 1247,79 / 4963.84) и единицы (м2, кв.м, м³ …)
+  ingestion/real.py    постраничная загрузка реальных PDF, склейка разорванных слов в заголовках таблиц
   synthesis/           генератор синтетических наборов
-    values.py          ТЭП и внесение несоответствий (не зависит от языка)
+    values.py          ТЭП и внесение несоответствий (не зависит от языка), план объектов v2
+    pz_objects.py      части ПЗ профиля v2 (здания, сводная таблица, повторы ТЭП), общие для RU/KZ
     templates_ru/      шаблоны ПЗ/АР/КР/смета на русском
     templates_kz/      шаблоны на казахском (параллельные, не перевод)
     data/              лексиконы (kz_lexicon.py, ru_lexicon.py)
     render.py, scan.py PDF/DOCX-рендер (fpdf2) и имитация скана (Pillow)
   ner/{ru,kz}/         будущие baseline и модели
-  ner/common/          taxonomy.py (разделы, поля ТЭП, типы несоответствий, допуски), models.py
-  crossvalidation/, evaluation/
+  ner/common/          taxonomy.py (разделы, поля ТЭП, типы и уровни несоответствий, допуски),
+                       field_patterns.py (шаблоны полей ТЭП для реальных документов)
+  crossvalidation/     engine.py (MVP, синтетика), objects.py + rules.py (rule-based v0 для реальных документов)
+  evaluation/          schema.py (разметка реальных документов), annotations.py, extractability.py, match.py
+annotations/real/        ручная разметка реальных документов (в git)
 data/synthetic/{ru,kz}/  сгенерированные корпуса (в .gitignore)
-data/synthetic/samples/  пробные наборы ru_00001, kz_00001 (в git)
-data/real/               реальные документы (пусто)
-scripts/                 check_env.py, generate_synthetic.py, eval_ocr_units.py, fetch_assets.sh
+data/synthetic/samples/  пробные наборы ru_00001, kz_00001 (в git, профиль v1)
+data/real/               реальные документы (в .gitignore, никогда не коммитятся)
+scripts/                 check_env.py, generate_synthetic.py, eval_ocr_units.py, eval_pipeline.py,
+                         validate_annotations.py, inspect_real.py, evaluate_real.py, regex_baseline.py
 api/                     FastAPI + static/index.html (интерфейс)
 ```
+
+## Реальные данные
+
+`data/real/` содержит реальные проектные документы. Это данные заказчиков, а репозиторий публичный,
+поэтому в git попадает только пустой `data/real/.gitkeep` (правило `data/real/*` в `.gitignore`).
+Куски реальных документов не копируются ни в тесты, ни в фикстуры, ни в README; всё, что скрипты
+извлекают из них, пишется в `build/real/` (тоже в `.gitignore`). Тесты, которым нужен реальный PDF,
+пропускаются (`pytest.skip`), если файла нет.
+
+Сейчас есть один документ: общая пояснительная записка рабочего проекта (22 стр., текстовый слой
+из Word, два здания). Его ручная разметка лежит в `annotations/real/<doc_id>.gt.json` и в git есть:
+находки с типом и уровнем из таксономии v2, объектом (здание, `site`, `all`, `document`),
+уверенностью (`certain` / `needs_expert`) и ссылками «страница (с 1) + точная цитата из
+`pdfplumber.extract_text()`». Разметка пока черновая (`status: draft`).
+
+Как добавить документ:
+
+1. Положить PDF в `data/real/` и проверить: `git check-ignore -v "data/real/<файл>.pdf"`.
+2. `uv run python scripts/inspect_real.py "data/real/<файл>.pdf"`: постраничный текст и таблицы
+   в `build/real/<doc_id>/` для ручного просмотра.
+3. Написать `annotations/real/<doc_id>.gt.json` по схеме `src/evaluation/schema.py`
+   (`source_file` указывает на PDF, объекты перечислены в `objects`).
+4. `uv run python scripts/validate_annotations.py`: схема, соответствие `level` типу, и что каждая
+   цитата находится на своей странице. Ненулевой код выхода при ошибках.
+5. `uv run python scripts/inspect_real.py "data/real/<файл>.pdf"` ещё раз: теперь он пишет и
+   `extractability.json` (где находится каждое значение из `tep` разметки: в таблице под нужным
+   заголовком, только в тексте или нигде).
+6. `uv run python scripts/evaluate_real.py`: правила v0 против разметки, precision/recall по уровням
+   (`build/real/<doc_id>/evaluation.json`).
+
+Правила v0 (`src/crossvalidation/rules.py`) ищут `TABLE_TOTAL_MISMATCH`, `TEP_CROSS_SECTION_MISMATCH`,
+`PARAMETER_CONTRADICTION` (только сейсмичность) и `GEOMETRY_INCONSISTENCY`. Объект значения
+определяется по упоминанию в том же предложении (аббревиатура названия, уникальная основа слова) или
+по ближайшему нумерованному заголовку здания; если объект не определён, значение не сравнивается и
+попадает в лог. На единственном размеченном документе правила находят 4 из 10 находок без ложных
+(все 4 на уровнях numeric, categorical, domain_rule). Это проверка работоспособности, а не метрика:
+документ один, и правила писались с оглядкой на него. Уровни `logical` и `artifact` правилами не
+ловятся совсем.
 
 ## Синтетические данные
 
@@ -78,19 +124,62 @@ api/                     FastAPI + static/index.html (интерфейс)
 Русский и казахский наборы параллельные: объект, числа и формулировки у каждого языка
 берутся из своего потока RNG, а структура `ground_truth.json` одна и та же.
 
-Типы несоответствий (`src/ner/common/taxonomy.py`):
+Таксономия v2 (`src/ner/common/taxonomy.py`): у каждого типа есть уровень (`TYPE_LEVEL`).
 
-| Тип | Что сравнивается | Допуск MATCH |
+| Тип | Уровень | Что сравнивается | Допуск MATCH | Синтетика |
+|---|---|---|---|---|
+| `AREA_PZ_VS_AR_EXPLICATION` | numeric | ПЗ `total_area_m2` ↔ сумма экспликации АР | 0,5 % | v1, v2 |
+| `MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE` | numeric | КР объём материала ↔ количество в ЛС | 1 % | v1, v2 |
+| `COST_OBJECT_ESTIMATE_VS_SUMMARY` | numeric | итог ОС 02-01 ↔ строка ОС 02-01 в гл. 2 ССР | 0,001 тыс. тг | v1, v2 |
+| `MISSING_MANDATORY_TEP` | numeric | обязательный ТЭП отсутствует в разделе | — | v1, v2 |
+| `TEP_CROSS_SECTION_MISMATCH` | numeric | один ТЭП одного объекта в разных разделах | 0,5 % (≥ 0,1) | v2 |
+| `TABLE_TOTAL_MISMATCH` | numeric | итог таблицы ↔ сумма строк | 0,05 | v2 |
+| `VALUE_CROSS_SECTION_MISMATCH` | numeric | не-ТЭП значение (абсолютная отметка) в разных разделах | — | — |
+| `LOCAL_ESTIMATE_VS_SUMMARY` | numeric | итог ЛС ↔ строка сметного расчёта (цепочка ЛС → Форма 2 → Форма 1) | — | — |
+| `PARAMETER_CONTRADICTION` | categorical | сейсмичность, огнестойкость, материал… с разными значениями | — | v2 |
+| `STATEMENT_CONTRADICTION` | logical | противоречащие утверждения в тексте | — | — |
+| `TEP_CALCULATION_METHOD` | domain_rule | значение посчитано неверным методом | — | — |
+| `GEOMETRY_INCONSISTENCY` | domain_rule | площадь застройки меньше площади в осях | — | — |
+| `COPY_PASTE_LABEL` | artifact | неверная подпись объекта или таблицы | — | — |
+| `IRRELEVANT_REFERENCE` | artifact | нормативная ссылка не относится к объекту | — | — |
+
+`COST_OBJECT_ESTIMATE_VS_SUMMARY` встречается только в синтетике: в реальной смете (АВС) объектных
+смет не было.
+
+### Профили генератора
+
+`--profile v2` (по умолчанию, `SCHEMA_VERSION` 1.2) приближает ПЗ к реальной. АР, КР и смета
+по-прежнему описывают основное здание `b1`, а в ПЗ добавляются:
+
+- 1–3 здания: раздел на каждое здание (таблица объёмно-планировочных показателей, огнестойкость,
+  сейсмичность) и сводная таблица по объектам со строкой «Итого»;
+- повторы одного ТЭП в разных разделах (таблица здания и фраза в инженерном разделе:
+  «Объём здания котельной равен — … м³»);
+- ошибки `TABLE_TOTAL_MISMATCH` (в том числе итог, скопированный из соседнего столбца),
+  `PARAMETER_CONTRADICTION` (сейсмичность или огнестойкость), `TEP_CROSS_SECTION_MISMATCH`;
+- синонимы показателей («Общая площадь здания», «Площадь общая», «S общ.»), написания единиц
+  (м², м2, кв.м), порядок столбцов, форматы чисел (`1 247,79`, `1247,79`, `1247.79`, NBSP),
+  слова, разорванные в заголовках таблиц без дефиса («Этажнос / ть»);
+- пограничные случаи: часть внесённых ошибок лежит в 1–3 допусках, часть совпадений отличается
+  только округлением (они в `consistent_checks` с вердиктом MATCH).
+
+Вся вариативность v2 берётся из отдельного потока RNG, поэтому значения `b1` у одного seed
+одинаковы в v1 и v2. `--profile v1` воспроизводит прежние наборы; на нём закреплены тесты MVP.
+Проверка сложности (`scripts/regex_baseline.py`, regex «Общая площадь здания м² <число>» по
+таблице ТЭП ПЗ, 40 наборов seeds 5001–5040):
+
+| | v1 | v2 |
 |---|---|---|
-| `AREA_PZ_VS_AR_EXPLICATION` | ПЗ `total_area_m2` ↔ сумма экспликации АР | 0,5 % |
-| `MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE` | КР объём материала ↔ количество в ЛС | 1 % |
-| `COST_OBJECT_ESTIMATE_VS_SUMMARY` | итог ОС 02-01 ↔ строка ОС 02-01 в гл. 2 ССР | 0,001 тыс. тг |
-| `MISSING_MANDATORY_TEP` | обязательный ТЭП отсутствует в разделе | — |
+| RU | 100 % | 18 % |
+| KZ | 100 % | 10 % |
 
-`ground_truth.json`: `tep[<раздел>][<поле>]` содержит `value`, `unit`, `present` и `anchors`
-(`block_id`, строку и столбец таблицы или абзац, точный текст в документе). В `discrepancies[]`
-и `consistent_checks[]` лежат `refs` с `tep_ref` (например, `SMETA.local_qty.rebar_a500c_t`) и теми же
-якорями. `delta_rel` считается относительно второй ссылки. Коды нормативов в ЛС
+`ground_truth.json`: `tep[<раздел>][<поле>]` (значения основного здания) содержит `value`, `unit`,
+`present` и `anchors` (`block_id`, строку и столбец таблицы или абзац, точный текст в документе).
+В `discrepancies[]` и `consistent_checks[]` у каждой записи есть `type`, `level`, `object` и `refs`.
+Ссылки v1 содержат `tep_ref` (например, `SMETA.local_qty.rebar_a500c_t`) и те же якоря; ссылки v2
+содержат `mention` (`<объект>:<место в ПЗ>:<поле>`, например `b2:engineering_text:construction_volume_m3`)
+и якоря в ПЗ. `objects` описывает здания набора, `site` — параметры площадки. `delta_rel` считается
+относительно второй ссылки (для итогов таблиц — относительно суммы строк). Коды нормативов в ЛС
 (`Е06-01-001-01` и т. п.) выдуманы и служат только заполнителями.
 
 ## Модели (проверено через HuggingFace Hub API 2026-09-25)
