@@ -82,13 +82,18 @@ def _is_object_title(title: str) -> bool:
     return bool(OBJECT_NOUN_RE.search(title)) and len(title.split()) <= 6
 
 
-def discover_objects(pages: list[Page]) -> ObjectIndex:
+def object_headings(pages: list[Page]) -> list[str]:
     names: list[str] = []
     for page in pages:
         for line in page.lines:
             h = _heading(page, line)
             if h and _is_object_title(h[1]) and h[1].lower() not in (n.lower() for n in names):
                 names.append(h[1])
+    return names
+
+
+def build_index(names: list[str]) -> ObjectIndex:
+    """Objects obj1..objN with abbreviations and word stems unique to one object."""
     objects = []
     for i, name in enumerate(names, start=1):
         words = _words(name)
@@ -99,6 +104,10 @@ def discover_objects(pages: list[Page]) -> ObjectIndex:
     for o in objects:
         o.stems = {s for s in o.stems if sum(s in p.stems for p in objects) == 1}
     return ObjectIndex(objects)
+
+
+def discover_objects(pages: list[Page]) -> ObjectIndex:
+    return build_index(object_headings(pages))
 
 
 @dataclass

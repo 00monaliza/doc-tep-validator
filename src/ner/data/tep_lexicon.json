@@ -1,0 +1,97 @@
+{
+  "_about": "Synonyms of TEP labels for the rule-based extraction baseline (src/ner/common/tep_baseline.py). Every entry lists its source: 'synthetic' = the generator lexicons (src/synthesis), 'dev:real_opz_zhbi2' = the one real development document. Nothing may be added from test documents. Matching of table labels ignores case, 'ё', spaces and punctuation; text labels are matched by word stems.",
+  "fields": {
+    "floors": {
+      "unit": "floor",
+      "table": {
+        "ru": {"synthetic": ["Этажность", "Количество этажей", "Этажность здания"], "dev:real_opz_zhbi2": ["Этажность"]},
+        "kz": {"synthetic": ["Қабат саны", "Қабаттылығы", "Ғимараттың қабат саны"]}
+      },
+      "text_number_first": {
+        "ru": {"synthetic": ["этажное", "этажный"], "dev:real_opz_zhbi2": ["этажное"]},
+        "kz": {"synthetic": ["қабатты"]}
+      }
+    },
+    "building_area_m2": {
+      "unit": "m2",
+      "table": {
+        "ru": {"synthetic": ["Площадь застройки", "Площадь застройки здания", "S застр."], "dev:real_opz_zhbi2": ["Площадь застройки"]},
+        "kz": {"synthetic": ["Құрылыс салу ауданы", "Салу ауданы", "S салу"]}
+      },
+      "text": {
+        "ru": {"synthetic": ["площадь застройки"]},
+        "kz": {"synthetic": ["құрылыс салу ауданы", "салу ауданы"]}
+      }
+    },
+    "total_area_m2": {
+      "unit": "m2",
+      "table": {
+        "ru": {"synthetic": ["Общая площадь здания", "Площадь общая", "S общ.", "Общая площадь"], "dev:real_opz_zhbi2": ["Общая площадь"]},
+        "kz": {"synthetic": ["Ғимараттың жалпы ауданы", "Жалпы аудан", "Жалпы ауданы", "S жалпы"]}
+      },
+      "text": {
+        "ru": {"synthetic": ["общая площадь", "площадь общая"]},
+        "kz": {"synthetic": ["жалпы ауданы", "жалпы аудан"]}
+      }
+    },
+    "useful_area_m2": {
+      "unit": "m2",
+      "table": {
+        "ru": {"dev:real_opz_zhbi2": ["Полезная площадь"]},
+        "kz": {}
+      },
+      "text": {
+        "ru": {"dev:real_opz_zhbi2": ["полезная площадь"]},
+        "kz": {}
+      }
+    },
+    "construction_volume_m3": {
+      "unit": "m3",
+      "table": {
+        "ru": {"synthetic": ["Строительный объём", "Строительный объем", "Объём строительный", "V стр."], "dev:real_opz_zhbi2": ["Строительный объем"]},
+        "kz": {"synthetic": ["Құрылыс көлемі", "Ғимараттың құрылыс көлемі", "V құр."]}
+      },
+      "text": {
+        "ru": {"synthetic": ["строительный объём", "объём"], "dev:real_opz_zhbi2": ["объем"]},
+        "kz": {"synthetic": ["құрылыс көлемі", "көлемі"]}
+      }
+    },
+    "underground_volume_m3": {
+      "unit": "m3",
+      "table": {
+        "ru": {"synthetic": ["в том числе подземной части"]},
+        "kz": {"synthetic": ["оның ішінде жерасты бөлігі"]}
+      }
+    },
+    "estimated_cost_ktg": {
+      "unit": "kKZT",
+      "table": {
+        "ru": {"synthetic": ["Сметная стоимость строительства в текущих ценах (с НДС)", "Сметная стоимость строительства"]},
+        "kz": {"synthetic": ["Ағымдағы бағамен құрылыстың сметалық құны (ҚҚС-пен)", "Құрылыстың сметалық құны"]}
+      },
+      "text": {
+        "ru": {"synthetic": ["сметная стоимость строительства"]},
+        "kz": {"synthetic": ["құрылыстың сметалық құны"]}
+      }
+    },
+    "construction_duration_months": {
+      "unit": "month",
+      "table": {
+        "ru": {"synthetic": ["Продолжительность строительства"]},
+        "kz": {"synthetic": ["Құрылыс ұзақтығы"]}
+      }
+    }
+  },
+  "units": {
+    "m2": {"synthetic": ["м²", "м2", "кв.м", "ш.м"], "dev:real_opz_zhbi2": ["м2"]},
+    "m3": {"synthetic": ["м³", "м3", "куб.м", "т.м"], "dev:real_opz_zhbi2": ["м3"]},
+    "floor": {"synthetic": ["этаж", "эт.", "қабат"], "dev:real_opz_zhbi2": ["эт"]},
+    "kKZT": {"synthetic": ["тыс. тенге", "мың теңге"]},
+    "month": {"synthetic": ["мес.", "ай"]}
+  },
+  "headers": {
+    "number": {"synthetic": ["№ п/п", "№", "Р/с №", "№ пом."]},
+    "units_row": {"synthetic": ["Ед. изм.", "Өлш. бірл."], "dev:real_opz_zhbi2": ["Ед. изм"]},
+    "total_row": {"synthetic": ["Итого", "Всего", "Барлығы", "Жиыны"], "dev:real_opz_zhbi2": ["ИТОГО"]}
+  }
+}
