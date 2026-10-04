@@ -74,3 +74,15 @@ def test_bare_volume_needs_a_building_name(tmp_path, bare, expected):
     pages = make_pdf(tmp_path, [["1. Здание котельной", "Строительный объём здания котельной составляет 900,00 м³."],
                                 ["Инженерные сети", bare]])
     assert len(findings(pages, "TEP_CROSS_SECTION_MISMATCH", "construction_volume_m3")) == expected
+
+
+# ------------------------------------------------------------------ seismicity
+@pytest.mark.parametrize("second", [
+    "Конструктивтік шешімдер 8 балдық сейсмикалығы бар ауданда салуды ескере отырып қабылданды.",
+    "Құрылыс ауданының сейсмикалығы 8 балды құрайды.",  # Kazakh "балды": one "л"
+])
+def test_kz_seismicity_forms(tmp_path, second):
+    pages = make_pdf(tmp_path, [["1. Мектеп ғимараты", "Алаңның сейсмикалығы — 7 балл."],
+                                ["Конструктивтік шешімдер", second]])
+    (f,) = findings(pages, "PARAMETER_CONTRADICTION", "seismicity_points")
+    assert sorted({r.value for r in f.refs}) == [7, 8]

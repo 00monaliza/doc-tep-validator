@@ -35,9 +35,11 @@ TOTAL_TOLERANCE = TOLERANCES[DiscrepancyType.TABLE_TOTAL_MISMATCH]
 
 _UNIT = r"(?P<unit>[мm]\.?\s?[23²³]|кв\.\s?[мm]|куб\.\s?[мm])(?!\s*/)"
 _NUM = rf"(?P<num>{NUMBER_RE.pattern})"
-SEISMIC_RE = re.compile(r"(?:сейсмичн|сейсмикал)\w*\D{0,40}?(?P<num>\d{1,2})\s*балл\w*", re.IGNORECASE)
+# "балл" (RU) and its Kazakh forms with one "л": балды, балдық, балға
+POINTS = r"бал(?:л|д|ғ)\w*"
+SEISMIC_RE = re.compile(rf"(?:сейсмичн|сейсмикал)\w*\D{{0,40}}?(?P<num>\d{{1,2}})\s*{POINTS}", re.IGNORECASE)
 # KZ word order: the number comes first ("8 балдық сейсмикалығы")
-SEISMIC_KZ_RE = re.compile(r"(?P<num>\d{1,2})\s*балд\w*\s+сейсмикал\w*", re.IGNORECASE)
+SEISMIC_KZ_RE = re.compile(rf"(?P<num>\d{{1,2}})\s*{POINTS}\s+сейсмикал\w*", re.IGNORECASE)
 SITE_SCOPE_RE = re.compile(r"площадк|район|участ\w* (?:строительств|работ)|местност|алаң|аудан\w*да\b|өңір",
                            re.IGNORECASE)
 BUILDING_SCOPE_RE = re.compile(r"здани|корпус|сооружени|ғимарат", re.IGNORECASE)
