@@ -66,6 +66,8 @@
   .remark .values { font: 500 15px var(--cond); margin-top: 2px; }
   .remark .values .ne { color: var(--pencil); padding: 0 6px; }
   .remark .meta { font-size: 13px; color: var(--graphite-2); }
+  .remark .obj { font: 500 14px var(--cond); color: var(--stamp); }
+  table.grid tr.group td { font: 600 14px var(--cond); color: var(--stamp); background: var(--stamp-wash); }
   .verdict { display: inline-block; font: 600 12px/1 var(--cond); padding: 3px 6px; border: 1px solid; margin-right: 6px; }
   .v-MISMATCH { color: var(--pencil); border-color: var(--pencil); }
   .v-MISSING { color: var(--amber); border-color: var(--amber); background: var(--amber-wash); }
@@ -187,10 +189,18 @@ const FIELD = {
   concrete_b25_foundation_m3: "Бетон B25, м³", concrete_b30_frame_m3: "Бетон B30, м³", rebar_a500c_t: "Арматура A500С, т",
   brick_masonry_m3: "Кирпичная кладка, м³", steel_structures_t: "Стальные конструкции, т",
   "os.total_ktg": "Итого по объектной смете, тыс. тенге", "ssr.total_ktg": "Всего по ССР, тыс. тенге",
-  "local.total_tg": "Всего по локальной смете, тенге",
+  "local.total_tg": "Всего по локальной смете, тенге", useful_area_m2: "Полезная площадь, м²",
+  seismicity_points: "Сейсмичность, баллов",
 };
 const fieldName = f => FIELD[f] ?? FIELD[f.replace("local_qty.", "")]?.replace(/^/, "ЛС: ")
-  ?? (f.startsWith("ssr.ch2.os_") ? `Строка ОС ${f.slice(11, 16)} в ССР, тыс. тенге` : f);
+  ?? (f.startsWith("ssr.ch2.os_") ? `Строка ОС ${f.slice(11, 16)} в ССР, тыс. тенге`
+  : f.startsWith("col:") ? f.slice(4) : f);
+const TYPE = {
+  AREA_PZ_VS_AR_EXPLICATION: "ПЗ ↔ экспликация АР", MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE: "КР ↔ локальная смета",
+  COST_OBJECT_ESTIMATE_VS_SUMMARY: "Объектная смета ↔ ССР", MISSING_MANDATORY_TEP: "Обязательный ТЭП",
+  TABLE_TOTAL_MISMATCH: "Итог таблицы", TEP_CROSS_SECTION_MISMATCH: "Один ТЭП в разных местах ПЗ",
+  PARAMETER_CONTRADICTION: "Противоречие параметров", GEOMETRY_INCONSISTENCY: "Геометрия",
+};
 const fmt = v => v == null ? "—" : Number(v).toLocaleString("ru-RU", { maximumFractionDigits: 3 });
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -220,13 +230,27 @@ async function start(req, slow) {
   const r = await req;
   const body = await r.json();
   if (!r.ok) { status.className = "status error"; status.textContent = body.detail ?? "Файлы не приняты."; return; }
+  await poll(body.id);
+}
+
+async function poll(id) {
+  const status = $("status");
   for (;;) {
-    await new Promise(res => setTimeout(res, 800));
-    const s = await (await fetch(`/api/checks/${body.id}`)).json();
-    if (s.status === "done") { check = body.id; report = s.report; render(); return; }
+    const r = await fetch(`/api/checks/${id}`);
+    if (!r.ok) { status.className = "status error"; status.textContent = "Проверка не найдена. Загрузите документы заново."; return; }
+    const s = await r.json();
+    if (s.status === "done") {
+      check = id; report = s.report;
+      history.replaceState(null, "", `?check=${id}`);  // the link reopens this report
+      render(); return;
+    }
     if (s.status === "error") { status.className = "status error"; status.textContent = `Проверка не выполнена: ${s.error}`; return; }
+    await new Promise(res => setTimeout(res, 800));
   }
 }
+
+const opened = new URLSearchParams(location.search).get("check");
+if (opened && /^[0-9a-f]{32}$/.test(opened)) poll(opened);
 
 // ---------- report ----------
 function render() {
@@ -261,15 +285,17 @@ function selectTab(tab) {
 
 function remarkHtml(f, i) {
   const [a, b] = f.refs;
-  const values = f.verdict === "MISSING"
+  const values = f.refs.length > 2 ? [...new Set(f.refs.map(r => fmt(r.value)))].join('<span class="ne">≠</span>')
+    : f.verdict === "MISSING"
     ? `${SECTION[a.section]}: —<span class="ne">·</span>${SECTION[b.section]}: ${fmt(b.value)}`
     : `${fmt(a.value)}<span class="ne">${f.verdict === "MATCH" ? "=" : "≠"}</span>${fmt(b.value)}`;
   const rel = f.delta_rel != null && f.verdict === "MISMATCH" ? `, ${(f.delta_rel * 100).toFixed(1).replace(".", ",")} %` : "";
   return `<li><button class="remark" data-i="${i}">
     <span class="no">${i + 1}</span>
-    <span><span class="verdict v-${f.verdict}">${VERDICT[f.verdict]}</span><span class="what">${esc(fieldName(f.field))}</span>${f.low_confidence ? ` <span class="verdict v-MISSING">скан</span>` : ""}
+    <span><span class="verdict v-${f.verdict}">${VERDICT[f.verdict]}</span><span class="what">${esc(fieldName(f.field))}</span>${f.low_confidence ? ` <span class="verdict v-MISSING">скан</span>` : ""}${f.needs_expert ? ` <span class="verdict v-MISSING">эксперту</span>` : ""}
+      ${f.object_name ? `<div class="obj">${esc(f.object_name)}</div>` : ""}
       <div class="values">${values}</div>
-      <div class="meta">${SECTION[a.section]} ↔ ${SECTION[b.section]}${rel}</div>
+      <div class="meta">${a.section === b.section ? esc(TYPE[f.type] ?? f.type) : `${SECTION[a.section]} ↔ ${SECTION[b.section]}`}${rel}</div>
       ${f.notes.map(n => `<div class="meta">${esc(n)}</div>`).join("")}
     </span></button></li>`;
 }
@@ -292,19 +318,26 @@ function renderFindings(bad) {
 
 function renderTep() {
   const order = ["PZ", "AR", "KR", "SMETA"];
+  const objects = report.objects ?? {};
   $("p-tep").innerHTML = order.filter(s => report.tep[s]).map(s => {
-    const rows = Object.entries(report.tep[s]).filter(([f]) => !f.startsWith("room."));
+    const entries = Object.entries(report.tep[s]).filter(([f]) => !f.startsWith("room."));
     const rooms = Object.keys(report.tep[s]).filter(f => f.startsWith("room.")).length;
+    const groups = {};
+    for (const [k, e] of entries) (groups[e.object ?? ""] ??= []).push([k, e]);
+    const multi = Object.keys(groups).length > 1 || (Object.keys(groups)[0] ?? "") !== "";
+    const rowHtml = ([k, e]) => `<tr class="clickable" data-s="${s}" data-k="${esc(k)}" tabindex="0">
+        <td>${esc(fieldName(k.includes("/") ? k.split("/")[1] : k))}</td><td class="num">${esc(e.raw)}</td><td>${e.page ? `стр. ${e.page}` : "—"}</td></tr>`;
+    const body = Object.entries(groups).map(([obj, rows]) =>
+      (multi ? `<tr class="group"><td colspan="3">${esc(objects[obj] ?? (obj || "Без привязки к зданию"))}${obj && obj === report.pz_building ? " · сверяется с АР/КР/сметой" : ""}</td></tr>` : "")
+      + rows.map(rowHtml).join("")).join("");
     return `<table class="grid"><caption>${SECTION_FULL[s]}${rooms ? ` · помещений в экспликации: ${rooms}` : ""}</caption>
-      <thead><tr><th>Показатель</th><th class="num">Значение</th><th>Где</th></tr></thead><tbody>
-      ${rows.map(([f, e]) => `<tr class="clickable" data-s="${s}" data-f="${esc(f)}" tabindex="0">
-        <td>${esc(fieldName(f))}</td><td class="num">${esc(e.raw)}</td><td>${e.page ? `стр. ${e.page}` : "—"}</td></tr>`).join("")}
-      </tbody></table>`;
+      <thead><tr><th>Показатель</th><th class="num">Значение</th><th>Где</th></tr></thead><tbody>${body}</tbody></table>`;
   }).join("") || `<div class="empty">Показатели не найдены.</div>`;
   $("p-tep").querySelectorAll("tr.clickable").forEach(tr => {
-    const go = () => showRefs([{ ...report.tep[tr.dataset.s][tr.dataset.f], section: tr.dataset.s, field: tr.dataset.f }]);
+    const e = report.tep[tr.dataset.s][tr.dataset.k];
+    const go = () => showRefs([{ ...e, section: tr.dataset.s }]);
     tr.addEventListener("click", go);
-    tr.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    tr.addEventListener("keydown", ev => { if (ev.key === "Enter") go(); });
   });
 }
 
@@ -325,7 +358,7 @@ function showFinding(f) { showRefs(f.refs, f); }
 function showRefs(refs, finding) {
   currentRefs = refs;
   $("refs").innerHTML = refs.length > 1 ? refs.map((r, i) =>
-    `<button type="button" aria-pressed="${i === 0}" data-i="${i}">${SECTION[r.section]}${r.value == null ? " (нет)" : ""}</button>`).join(" ") : "";
+    `<button type="button" aria-pressed="${i === 0}" data-i="${i}">${esc(r.label ?? SECTION[r.section])}${r.value == null ? " (нет)" : ""}</button>`).join(" ") : "";
   $("refs").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
     $("refs").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
     showRef(currentRefs[+b.dataset.i], finding);
@@ -336,7 +369,9 @@ function showRefs(refs, finding) {
     $("refs").querySelectorAll("button").forEach((x, i) => x.setAttribute("aria-pressed", i === firstPresent));
 }
 
+let renderSeq = 0;  // a newer click cancels an unfinished page render
 async function showRef(ref, finding) {
+  const seq = ++renderSeq;
   const doc = report.documents.find(d => d.section === ref.section);
   const ev = $("evidence");
   $("doc-name").textContent = doc ? `${SECTION[ref.section]} · ${doc.file}` : `${SECTION_FULL[ref.section]}: нет в пакете`;
@@ -345,7 +380,8 @@ async function showRef(ref, finding) {
   } else {
     const txt = esc(ref.evidence ?? "");
     const raw = esc(ref.raw ?? "");
-    ev.innerHTML = (ref.derived ? `Вычислено: ${esc(ref.derived)}. ` : "") + (raw && txt.includes(raw) ? txt.replace(raw, `<mark>${raw}</mark>`) : txt);
+    ev.innerHTML = (ref.derived ? `Вычислено: ${esc(ref.derived)}. ` : "") + (raw && txt.includes(raw)  // mark the last occurrence: extractors read the last number of a row
+      ? txt.slice(0, txt.lastIndexOf(raw)) + `<mark>${raw}</mark>` + txt.slice(txt.lastIndexOf(raw) + raw.length) : txt);
   }
   ev.classList.remove("hidden");
   const page = $("page");
@@ -358,6 +394,7 @@ async function showRef(ref, finding) {
   pdfCache[url] ??= pdfjs.getDocument(url).promise;
   const pdf = await pdfCache[url];
   const p = await pdf.getPage(ref.page ?? 1);
+  if (seq !== renderSeq) return;
   const width = $("canvas-wrap").clientWidth - 32;
   const base = p.getViewport({ scale: 1 });
   const scale = Math.min(2, width / base.width);
@@ -366,8 +403,10 @@ async function showRef(ref, finding) {
   const canvas = document.createElement("canvas");
   canvas.width = vp.width * ratio; canvas.height = vp.height * ratio;
   canvas.style.width = `${vp.width}px`; canvas.style.height = `${vp.height}px`;
-  page.appendChild(canvas);
   await p.render({ canvasContext: canvas.getContext("2d"), viewport: vp, transform: [ratio, 0, 0, ratio, 0, 0] }).promise;
+  if (seq !== renderSeq) return;
+  page.innerHTML = "";
+  page.appendChild(canvas);
   if (ref.bbox) {
     const [x0, top, x1, bottom] = ref.bbox, pad = 5;
     const ring = document.createElement("div");

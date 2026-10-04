@@ -37,6 +37,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("roots", nargs="+", type=Path)
     ap.add_argument("--kind", default="text/*.pdf", help="glob inside a set: text/*.pdf | text/*.docx | scan/*.pdf")
+    ap.add_argument("--show", type=int, default=8, help="how many most common errors to print")
     args = ap.parse_args()
 
     det: dict[tuple[str, str], Counter] = defaultdict(Counter)  # (lang, type) -> tp/fp/fn
@@ -55,6 +56,14 @@ def main() -> None:
         det[(lang, "_sets")]["n"] += 1
         for sec, fields in gt["tep"].items():
             got_sec = report["tep"].get(sec, {})
+            if sec == "PZ" and any("/" in k for k in got_sec):  # per-building keys: 'obj1/total_area_m2'
+                b = report.get("pz_building") or "project"
+                per_obj = {}
+                for k, v in got_sec.items():
+                    obj, f = k.split("/", 1)
+                    if obj == b or (obj == "project" and f not in per_obj):
+                        per_obj[f] = v
+                got_sec = per_obj
             for fld, e in fields.items():
                 if not e["present"] or not fld.startswith(TARGET_PREFIXES):
                     continue
@@ -76,7 +85,9 @@ def main() -> None:
             r = cnt["tp"] / max(cnt["tp"] + cnt["fn"], 1)
             print(f"  {t:38} TP={cnt['tp']:3} FP={cnt['fp']:3} FN={cnt['fn']:3}  P={p:6.1%}  R={r:6.1%}")
     if errors:
-        print("  most common errors:", errors.most_common(8))
+        print("  most common errors:")
+        for e, n in errors.most_common(args.show):
+            print(f"    {n:3}  {e}")
 
 
 if __name__ == "__main__":

@@ -26,6 +26,7 @@ from src.ingestion.common.numbers import NUMBER_RE, normalize_unit, number_readi
 from src.ingestion.real import Page, PageTable, norm_ws
 from src.ner.common.field_patterns import FIELD_TEXT, FIELD_UNITS, header_field
 from src.ner.common.taxonomy import TOLERANCES, TYPE_LEVEL, DiscrepancyType, Tolerance
+from src.ner.common.tep_baseline import load_lexicon
 
 TOTAL_RE = re.compile(r"^(?:итого|всего|барлығы|жиыны|жиынтығы)\b", re.IGNORECASE)
 TEP_TOLERANCE = TOLERANCES[DiscrepancyType.TEP_CROSS_SECTION_MISMATCH]
@@ -115,7 +116,8 @@ def check_table_totals(pages: list[Page], pts: list[PageText], carried: list[str
                     if TOTAL_TOLERANCE.matches(s, total):
                         continue
                     header = table.header[col] if col < len(table.header) else ""
-                    fld = header_field(header) or f"col:{header or col}"
+                    # the lexicon matches ignoring spaces: also names headers broken mid-word ("Құрылы с")
+                    fld = header_field(header) or load_lexicon().field_of(header) or f"col:{header or col}"
                     refs = [Ref(page=page.number, quote=_row_quote(pt, r, col), object=obj, value=_num(r[col]),
                                 col=header or None) for r in block if col < len(r) and _num(r[col]) is not None]
                     refs.append(Ref(page=page.number, quote=_row_quote(pt, row, col), object=obj, value=total,
