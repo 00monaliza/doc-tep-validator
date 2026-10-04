@@ -277,10 +277,12 @@ def _text(pts: list[PageText], index: ObjectIndex, lex: Lexicon) -> list[Candida
 
 
 # ------------------------------------------------------------------ main
-def extract(pages: list[Page], lex: Lexicon | None = None) -> Extraction:
+def object_index(pages: list[Page], lex: Lexicon | None = None) -> ObjectIndex:
+    """Objects of a document: numbered building headings, plus the row labels of horizontal
+    TEP tables with several data rows (a summary table names buildings whose headings lack
+    a building noun: "Шаруашылық блогы", "Гараж")."""
     lex = lex or load_lexicon()
     headings = object_headings(pages)
-    # row labels of horizontal tables with several data rows name objects too
     row_names: list[str] = []
     empty = build_index([])
     for page in pages:
@@ -289,7 +291,12 @@ def extract(pages: list[Page], lex: Lexicon | None = None) -> Extraction:
             labels = {label for _, label, *_ in rows if label}
             if len(labels) >= 2:
                 row_names += [x for x in labels if squash(x) not in {squash(n) for n in headings + row_names}]
-    index = build_index(headings + sorted(set(row_names), key=row_names.index))
+    return build_index(headings + sorted(set(row_names), key=row_names.index))
+
+
+def extract(pages: list[Page], lex: Lexicon | None = None) -> Extraction:
+    lex = lex or load_lexicon()
+    index = object_index(pages, lex)
     names = {o.id: o.name for o in index.objects}
     row_objects = {squash(o.name): o.id for o in index.objects}
     pts = page_texts(pages, index)

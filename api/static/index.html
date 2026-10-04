@@ -190,7 +190,7 @@ const FIELD = {
   brick_masonry_m3: "Кирпичная кладка, м³", steel_structures_t: "Стальные конструкции, т",
   "os.total_ktg": "Итого по объектной смете, тыс. тенге", "ssr.total_ktg": "Всего по ССР, тыс. тенге",
   "local.total_tg": "Всего по локальной смете, тенге", useful_area_m2: "Полезная площадь, м²",
-  seismicity_points: "Сейсмичность, баллов",
+  seismicity_points: "Сейсмичность, баллов", fire_resistance: "Степень огнестойкости",
 };
 const fieldName = f => FIELD[f] ?? FIELD[f.replace("local_qty.", "")]?.replace(/^/, "ЛС: ")
   ?? (f.startsWith("ssr.ch2.os_") ? `Строка ОС ${f.slice(11, 16)} в ССР, тыс. тенге`
@@ -201,7 +201,7 @@ const TYPE = {
   TABLE_TOTAL_MISMATCH: "Итог таблицы", TEP_CROSS_SECTION_MISMATCH: "Один ТЭП в разных местах ПЗ",
   PARAMETER_CONTRADICTION: "Противоречие параметров", GEOMETRY_INCONSISTENCY: "Геометрия",
 };
-const fmt = v => v == null ? "—" : Number(v).toLocaleString("ru-RU", { maximumFractionDigits: 3 });
+const fmt = v => v == null ? "—" : typeof v === "string" ? v : Number(v).toLocaleString("ru-RU", { maximumFractionDigits: 3 });
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 

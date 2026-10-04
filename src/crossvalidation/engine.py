@@ -24,6 +24,7 @@ FIELD_LABELS_RU = {
     "brick_masonry_m3": "Кирпичная кладка", "steel_structures_t": "Стальные конструкции",
     "floors": "Этажность", "useful_area_m2": "Полезная площадь", "underground_volume_m3": "Подземный объём",
     "construction_duration_months": "Продолжительность строительства", "seismicity_points": "Сейсмичность",
+    "fire_resistance": "Степень огнестойкости",
 }
 SECTION_RU = {"PZ": "ПЗ", "AR": "АР", "KR": "КР", "SMETA": "Смета"}
 UNIT_RU = {"m2": "м²", "m3": "м³", "t": "т", "kKZT": "тыс. тенге"}

@@ -20,13 +20,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from src.crossvalidation.objects import ObjectIndex, PageText, discover_objects, page_texts, resolve
+from src.crossvalidation.objects import ObjectIndex, PageText, page_texts, resolve
 from src.evaluation.schema import Finding, Ref
 from src.ingestion.common.numbers import NUMBER_RE, normalize_unit, number_readings
 from src.ingestion.real import Page, PageTable, norm_ws
 from src.ner.common.field_patterns import FIELD_TEXT, FIELD_UNITS, header_field
 from src.ner.common.taxonomy import TOLERANCES, TYPE_LEVEL, DiscrepancyType, Tolerance
-from src.ner.common.tep_baseline import load_lexicon
+from src.ner.common.tep_baseline import load_lexicon, object_index
 
 TOTAL_RE = re.compile(r"^(?:итого|всего|барлығы|жиыны|жиынтығы)\b", re.IGNORECASE)
 TEP_TOLERANCE = TOLERANCES[DiscrepancyType.TEP_CROSS_SECTION_MISMATCH]
@@ -155,28 +155,46 @@ def table_mentions(pages: list[Page], pts: list[PageText], carried: list[str | N
 
 
 # ------------------------------------------------------------------ text
+BARE_VOLUME_RU = re.compile(rf"(?<![^\W\d_])объ[её]м\w*(?P<tail>(?:\s+[^\W\d_]+){{1,4}}?)\s*(?:равен|равна|составляет)?"
+                            rf"\s*[-–—:]?\s*{_NUM}\s*{_UNIT}", re.IGNORECASE)
+BARE_VOLUME_KZ = re.compile(rf"(?P<head>(?:[^\W\d_]+\s+){{1,4}})көлем\w*\s*[-–—:]?\s*{_NUM}\s*{_UNIT}", re.IGNORECASE)
+
+
 def text_mentions(pts: list[PageText], index: ObjectIndex) -> list[Mention]:
+    """TEP values stated in sentences, label first ("строительный объём … 4963,84 м³") or
+    number first, as Kazakh word order puts it ("… 4 330,23 м³ құрылыс көлемі")."""
     out = []
+    seen: set[tuple[int, int, str]] = set()  # (page, number offset, field): one reading per number
     for pt in pts:
         for fld, labels in FIELD_TEXT.items():
             for label in labels:
-                rx = re.compile(rf"{label}[^\d.;:]{{0,60}}?{_NUM}\s*{_UNIT}", re.IGNORECASE)
-                for m in rx.finditer(pt.text):
-                    if normalize_unit(m.group("unit")) != FIELD_UNITS[fld]:
-                        continue
-                    value = _num(m.group("num"))
-                    if value is None:
-                        continue
-                    obj, how = resolve(pt, index, m.start(), m.end())
-                    out.append(Mention(obj, fld, value, pt.page, _quote(pt.text, m.group()), "text", how))
-    # the same phrase can match several label variants
-    seen, unique = set(), []
-    for mt in out:
-        key = (mt.page, mt.field, mt.value, mt.quote)
-        if key not in seen:
-            seen.add(key)
-            unique.append(mt)
-    return unique
+                for rx in (re.compile(rf"{label}[^\d.;:]{{0,60}}?{_NUM}\s*{_UNIT}", re.IGNORECASE),
+                           re.compile(rf"{_NUM}\s*{_UNIT}\s+(?:[^\W\d_]+\s+)?{label}", re.IGNORECASE)):
+                    for m in rx.finditer(pt.text):
+                        if normalize_unit(m.group("unit")) != FIELD_UNITS[fld]:
+                            continue
+                        value = _num(m.group("num"))
+                        key = (pt.page, m.start("num"), fld)
+                        if value is None or key in seen:
+                            continue
+                        seen.add(key)
+                        obj, how = resolve(pt, index, m.start(), m.end())
+                        out.append(Mention(obj, fld, value, pt.page, _quote(pt.text, m.group()), "text", how))
+        # bare "объём <здание> … N м³" / "<ғимарат> көлемі — N м³": a volume is the building's
+        # construction volume only if it names a building of this document right next to the word
+        for rx, part in ((BARE_VOLUME_RU, "tail"), (BARE_VOLUME_KZ, "head")):
+            for m in rx.finditer(pt.text):
+                named = index.mentioned(m.group(part))
+                key = (pt.page, m.start("num"), "construction_volume_m3")
+                if len(named) != 1 or key in seen or normalize_unit(m.group("unit")) != "m3":
+                    continue
+                value = _num(m.group("num"))
+                if value is None:
+                    continue
+                seen.add(key)
+                out.append(Mention(next(iter(named)), "construction_volume_m3", value, pt.page,
+                                   _quote(pt.text, m.group()), "text", "mention"))
+    return out
 
 
 def check_cross_section(mentions: list[Mention]) -> list[Finding]:
@@ -239,6 +257,59 @@ def check_seismicity(pts: list[PageText], index: ObjectIndex) -> list[Finding]:
     return out
 
 
+ROMAN = r"(?P<val>IV|V|I{1,3})(?![\w])"
+FIRE_RES = [
+    # "степень огнестойкости [здания котельной] — II", "огнестойкость здания – II степени"
+    re.compile(rf"степен\w*\s+огнестойкост\w*(?:\s+[^\W\d_]+){{0,3}}?\s*[-–—:]?\s*{ROMAN}", re.IGNORECASE),
+    re.compile(rf"огнестойкост\w*(?:\s+[^\W\d_]+){{0,3}}?\s*[-–—:]?\s*{ROMAN}\s+степен", re.IGNORECASE),
+    # "принята II степень огнестойкости"
+    re.compile(rf"(?<![\w]){ROMAN}\s+степен\w*\s+огнестойкост", re.IGNORECASE),
+    # "отқа төзімділік дәрежесі — II", "II дәрежелі отқа төзімділік"
+    re.compile(rf"отқа\s+төзімділі\w*\s+дәреже\w*\s*[-–—:]?\s*{ROMAN}", re.IGNORECASE),
+    re.compile(rf"(?<![\w]){ROMAN}\s+дәрежелі\s+отқа\s+төзімділ", re.IGNORECASE),
+]
+
+
+def _latin_roman(text: str) -> str:
+    """Kazakh typists often write Roman numerals with Cyrillic 'І' (U+0406); same length."""
+    return re.sub(r"(?<![^\W\d_])[IІ]+V?(?![^\W\d_])|(?<![^\W\d_])V(?![^\W\d_])",
+                  lambda m: m.group().replace("І", "I"), text)
+
+
+def check_fire_resistance(pts: list[PageText], index: ObjectIndex) -> tuple[list[Finding], list[dict]]:
+    """Fire resistance is a property of a building: one building, several degrees -> contradiction.
+
+    A statement outside any building section belongs to the building only if the document
+    describes a single building; otherwise it is ambiguous and goes to `unresolved`.
+    """
+    buildings = [o.id for o in index.objects]
+    by_obj: dict[str, list[Ref]] = {}
+    unresolved = []
+    for pt in pts:
+        text = _latin_roman(pt.text)
+        found: dict[int, re.Match] = {}
+        for rx in FIRE_RES:
+            for m in rx.finditer(text):
+                found.setdefault(m.start("val"), m)  # one reading per numeral
+        for m in found.values():
+            obj, how = resolve(pt, index, m.start(), m.end())
+            if obj is None and len(buildings) == 1:
+                obj = buildings[0]
+            quote = _quote(pt.text, pt.text[m.start():m.end()])
+            if obj is None:
+                unresolved.append({"rule": "PARAMETER_CONTRADICTION", "page": pt.page, "quote": quote,
+                                   "field": "fire_resistance", "reason": how})
+                continue
+            by_obj.setdefault(obj, []).append(Ref(page=pt.page, quote=quote, object=obj, value=m.group("val")))
+    out = []
+    for obj, refs in by_obj.items():
+        values = sorted({r.value for r in refs})
+        if len(values) > 1:
+            out.append(_finding(DiscrepancyType.PARAMETER_CONTRADICTION, "fire_resistance", obj, refs,
+                                note="fire resistance degrees: " + ", ".join(values)))
+    return out, unresolved
+
+
 def check_geometry(pts: list[PageText], index: ObjectIndex, mentions: list[Mention],
                    unresolved: list[dict]) -> list[Finding]:
     """Building area (outer contour) must not be smaller than the area within the axes."""
@@ -272,7 +343,7 @@ def check_geometry(pts: list[PageText], index: ObjectIndex, mentions: list[Menti
 
 
 def run_rules(pages: list[Page]) -> RuleReport:
-    index = discover_objects(pages)
+    index = object_index(pages)
     pts = page_texts(pages, index)
     carried = [None] + [pt.ctx_after for pt in pts[:-1]]
     report = RuleReport(objects={o.id: o.name for o in index.objects} | {"site": "Площадка",
@@ -286,6 +357,9 @@ def run_rules(pages: list[Page]) -> RuleReport:
                 + check_cross_section(report.mentions)
                 + check_seismicity(pts, index)
                 + check_geometry(pts, index, report.mentions, report.unresolved))
+    fire, fire_unresolved = check_fire_resistance(pts, index)
+    findings += fire
+    report.unresolved += fire_unresolved
     for i, f in enumerate(findings, start=1):
         f.id = f"P{i}"
     report.findings = findings

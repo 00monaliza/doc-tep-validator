@@ -83,8 +83,12 @@ def _obj_name(obj: str | None, objects: dict[str, str]) -> str:
 
 def _ref(path: Path, loc: Locator, page: int, quote: str, value: float | None, ref_label: str,
          fld: str, obj: str | None, derived: str | None = None) -> dict:
-    raw = raw_number(quote, value) if value is not None else None
-    return {"section": Section.PZ.value, "field": fld, "value": value, "raw": raw or (fmt(value) if value else None),
+    if isinstance(value, str):  # categorical value, e.g. fire resistance degree "II"
+        raw = value
+    else:
+        raw = raw_number(quote, value) if value is not None else None
+        raw = raw or (fmt(value) if value else None)
+    return {"section": Section.PZ.value, "field": fld, "value": value, "raw": raw,
             "page": page, "bbox": loc.bbox(path, page, quote, raw), "evidence": quote, "source": "table",
             "label": ref_label, "object": obj, **({"derived": derived} if derived else {})}
 
@@ -108,8 +112,12 @@ def pz_findings(v0: list[V0Finding], objects: dict[str, str], path: Path, loc: L
         elif f.type == DiscrepancyType.PARAMETER_CONTRADICTION:
             refs = [_ref(path, loc, r.page, r.quote, r.value, f"стр. {r.page}", f.field, r.object)
                     for r in f.refs]
-            values = ", ".join(sorted({str(int(r.value)) for r in f.refs}))
-            msg = f"Сейсмичность{where}: в документе указаны разные значения: {values} балл(а)."
+            if f.field == "fire_resistance":
+                values = ", ".join(sorted({str(r.value) for r in f.refs}))
+                msg = f"Степень огнестойкости{where}: в документе указаны разные значения: {values}."
+            else:
+                values = ", ".join(sorted({str(int(r.value)) for r in f.refs}))
+                msg = f"Сейсмичность{where}: в документе указаны разные значения: {values} балл(а)."
             delta = None
         elif f.type == DiscrepancyType.GEOMETRY_INCONSISTENCY:
             axes, area = f.refs
