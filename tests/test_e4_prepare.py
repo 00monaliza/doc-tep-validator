@@ -4,6 +4,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("exp_e4", ROOT / "scripts" / "exp_e4_prepare.py")
 exp_e4 = importlib.util.module_from_spec(spec)
@@ -28,3 +30,12 @@ def test_prepare_does_not_ship_ground_truth_to_tool_folder(tmp_path, monkeypatch
     (d,) = exp_e4.prepare(tmp_path, langs=("kz",))
     assert not (d / "text" / "ground_truth.json").exists()
     assert not list(d.glob("**/ground_truth.json"))
+
+
+def test_prepare_refuses_to_overwrite_hand_filled_observations(tmp_path, monkeypatch):
+    monkeypatch.setattr(exp_e4, "SEEDS", [31])
+    exp_e4.prepare(tmp_path, langs=("ru",))
+    (tmp_path / "observations.csv").write_text("set,tool\nx,y\n", encoding="utf-8")
+    with pytest.raises(FileExistsError):
+        exp_e4.prepare(tmp_path, langs=("ru",))
+    assert "x,y" in (tmp_path / "observations.csv").read_text(encoding="utf-8")

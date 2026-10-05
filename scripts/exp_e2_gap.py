@@ -22,7 +22,7 @@ from src.evaluation.annotations import ANNOTATIONS_DIR, load_annotation, source_
 from src.evaluation.bench import Scoreboard, gt_slots, score_set  # noqa: E402
 from src.evaluation.gap import choose_scenario, load_misses, summarize_misses  # noqa: E402
 from src.evaluation.match import map_objects, match  # noqa: E402
-from src.evaluation.protocol import PROTOCOL_VERSION, resolve_seeds  # noqa: E402
+from src.evaluation.protocol import PROTOCOL_VERSION, resolve_seeds, result_name  # noqa: E402
 from src.evaluation.systems import RulesSystem  # noqa: E402
 from src.ingestion.real import load_pages  # noqa: E402
 from src.synthesis.generator import generate_set  # noqa: E402
@@ -45,11 +45,7 @@ def synthetic(profile: str, limit: int, spec: str | None) -> dict:
                 gt = json.loads((set_dir / "ground_truth.json").read_text(encoding="utf-8"))
                 got = system.detect(sorted(set_dir.glob("text/*.pdf")), lang)
                 board.add(score_set(lang, set_dir.name, gt_slots(gt), got))
-            p, r, f1 = board.prf()
-            result[lang] = {"precision": p, "recall": r, "f1": f1, "ci": board.bootstrap_f1(),
-                            "fp_per_set": board.fp_per_set(),
-                            "by_level": {lv: board.prf(level=lv) for lv in
-                                         ("numeric", "categorical", "logical", "domain_rule", "artifact")}}
+            result[lang] = board.summary()
     return result
 
 
@@ -77,8 +73,11 @@ def main() -> int:
     args = ap.parse_args()
     syn, re_ = synthetic(args.profile, args.limit, args.seeds), real()
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "e2_gap.json").write_text(json.dumps(
-        {"protocol": PROTOCOL_VERSION, "profile": args.profile, "synthetic": syn, "real": re_},
+    (OUT / result_name("e2_gap", args.seeds, args.limit)).write_text(json.dumps(
+        {"protocol": PROTOCOL_VERSION, "profile": args.profile, "seeds": args.seeds or "final", "limit": args.limit,
+         "matching": {"synthetic": "slot (type, field); object and page ignored",
+                      "real": "src/evaluation/match.py: type + object + page; field ignored"},
+         "synthetic": syn, "real": re_},
         ensure_ascii=False, indent=1, default=list), encoding="utf-8")
     print(f"scenario {re_['scenario']} ({re_['n_annotations']} annotated real documents)\n")
     print("| source | P | R | F1 | FP/set |\n|---|---|---|---|---|")

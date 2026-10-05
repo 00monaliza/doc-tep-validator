@@ -1,6 +1,7 @@
 import json
+from types import SimpleNamespace
 
-from src.evaluation.llm import LLMSystem, build_prompt, parse_items
+from src.evaluation.llm import AnthropicClient, LLMSystem, build_prompt, parse_items
 from src.synthesis.generator import generate_set
 
 AREA = "AREA_PZ_VS_AR_EXPLICATION"
@@ -66,3 +67,52 @@ def test_valid_empty_answer_is_not_a_parse_failure(tmp_path):
     system = LLMSystem(FakeClient("[]"))
     assert system.detect(sorted(set_dir.glob("text/*.pdf")), "ru") == set()
     assert system.parse_failures == 0
+
+
+def test_parse_items_survives_non_string_type():
+    assert parse_items('[{"type": ["X"]}]') == ([], 1)
+
+
+def test_parse_items_ignores_brackets_in_surrounding_prose():
+    raw = f'Нашёл [см. ниже]:\n[{{"type": "{AREA}", "field": "f"}}]\nСм. п. [1].'
+    items, dropped = parse_items(raw)
+    assert [i["type"] for i in items] == [AREA] and dropped == 0
+
+
+def test_null_field_becomes_empty_slot(tmp_path):
+    set_dir = generate_set("ru", 31, tmp_path, scans=False, profile="v1")
+    reply = json.dumps([{"type": "TABLE_TOTAL_MISMATCH", "field": None}])
+    got = LLMSystem(FakeClient(reply)).detect(sorted(set_dir.glob("text/*.pdf")), "ru")
+    assert got == {("TABLE_TOTAL_MISMATCH", "")}
+
+
+def make_api(text, stop_reason="end_turn"):
+    calls = []
+
+    def create(**kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(content=[SimpleNamespace(type="text", text=text)], stop_reason=stop_reason)
+
+    return SimpleNamespace(messages=SimpleNamespace(create=create)), calls
+
+
+def test_client_caches_complete_answers_and_reuses_them(tmp_path):
+    api, calls = make_api("[]")
+    client = AnthropicClient(cache_dir=tmp_path, api=api)
+    assert client.complete("s", "u") == "[]" and client.complete("s", "u") == "[]"
+    assert len(calls) == 1 and calls[0]["output_config"] == {"effort": client.effort}
+
+
+def test_client_does_not_cache_truncated_answers(tmp_path):
+    api, calls = make_api("[{", stop_reason="max_tokens")
+    client = AnthropicClient(cache_dir=tmp_path, api=api)
+    client.complete("s", "u")
+    client.complete("s", "u")
+    assert len(calls) == 2 and client.uncached == 2
+
+
+def test_cache_key_includes_max_tokens(tmp_path):
+    api, calls = make_api("[]")
+    AnthropicClient(cache_dir=tmp_path, api=api, max_tokens=100).complete("s", "u")
+    AnthropicClient(cache_dir=tmp_path, api=api, max_tokens=200).complete("s", "u")
+    assert len(calls) == 2

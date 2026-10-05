@@ -27,6 +27,9 @@ COLUMNS = ["set", "tool", "found_types", "false_alarms", "evidence_given", "lang
 
 
 def prepare(out: Path, langs=("ru", "kz")) -> list[Path]:
+    if (out / "observations.csv").exists():
+        raise FileExistsError(f"{out / 'observations.csv'} exists and may hold hand-filled observations; "
+                              f"move it or choose another --out")
     out.mkdir(parents=True, exist_ok=True)
     dirs, rows = [], []
     with tempfile.TemporaryDirectory() as tmp:

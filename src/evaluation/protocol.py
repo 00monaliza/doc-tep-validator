@@ -31,3 +31,9 @@ def resolve_seeds(spec: str | None) -> list[int]:
         return seed_list(FINAL_SEEDS)
     lo, _, hi = spec.partition("-")
     return seed_list((int(lo), int(hi or lo)))
+
+
+def result_name(stem: str, seeds_spec: str | None, limit: int) -> str:
+    """Result file name; smoke runs (other seeds or fewer than the full final set) never overwrite final results."""
+    full = seeds_spec is None and limit >= len(seed_list(FINAL_SEEDS))
+    return f"{stem}.json" if full else f"{stem}.smoke.json"

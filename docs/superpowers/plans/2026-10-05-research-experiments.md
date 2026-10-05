@@ -1476,7 +1476,7 @@ Expected: PASS (5 passed)
 Run: `uv run python scripts/exp_e3_compare.py --systems S1 --limit 5`
 Expected: markdown table with S1 rows for ru and kz; `build/research/e3_compare.json` written.
 
-Run (requires `ANTHROPIC_API_KEY` or the configured base URL): `uv run python scripts/exp_e3_compare.py --systems S1 L1 H1 --runs 1 --limit 3`
+Run (requires `ANTHROPIC_API_KEY` or the configured base URL): `uv run python scripts/exp_e3_compare.py --systems S1 L1 H1 --runs 1 --limit 3 --seeds 41-43`
 Expected: L1 and H1 rows appear; second invocation makes no API calls (cache hit).
 
 - [ ] **Step 5: Commit**

@@ -30,7 +30,7 @@ def test_negative_set_has_false_positive_and_no_recall():
     board = Scoreboard()
     board.add(score_set("ru", "neg", set(), {(AREA, "")}))
     p, r, f = board.prf()
-    assert (p, r, f) == (0.0, None, None)
+    assert (p, r, f) == (0.0, None, 0.0)
     assert board.fp_per_set() == 1.0
 
 
@@ -61,3 +61,24 @@ def test_bootstrap_interval_brackets_point_estimate_and_is_reproducible():
 
 def test_bootstrap_returns_none_without_data():
     assert Scoreboard().bootstrap_f1() is None
+
+
+def test_f1_is_zero_when_nothing_is_found_but_something_was_expected():
+    board = Scoreboard()
+    board.add(score_set("ru", "s", {(AREA, "")}, set()))
+    assert board.prf() == (None, 0.0, 0.0)
+
+
+def test_bootstrap_counts_empty_prediction_resamples_as_zero():
+    board = Scoreboard()
+    for i in range(10):
+        board.add(score_set("ru", f"s{i}", {(AREA, "")}, set()))
+    assert board.bootstrap_f1(iters=50, seed=0) == (0.0, 0.0)
+
+
+def test_summary_has_all_reporting_keys():
+    board = Scoreboard()
+    board.add(score_set("ru", "a", {(AREA, "")}, {(AREA, "")}))
+    summary = board.summary()
+    assert {"precision", "recall", "f1", "ci", "fp_per_set", "by_level", "by_type", "sets"} <= set(summary)
+    assert summary["by_type"][AREA] == [1, 0, 0] and summary["sets"] == 1

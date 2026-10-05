@@ -27,11 +27,13 @@ from src.evaluation.bench import Scoreboard, gt_slots, score_set  # noqa: E402
 from src.evaluation.llm import AnthropicClient, LLMSystem  # noqa: E402
 from src.evaluation.match import map_objects, match  # noqa: E402
 from src.evaluation.protocol import (  # noqa: E402
+    LLM_EFFORT,
     LLM_MODEL,
     LLM_RUNS,
     PROMPT_VERSION,
     PROTOCOL_VERSION,
     resolve_seeds,
+    result_name,
 )
 from src.evaluation.real_llm import guard_real  # noqa: E402
 from src.evaluation.systems import HybridSystem, RulesSystem  # noqa: E402
@@ -39,11 +41,25 @@ from src.ingestion.real import load_pages  # noqa: E402
 from src.synthesis.generator import generate_set  # noqa: E402
 
 OUT = ROOT / "build" / "research"
-LEVELS = ("numeric", "categorical", "logical", "domain_rule", "artifact")
 
 
 def has_llm_credentials(env) -> bool:
     return bool(env.get("ANTHROPIC_API_KEY") or env.get("ANTHROPIC_AUTH_TOKEN"))
+
+
+def real_guard_error(names: list[str], real: bool, allow: bool) -> str | None:
+    """Refuse before any (paid) run when real documents would reach an LLM without the explicit flag."""
+    if real and {"L1", "H1"} & set(names) and not allow:
+        return "--real with L1/H1 needs --allow-real-llm (data policy: real documents stay local); nothing was run"
+    return None
+
+
+def llm_counters(system) -> dict:
+    llm = getattr(system, "llm", system)
+    if not hasattr(llm, "parse_failures"):
+        return {}
+    return {"parse_failures": llm.parse_failures, "dropped": llm.dropped,
+            "uncached": getattr(getattr(llm, "client", None), "uncached", 0)}
 
 
 def mean_sd(xs: list[float]) -> tuple[float | None, float | None]:
@@ -103,33 +119,42 @@ def main() -> int:
         print("L1/H1 need ANTHROPIC_API_KEY (or ANTHROPIC_AUTH_TOKEN) in the environment; nothing was run",
               file=sys.stderr)
         return 2
+    if (error := real_guard_error(args.systems, args.real, args.allow_real_llm)) is not None:
+        print(error, file=sys.stderr)
+        return 2
 
     seeds = resolve_seeds(args.seeds)[: args.limit]
     cache = OUT / "llm_cache"
-    results: dict = {"protocol": PROTOCOL_VERSION, "model": LLM_MODEL, "prompt": PROMPT_VERSION,
-                     "runs": args.runs, "granularity": args.granularity, "synthetic": {}}
+    results: dict = {
+        "protocol": PROTOCOL_VERSION, "model": LLM_MODEL, "effort": LLM_EFFORT, "prompt": PROMPT_VERSION,
+        "runs": args.runs, "granularity": args.granularity, "profile": args.profile, "seeds": args.seeds or "final",
+        "limit": args.limit, "sets_per_language": len(seeds), "synthetic": {},
+        "notes": [
+            "Precision, recall and the interval come from run 0; f1_runs_mean/sd cover all runs.",
+            "The synthetic generator injects only numeric and categorical errors, so on synthetic data every "
+            "logical/artifact slot added by H1 is a false positive by construction: H1 can only lose to S1 here "
+            "and measures the false-alarm cost of the LLM extras. H1's benefit needs real documents (or "
+            "generator support for logical/artifact errors).",
+        ]}
     with tempfile.TemporaryDirectory() as tmp:
         for name in args.systems:
             runs = args.runs if name in ("L1", "H1") else 1
             for lang in ("ru", "kz"):
-                f1s, boards = [], []
+                f1s, boards, counters = [], [], []
                 for run in range(runs):
                     system = build_systems([name], run, cache)[name]
                     board = run_synthetic(system, lang, seeds, args.profile, Path(tmp), args.granularity)
                     boards.append(board)
                     f1s.append(board.prf()[2])
-                board = boards[0]
-                p, r, f1 = board.prf()
+                    counters.append(llm_counters(system))
                 m, sd = mean_sd(f1s)
-                results["synthetic"].setdefault(name, {})[lang] = {
-                    "precision": p, "recall": r, "f1": f1, "f1_runs_mean": m, "f1_runs_sd": sd,
-                    "ci": board.bootstrap_f1(), "fp_per_set": board.fp_per_set(),
-                    "by_level": {lv: board.prf(level=lv) for lv in LEVELS}}
+                results["synthetic"].setdefault(name, {})[lang] = boards[0].summary() | {
+                    "f1_runs_mean": m, "f1_runs_sd": sd, "llm_counters_per_run": counters}
     if args.real:
         results["real"] = evaluate_real(args.systems, args.allow_real_llm)
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "e3_compare.json").write_text(json.dumps(results, ensure_ascii=False, indent=1, default=list),
-                                         encoding="utf-8")
+    out_file = OUT / result_name("e3_compare", args.seeds, args.limit)
+    out_file.write_text(json.dumps(results, ensure_ascii=False, indent=1, default=list), encoding="utf-8")
     print("| system | lang | P | R | F1 (CI) | FP/set |\n|---|---|---|---|---|---|")
     for name, langs in results["synthetic"].items():
         for lang, r in langs.items():

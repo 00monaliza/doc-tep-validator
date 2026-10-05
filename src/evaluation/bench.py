@@ -55,9 +55,10 @@ def _level(dtype: str) -> str:
 def _prf(tp: int, fp: int, fn: int) -> tuple[float | None, float | None, float | None]:
     p = tp / (tp + fp) if tp + fp else None
     r = tp / (tp + fn) if tp + fn else None
-    if p is None or r is None:
-        return p, r, None
-    return p, r, (2 * p * r / (p + r) if p + r else 0.0)
+    # F1 = 2tp / (2tp + fp + fn): 0.0 when something was expected or predicted but nothing matched;
+    # None only for an empty slice
+    f1 = 2 * tp / (2 * tp + fp + fn) if tp + fp + fn else None
+    return p, r, f1
 
 
 class Scoreboard:
@@ -89,6 +90,15 @@ class Scoreboard:
         types = sorted({t for r in recs for c in (r.tp, r.fp, r.fn) for t in c})
         return {t: (sum(r.tp[t] for r in recs), sum(r.fp[t] for r in recs), sum(r.fn[t] for r in recs))
                 for t in types}
+
+    LEVELS = ("numeric", "categorical", "logical", "domain_rule", "artifact")
+
+    def summary(self, lang: str | None = None) -> dict:
+        p, r, f1 = self.prf(lang)
+        return {"sets": len(self._select(lang)), "precision": p, "recall": r, "f1": f1,
+                "ci": self.bootstrap_f1(lang), "fp_per_set": self.fp_per_set(lang),
+                "by_level": {lv: self.prf(lang, lv) for lv in self.LEVELS},
+                "by_type": {t: list(c) for t, c in self.by_type(lang).items()}}
 
     def bootstrap_f1(self, lang: str | None = None, level: str | None = None, iters: int = 1000,
                      seed: int = 0) -> tuple[float, float] | None:

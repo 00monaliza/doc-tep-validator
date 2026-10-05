@@ -38,5 +38,5 @@ class HybridSystem:
         got = set(self.rules.detect(paths, lang))
         for item in self.llm.detect_items(paths):
             if TYPE_LEVEL[DiscrepancyType(item["type"])] in self.llm_levels:
-                got.add(slot(item["type"], str(item.get("field", ""))))
+                got.add(slot(item["type"], str(item.get("field") or "")))
         return got

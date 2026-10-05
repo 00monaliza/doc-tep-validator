@@ -40,3 +40,8 @@ def test_hybrid_ignores_llm_numeric_claims_even_when_rules_found_nothing():
 
 def test_hybrid_name():
     assert HybridSystem(StubRules(), StubLLM([])).name == "H1"
+
+
+def test_hybrid_null_field_becomes_empty_slot():
+    llm = StubLLM([{"type": STMT, "field": None}])
+    assert (STMT, "") in HybridSystem(StubRules(), llm).detect([Path("x.pdf")], "ru")

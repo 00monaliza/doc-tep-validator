@@ -22,3 +22,9 @@ def test_resolve_seeds_defaults_to_final_and_accepts_a_span():
     assert protocol.resolve_seeds(None) == protocol.seed_list(protocol.FINAL_SEEDS)
     assert protocol.resolve_seeds("31-33") == [31, 32, 33]
     assert protocol.resolve_seeds("7") == [7]
+
+
+def test_result_name_marks_smoke_runs():
+    assert protocol.result_name("e3_compare", None, 100) == "e3_compare.json"
+    assert protocol.result_name("e3_compare", "41-43", 100) == "e3_compare.smoke.json"
+    assert protocol.result_name("e3_compare", None, 3) == "e3_compare.smoke.json"

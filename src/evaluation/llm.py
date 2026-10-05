@@ -58,33 +58,46 @@ def build_prompt(docs: dict[str, str]) -> tuple[str, str]:
     return system, user
 
 
+def _find_answer_list(raw: str) -> list | None:
+    """The JSON array of the answer, skipping brackets in prose: first list made only of objects, else first list."""
+    decoder, fallback = json.JSONDecoder(), None
+    for match in re.finditer(r"\[", raw):
+        try:
+            data, _ = decoder.raw_decode(raw[match.start():])
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(data, list):
+            continue
+        if all(isinstance(d, dict) for d in data):
+            return data
+        fallback = fallback if fallback is not None else data
+    return fallback
+
+
 def parse_items(raw: str) -> tuple[list[dict], int]:
     """Valid items (known ``type``) and the number of dropped or unparseable entries."""
-    match = re.search(r"\[.*\]", raw, flags=re.DOTALL)
-    if not match:
+    data = _find_answer_list(raw)
+    if data is None:
         return [], 1
-    try:
-        data = json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return [], 1
-    if not isinstance(data, list):
-        return [], 1
-    items = [d for d in data if isinstance(d, dict) and d.get("type") in KNOWN_TYPES]
+    items = [d for d in data if isinstance(d, dict) and isinstance(d.get("type"), str) and d["type"] in KNOWN_TYPES]
     return items, len(data) - len(items)
 
 
 class AnthropicClient:
     def __init__(self, model: str = LLM_MODEL, cache_dir: Path | None = None, max_tokens: int = LLM_MAX_TOKENS,
-                 effort: str = LLM_EFFORT):
-        import anthropic
+                 effort: str = LLM_EFFORT, api=None):
+        if api is None:
+            import anthropic
 
-        self._api = anthropic.Anthropic()
+            api = anthropic.Anthropic()
+        self._api = api
+        self.uncached = 0  # answers not cached because the turn did not end normally (truncated, refused)
         self.model, self.cache_dir, self.max_tokens, self.effort = model, cache_dir, max_tokens, effort
 
     def _cache_path(self, system: str, user: str, run: int) -> Path | None:
         if self.cache_dir is None:
             return None
-        key = f"{self.model}|{self.effort}|{PROMPT_VERSION}|{run}|{system}|{user}"
+        key = f"{self.model}|{self.effort}|{self.max_tokens}|{PROMPT_VERSION}|{run}|{system}|{user}"
         digest = hashlib.sha256(key.encode()).hexdigest()
         return self.cache_dir / f"{digest}.json"
 
@@ -97,7 +110,9 @@ class AnthropicClient:
                                           messages=[{"role": "user", "content": user}])
         # A refusal or an empty turn has no text block: the caller counts it as a parse failure.
         text = "".join(block.text for block in reply.content if block.type == "text")
-        if path is not None:
+        if reply.stop_reason != "end_turn":
+            self.uncached += 1  # max_tokens cut-off or refusal: never cache, so a rerun can succeed
+        elif path is not None:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps({"text": text}, ensure_ascii=False), encoding="utf-8")
         return text
@@ -125,4 +140,4 @@ class LLMSystem:
         return items
 
     def detect(self, paths: list[Path], lang: str) -> set[Slot]:
-        return {slot(i["type"], str(i.get("field", ""))) for i in self.detect_items(paths)}
+        return {slot(i["type"], str(i.get("field") or "")) for i in self.detect_items(paths)}

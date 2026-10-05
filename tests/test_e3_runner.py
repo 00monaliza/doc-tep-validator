@@ -44,3 +44,20 @@ def test_llm_credentials_check_reads_env():
     assert exp_e3.has_llm_credentials({"ANTHROPIC_AUTH_TOKEN": "t"})
     assert not exp_e3.has_llm_credentials({})
     assert not exp_e3.has_llm_credentials({"ANTHROPIC_API_KEY": ""})
+
+
+def test_real_guard_error_fires_before_any_run():
+    assert exp_e3.real_guard_error(["S1", "L1"], True, False) is not None
+    assert exp_e3.real_guard_error(["S1"], True, False) is None
+    assert exp_e3.real_guard_error(["L1"], False, False) is None
+    assert exp_e3.real_guard_error(["H1"], True, True) is None
+
+
+def test_llm_counters_reads_l1_and_h1():
+    from types import SimpleNamespace
+
+    llm = SimpleNamespace(parse_failures=2, dropped=3, client=SimpleNamespace(uncached=1))
+    expected = {"parse_failures": 2, "dropped": 3, "uncached": 1}
+    assert exp_e3.llm_counters(llm) == expected
+    assert exp_e3.llm_counters(SimpleNamespace(llm=llm)) == expected
+    assert exp_e3.llm_counters(object()) == {}
