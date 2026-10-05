@@ -16,3 +16,9 @@ def test_final_and_e4_are_disjoint_and_sized():
 
 def test_llm_settings_are_pinned():
     assert protocol.LLM_MODEL and protocol.PROMPT_VERSION and protocol.LLM_RUNS >= 3
+
+
+def test_resolve_seeds_defaults_to_final_and_accepts_a_span():
+    assert protocol.resolve_seeds(None) == protocol.seed_list(protocol.FINAL_SEEDS)
+    assert protocol.resolve_seeds("31-33") == [31, 32, 33]
+    assert protocol.resolve_seeds("7") == [7]

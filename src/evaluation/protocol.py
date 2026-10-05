@@ -23,3 +23,11 @@ LLM_RUNS = 3
 
 def seed_list(span: tuple[int, int]) -> list[int]:
     return list(range(span[0], span[1] + 1))
+
+
+def resolve_seeds(spec: str | None) -> list[int]:
+    """``None`` means the frozen final seeds; ``"lo-hi"`` or ``"n"`` is for smoke runs on other seeds."""
+    if spec is None:
+        return seed_list(FINAL_SEEDS)
+    lo, _, hi = spec.partition("-")
+    return seed_list((int(lo), int(hi or lo)))
