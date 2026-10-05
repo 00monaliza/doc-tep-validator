@@ -5,6 +5,7 @@ description = "Извлечение и кросс-проверка ТЭП в т�
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "anthropic>=1.11.0",
     "datasets>=5.0.1",
     "faker>=40.39.0",
     "fastapi>=0.141.1",

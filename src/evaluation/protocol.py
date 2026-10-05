@@ -14,7 +14,9 @@ SEEN_SEEDS: tuple[tuple[int, int], ...] = ((1, 200), (2000, 2009), (3000, 3049),
 FINAL_SEEDS = (8000, 8099)  # E2 and E3, 100 sets per language
 E4_SEEDS = (9000, 9019)  # E4, 20 sets per language, given to commercial tools
 
-LLM_MODEL = "claude-sonnet-5-5"
+LLM_MODEL = "claude-opus-5-5"
+LLM_EFFORT = "high"  # Opus 5.5 defaults to medium: pin it
+LLM_MAX_TOKENS = 16000
 PROMPT_VERSION = "p1"
 LLM_RUNS = 3
 

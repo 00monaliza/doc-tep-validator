@@ -473,7 +473,8 @@ class FakeClient:
 
 
 def test_parse_items_accepts_fenced_json_with_prose_around():
-    raw = 'Вот результат:\n```json\n[{"type": "%s", "field": "total_area_m2"}]\n```\nГотово.' % AREA
+    fence = "`" * 3  # a literal fence would end the markdown block of the plan
+    raw = f'Вот результат:\n{fence}json\n[{{"type": "{AREA}", "field": "total_area_m2"}}]\n{fence}\nГотово.'
     items, dropped = parse_items(raw)
     assert [i["type"] for i in items] == [AREA] and dropped == 0
 
