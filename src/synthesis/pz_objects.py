@@ -148,6 +148,11 @@ def object_sections(ctx: Ctx, doc: Document, lex: ModuleType, first_no: int) -> 
         t = TableRows()
         t.add([units["name"]] + [ctx.held_unit(units[f]) or units[f] for f in fields])
         cells, pos = [nom], {}
+        if ctx.v4:
+            from src.synthesis import pz_v4
+
+            cells = [pz_v4.table_label(ctx, lex, b)]
+            pos[mention_key(b.id, "object_table", "object_label")] = 0
         for f in fields:
             key = mention_key(b.id, "object_table", f)
             pos[key] = len(cells)
@@ -163,6 +168,10 @@ def object_sections(ctx: Ctx, doc: Document, lex: ModuleType, first_no: int) -> 
         s_key = mention_key(b.id, "object_section", "seismicity_points")
         text, mentions = fill(rng.choice(words["object_seismic"]), {"s": (str(p.values[s_key]), s_key)})
         doc.para(text, mentions)
+        if ctx.v4:
+            from src.synthesis import pz_v4
+
+            pz_v4.building_extras(ctx, doc, lex, b)
 
     no += 1
     doc.heading(f"{no}. {words['eng_heading']}")

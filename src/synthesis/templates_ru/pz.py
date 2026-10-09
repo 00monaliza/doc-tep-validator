@@ -1,7 +1,7 @@
 """ПЗ — пояснительная записка (RU)."""
 
 from src.ner.common.taxonomy import Section
-from src.synthesis import pz_objects
+from src.synthesis import pz_objects, pz_v4
 from src.synthesis.context import Ctx
 from src.synthesis.data import ru_lexicon as lex
 from src.synthesis.document import Document, TableRows
@@ -28,6 +28,8 @@ def build(ctx: Ctx) -> Document:
 
     if ctx.v2:
         pz_objects.site_seismic(ctx, doc, lex)
+        if ctx.v4:
+            pz_v4.site_relief(ctx, doc, lex)
 
     doc.heading("2. Технико-экономические показатели")
     rows = [
@@ -64,6 +66,8 @@ def build(ctx: Ctx) -> Document:
     if ctx.v2:
         pz_objects.summary_table(ctx, doc, lex)
         no = pz_objects.object_sections(ctx, doc, lex, no)
+        if ctx.v4:
+            no = pz_v4.general_section(ctx, doc, lex, no)
 
     doc.heading(f"{no}. Сведения о сметной стоимости")
     if ctx.get(S, "estimated_cost_ktg") is not None:

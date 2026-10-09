@@ -68,6 +68,8 @@ class Ctx:
     vrng: random.Random | None = None  # profile v2 surface variation (labels, formats, column order)
     heldout: dict | None = None  # profile v3: held-out wording (data/heldout.py), one half of one language
     hrng: random.Random | None = None  # profile v3 choices; a separate stream keeps v2 draws as they are
+    v4: object | None = None  # profile v4: values_v4.V4Plan (relief, elevations, heights, blind area, roof)
+    v4rng: random.Random | None = None  # profile v4 surface choices
 
     @property
     def v2(self) -> bool:
