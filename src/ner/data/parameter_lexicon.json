@@ -1,0 +1,30 @@
+{
+  "_about": "Building parameters for detectors v1 (src/crossvalidation/rules_v1.py). Every entry lists its source: 'synthetic' = generator profile v4 (src/synthesis), 'dev:real_opz_zhbi2' = the one real development document. Mentions and materials are matched case-insensitively as word prefixes; the longest material synonym in a phrase wins.",
+  "parameters": {
+    "blind_area": {
+      "mention": {"ru": {"synthetic": ["отмостк"], "dev:real_opz_zhbi2": ["отмостк"]}, "kz": {"synthetic": ["отмостк"]}},
+      "materials": {
+        "concrete": {"ru": {"synthetic": ["бетонн"], "dev:real_opz_zhbi2": ["бетонн"]}, "kz": {"synthetic": ["бетон"]}},
+        "asphalt": {"ru": {"synthetic": ["асфальтобетонн"], "dev:real_opz_zhbi2": ["асфальтобетонн"]}, "kz": {"synthetic": ["асфальтбетон"]}}
+      },
+      "width": true
+    },
+    "roof": {
+      "mention": {"ru": {"synthetic": ["кровл"]}, "kz": {"synthetic": ["шатыр"]}},
+      "materials": {
+        "membrane": {"ru": {"synthetic": ["мембран"]}, "kz": {"synthetic": ["мембрана"]}},
+        "bitumen": {"ru": {"synthetic": ["наплавляем", "рулонн"]}, "kz": {"synthetic": ["балқытылатын", "орама"]}},
+        "profiled": {"ru": {"synthetic": ["профилированн"]}, "kz": {"synthetic": ["профильденген"]}}
+      },
+      "width": false
+    },
+    "clear_height": {
+      "mention": {"ru": {"synthetic": ["в чистоте"], "dev:real_opz_zhbi2": ["высота помещени"]}, "kz": {"synthetic": ["таза биіктіг"]}},
+      "unit": "m"
+    },
+    "floor_height": {
+      "mention": {"ru": {"synthetic": ["высота этажа"]}, "kz": {"synthetic": ["қабат биіктіг"]}},
+      "unit": "m"
+    }
+  }
+}
