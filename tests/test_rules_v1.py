@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from src.crossvalidation.objects import page_texts
 from src.crossvalidation.rules import Mention
-from src.crossvalidation.rules_v1 import check_elevation, check_volume_method
+from src.crossvalidation.rules_v1 import check_elevation, check_table_labels, check_volume_method
 from src.ingestion.real import Page, PageTable, TextLine
 from src.ner.common.tep_baseline import object_index
 
@@ -83,3 +83,34 @@ def test_low_average_storey_height():
     ceh = index.objects[0].id
     mentions = [_m(ceh, "construction_volume_m3", 1000.0), _m(ceh, "building_area_m2", 200.0)]
     assert len(check_volume_method(pts, index, mentions, {ceh: 2})) == 1  # 1000 / (200 x 2) = 2,5 m
+
+
+HEADER = ["Наименование", "Площадь застройки", "Строительный объём"]
+
+
+def _section_pages(heading: str, rows: list[list[str]]) -> list[Page]:
+    """Page 1: the office section; page 2: `heading` and a table right below it (top 40 > heading top 0)."""
+    lines = [heading, "Объёмно-планировочные показатели"] + [" ".join(r) for r in rows]
+    table = PageTable(rows, (0, 40.0, 500, 40.0 + 20 * len(rows)), rows[0])
+    return [_page(1, ["5. Решения", "5.1 Здание офиса", "Текст."]), _page(2, lines, [table])]
+
+
+def test_wrong_building_in_table():
+    pages = _section_pages("5.2 Здание цеха", [HEADER, ["Здание офиса", "199,50", "518,70"]])
+    index, pts = _ctx(pages)
+    found = check_table_labels(pages, pts, index)
+    assert len(found) == 1 and found[0].field == "object_label"
+    assert index.by_id()[found[0].object].name == "Здание цеха"
+
+
+def test_own_building_in_table_is_fine():
+    pages = _section_pages("5.2 Здание цеха", [HEADER, ["Здание цеха", "199,50", "518,70"]])
+    index, pts = _ctx(pages)
+    assert check_table_labels(pages, pts, index) == []
+
+
+def test_summary_table_is_not_a_label():
+    rows = [HEADER, ["Здание офиса", "312,91", "3116,37"], ["Здание цеха", "199,50", "518,70"]]
+    pages = _section_pages("5.2 Здание цеха", rows)
+    index, pts = _ctx(pages)
+    assert check_table_labels(pages, pts, index) == []

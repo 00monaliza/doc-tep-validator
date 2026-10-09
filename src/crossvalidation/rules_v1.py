@@ -15,10 +15,11 @@ from __future__ import annotations
 
 import re
 
-from src.crossvalidation.objects import ObjectIndex, PageText, resolve
+from src.crossvalidation.objects import OBJECT_NOUN_RE, ObjectIndex, PageText, resolve
 from src.crossvalidation.rules import Mention, _finding, _quote
 from src.evaluation.schema import Finding, Ref
 from src.ingestion.common.numbers import NUMBER_RE, number_readings
+from src.ingestion.real import Page
 from src.ner.common.parameters import load_parameters
 from src.ner.common.taxonomy import DiscrepancyType
 
@@ -130,4 +131,28 @@ def check_volume_method(pts: list[PageText], index: ObjectIndex, mentions: list[
         if hit:
             out.append(_finding(DiscrepancyType.TEP_CALCULATION_METHOD, "construction_volume_m3", obj, hit,
                                 confidence="needs_expert", note=hit[0].derived or ""))
+    return out
+
+
+def check_table_labels(pages: list[Page], pts: list[PageText], index: ObjectIndex) -> list[Finding]:
+    """A one-row table inside the section of building X whose row names another building (or an unknown one)."""
+    out = []
+    carried = [None] + [pt.ctx_after for pt in pts[:-1]]
+    names = index.by_id()
+    for page, pt, car in zip(pages, pts, carried, strict=True):
+        for table in page.tables:
+            section = pt.context_above(table.top, car)
+            if section is None:
+                continue
+            rows = [r for r in table.rows[1:] if any(_num(c) is not None for c in r if c)]
+            labels = [next((c for c in r if c and re.search(r"[^\W\d_]", c)), "") for r in rows]
+            if len(rows) != 1 or not labels[0]:
+                continue  # summary tables (several objects) and unlabelled rows are not checked
+            named = index.mentioned(labels[0])
+            if section in named or not (named or OBJECT_NOUN_RE.search(labels[0])):
+                continue
+            quote = _quote(pt.text, " ".join(c for c in rows[0] if c), labels[0])
+            out.append(_finding(DiscrepancyType.COPY_PASTE_LABEL, "object_label", section,
+                                [Ref(page=pt.page, quote=quote, object=section, value=labels[0])],
+                                note=f"table in the section of {names[section].name!r} is labelled {labels[0]!r}"))
     return out
