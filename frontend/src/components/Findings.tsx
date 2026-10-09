@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { SECTION, TYPE, VERDICT, fieldName, fmt } from "../labels";
-import type { Finding, Report } from "../types";
+import type { Finding, Report, Review } from "../types";
+import { EXPERT } from "./ReviewBar";
 
 /** What a finding compares: a section pair, or the check type when both places are in one section. */
 export function comparedLabel(f: Finding): string {
@@ -8,15 +9,21 @@ export function comparedLabel(f: Finding): string {
   return !b || a.section === b.section ? (TYPE[f.type] ?? f.type) : `${SECTION[a.section]} ↔ ${SECTION[b.section]}`;
 }
 
-export interface Filter { building: string; compared: string; flag: "" | "expert" | "noscan" }
-export const NO_FILTER: Filter = { building: "", compared: "", flag: "" };
+export interface Filter {
+  building: string; compared: string; flag: "" | "expert" | "noscan";
+  review: "" | "none" | "confirmed" | "false_positive";
+}
+export const NO_FILTER: Filter = { building: "", compared: "", flag: "", review: "" };
 
-export function applyFilter(list: Finding[], f: Filter): Finding[] {
-  return list.filter(x =>
-    (!f.building || (x.object_name ?? "") === f.building)
-    && (!f.compared || comparedLabel(x) === f.compared)
-    && (f.flag !== "expert" || x.needs_expert)
-    && (f.flag !== "noscan" || !x.low_confidence));
+export function applyFilter(list: Finding[], f: Filter, reviewOf: (x: Finding) => Review | undefined): Finding[] {
+  return list.filter(x => {
+    const v = reviewOf(x)?.verdict ?? null;
+    return (!f.building || (x.object_name ?? "") === f.building)
+      && (!f.compared || comparedLabel(x) === f.compared)
+      && (f.flag !== "expert" || x.needs_expert)
+      && (f.flag !== "noscan" || !x.low_confidence)
+      && (!f.review || (f.review === "none" ? v === null : v === f.review));
+  });
 }
 
 function Values({ f }: { f: Finding }) {
@@ -30,7 +37,9 @@ function Values({ f }: { f: Finding }) {
   return <>{fmt(a.value)}<span className="ne">{f.verdict === "MATCH" ? "=" : "≠"}</span>{fmt(b.value)}</>;
 }
 
-function Remark({ f, no, active, onPick }: { f: Finding; no: number; active: boolean; onPick: () => void }) {
+function Remark({ f, no, active, onPick, review }: {
+  f: Finding; no: number; active: boolean; onPick: () => void; review?: Review;
+}) {
   const rel = f.delta_rel != null && f.verdict === "MISMATCH"
     ? `, ${(f.delta_rel * 100).toFixed(1).replace(".", ",")} %` : "";
   return (
@@ -42,10 +51,12 @@ function Remark({ f, no, active, onPick }: { f: Finding; no: number; active: boo
           <span className="what">{fieldName(f.field)}</span>
           {f.low_confidence && <> <span className="verdict v-MISSING">скан</span></>}
           {f.needs_expert && <> <span className="verdict v-MISSING">эксперту</span></>}
+          {review?.verdict && <> <span className={`verdict x-${review.verdict}`}>{EXPERT[review.verdict]}</span></>}
           {f.object_name && <div className="obj">{f.object_name}</div>}
           <div className="values"><Values f={f} /></div>
           <div className="meta">{comparedLabel(f)}{rel}</div>
           {f.notes.map((n, i) => <div key={i} className="meta">{n}</div>)}
+          {review?.comment && <div className="meta expert-comment">Эксперт: {review.comment}</div>}
         </span>
       </button>
     </li>
@@ -58,7 +69,7 @@ function FilterBar({ all, filter, onFilter, shown }: {
   const buildings = [...new Set(all.map(f => f.object_name).filter(Boolean) as string[])];
   const compared = [...new Set(all.map(comparedLabel))];
   const hasFlags = all.some(f => f.needs_expert || f.low_confidence);
-  const active = filter.building || filter.compared || filter.flag;
+  const active = filter.building || filter.compared || filter.flag || filter.review;
   const set = (patch: Partial<Filter>) => onFilter({ ...filter, ...patch });
   return (
     <div className="filters">
@@ -81,6 +92,13 @@ function FilterBar({ all, filter, onFilter, shown }: {
           <option value="noscan">Без сканов</option>
         </select>
       )}
+      <select aria-label="Вердикт эксперта" value={filter.review}
+        onChange={e => set({ review: e.target.value as Filter["review"] })}>
+        <option value="">Все вердикты</option>
+        <option value="none">Без вердикта</option>
+        <option value="confirmed">Подтверждённые</option>
+        <option value="false_positive">Ложные</option>
+      </select>
       {active && (
         <>
           <span className="shown">показано {shown} из {all.length}</span>
@@ -97,9 +115,12 @@ interface Props {
   filter: Filter; onFilter: (f: Filter) => void;
   matchesOpen: boolean; onMatchesOpen: (open: boolean) => void;
   current: Finding | null; onPick: (f: Finding) => void;
+  reviewOf: (f: Finding) => Review | undefined;
 }
 
-export default function Findings({ report, bad, ok, filter, onFilter, matchesOpen, onMatchesOpen, current, onPick }: Props) {
+export default function Findings(
+  { report, bad, ok, filter, onFilter, matchesOpen, onMatchesOpen, current, onPick, reviewOf }: Props,
+) {
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     listRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "nearest" });
@@ -111,7 +132,9 @@ export default function Findings({ report, bad, ok, filter, onFilter, matchesOpe
       {(report.warnings ?? []).map((w, i) => <div key={i} className="note">{w}</div>)}
       {bad.length ? (
         <ol className="register">
-          {bad.map((f, i) => <Remark key={i} f={f} no={i + 1} active={f === current} onPick={() => onPick(f)} />)}
+          {bad.map((f, i) => (
+            <Remark key={i} f={f} no={i + 1} active={f === current} onPick={() => onPick(f)} review={reviewOf(f)} />
+          ))}
         </ol>
       ) : (
         <div className="empty">
@@ -124,7 +147,8 @@ export default function Findings({ report, bad, ok, filter, onFilter, matchesOpe
           <summary>Совпавшие проверки: {ok.length}</summary>
           <ol className="register">
             {ok.map((f, i) => (
-              <Remark key={i} f={f} no={bad.length + i + 1} active={f === current} onPick={() => onPick(f)} />
+              <Remark key={i} f={f} no={bad.length + i + 1} active={f === current} onPick={() => onPick(f)}
+                review={reviewOf(f)} />
             ))}
           </ol>
         </details>

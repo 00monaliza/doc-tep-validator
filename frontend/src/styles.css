@@ -146,3 +146,19 @@ kbd { font: 500 11px var(--cond); border: 1px solid var(--rule); border-bottom-w
   .panes.split .pane + .pane { border-left: 0; border-top: 1px solid var(--rule); }
   .hint { display: none; }
 }
+
+/* ---------- вердикт эксперта ---------- */
+.stamp { grid-template-columns: minmax(220px, 2.2fr) repeat(5, minmax(110px, 1fr)); }
+.review-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--rule); background: var(--sheet); }
+.review-bar .label { font: 600 13px var(--cond); color: var(--graphite-2); }
+.review-bar .expert { background: var(--sheet); border: 1px solid var(--rule); padding: 3px 10px; cursor: pointer; font: 500 13px var(--cond); }
+.review-bar .expert.x-confirmed[aria-pressed="true"] { background: var(--stamp); border-color: var(--stamp); color: var(--sheet); }
+.review-bar .expert.x-false_positive[aria-pressed="true"] { background: var(--graphite-2); border-color: var(--graphite-2); color: var(--sheet); }
+.review-bar .expert[aria-pressed="true"] kbd { color: var(--graphite); }
+.review-bar input { flex: 1; min-width: 180px; font: 14px var(--body); padding: 4px 8px; border: 1px solid var(--rule); background: #fff; color: var(--graphite); }
+.review-bar .save-state { font-size: 12px; color: var(--graphite-2); min-width: 70px; }
+.review-bar .save-state.error { color: var(--pencil); }
+.verdict.x-confirmed { color: var(--stamp); border-color: var(--stamp); background: var(--stamp-wash); }
+.verdict.x-false_positive { color: var(--graphite-2); border-color: var(--graphite-2); text-decoration: line-through; }
+.expert-comment { font-style: italic; }
+@media (max-width: 900px) { .stamp { grid-template-columns: 1fr 1fr; } }

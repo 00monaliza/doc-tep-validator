@@ -6,6 +6,8 @@ POST /api/checks                    multipart `files` (PDF/DOCX) -> {id, status}
 GET  /api/checks/{id}               status + report when done
 GET  /api/checks/{id}/files/{name}  uploaded file (for the in-browser PDF viewer)
 POST /api/demo/{lang}               run on the bundled synthetic sample (ru|kz)
+PUT  /api/checks/{id}/reviews/{n}    expert verdict on finding n: {verdict: confirmed|false_positive|null, comment}
+GET  /api/capabilities              what this server can do: {"ocr": bool} (no Tesseract on Vercel)
 GET  /api/cron/cleanup              delete checks older than RETENTION_DAYS (Vercel Cron, CRON_SECRET)
 GET  /                              the React interface from frontend/dist (npm --prefix frontend run build)
 
@@ -17,13 +19,16 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import traceback
 import uuid
 from pathlib import Path
+from typing import Literal
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 from api._store import LocalStore, SupabaseStore
 from src.ner.common.models import BACKBONES
@@ -113,10 +118,30 @@ def demo(lang: str, background: BackgroundTasks, kind: str = "text") -> dict:
 
 @app.get("/api/checks/{check_id}")
 def get_check(check_id: str) -> dict:
-    status = _store().get(_valid_id(check_id))
+    store = _store()
+    status = store.get(_valid_id(check_id))
     if status is None:
         raise HTTPException(404, "check not found")
+    if status["status"] == "done":
+        status["reviews"] = {str(k): v for k, v in store.reviews(check_id).items()}
     return {"id": check_id} | status
+
+
+class Review(BaseModel):
+    verdict: Literal["confirmed", "false_positive"] | None = None
+    comment: str = Field(default="", max_length=2000)
+
+
+@app.put("/api/checks/{check_id}/reviews/{finding}")
+def put_review(check_id: str, finding: int, review: Review) -> dict:
+    store = _store()
+    status = store.get(_valid_id(check_id))
+    if status is None or status["status"] != "done":
+        raise HTTPException(404, "check not found")
+    if not 0 <= finding < len(status["report"]["findings"]):
+        raise HTTPException(404, "finding not found")
+    store.set_review(check_id, finding, review.verdict, review.comment.strip())
+    return {"finding": finding, "verdict": review.verdict, "comment": review.comment.strip()}
 
 
 @app.get("/api/checks/{check_id}/files/{name}")
@@ -131,6 +156,11 @@ def get_file(check_id: str, name: str) -> Response:
 def health() -> dict:
     return {"status": "ok", "discrepancy_types": [t.value for t in DiscrepancyType],
             "backbones": {lang: b.hub_id for lang, b in BACKBONES.items()}}
+
+
+@app.get("/api/capabilities")
+def capabilities() -> dict:
+    return {"ocr": shutil.which("tesseract") is not None}
 
 
 @app.get("/api/cron/cleanup")

@@ -56,3 +56,39 @@ def test_vercel_without_storage_is_a_clear_error(client, monkeypatch):
 def test_index_serves_the_interface(client):
     r = client.get("/")
     assert r.status_code == 200 and ("<div id=\"root\">" in r.text or "frontend" in r.text)
+
+
+def test_capabilities_reports_ocr(client, monkeypatch):
+    monkeypatch.setattr(api.main.shutil, "which", lambda _: None)
+    assert client.get("/api/capabilities").json() == {"ocr": False}
+
+
+def _done_check(client) -> str:
+    check_id = client.post("/api/demo/ru").json()["id"]
+    for _ in range(200):
+        if client.get(f"/api/checks/{check_id}").json()["status"] != "pending":
+            break
+        time.sleep(0.05)
+    return check_id
+
+
+def test_reviews_roundtrip(client):
+    check_id = _done_check(client)
+    url = f"/api/checks/{check_id}/reviews"
+    assert client.get(f"/api/checks/{check_id}").json()["reviews"] == {}
+    assert client.put(f"{url}/0", json={"verdict": "confirmed"}).status_code == 200
+    assert client.put(f"{url}/1", json={"verdict": "false_positive", "comment": " не то здание "}).status_code == 200
+    assert client.get(f"/api/checks/{check_id}").json()["reviews"] == {
+        "0": {"verdict": "confirmed", "comment": ""},
+        "1": {"verdict": "false_positive", "comment": "не то здание"},
+    }
+    client.put(f"{url}/0", json={"verdict": None, "comment": ""})  # cleared
+    assert set(client.get(f"/api/checks/{check_id}").json()["reviews"]) == {"1"}
+
+
+def test_reviews_reject_bad_input(client):
+    check_id = _done_check(client)
+    url = f"/api/checks/{check_id}/reviews"
+    assert client.put(f"{url}/0", json={"verdict": "maybe"}).status_code == 422
+    assert client.put(f"{url}/999", json={"verdict": "confirmed"}).status_code == 404
+    assert client.put(f"/api/checks/{'0' * 32}/reviews/0", json={"verdict": "confirmed"}).status_code == 404

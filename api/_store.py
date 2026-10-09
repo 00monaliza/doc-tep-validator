@@ -69,6 +69,20 @@ class LocalStore:
         path = self._dir(check_id) / "files" / name
         return FileResponse(path) if path.is_file() else None
 
+    def reviews(self, check_id: str) -> dict[int, dict]:
+        path = self._dir(check_id) / "reviews.json"
+        if not path.is_file():
+            return {}
+        return {int(k): v for k, v in json.loads(path.read_text(encoding="utf-8")).items()}
+
+    def set_review(self, check_id: str, finding: int, verdict: str | None, comment: str) -> None:
+        reviews = self.reviews(check_id)
+        if verdict is None and not comment:  # an empty review is no review
+            reviews.pop(finding, None)
+        else:
+            reviews[finding] = {"verdict": verdict, "comment": comment}
+        (self._dir(check_id) / "reviews.json").write_text(json.dumps(reviews, ensure_ascii=False), encoding="utf-8")
+
     def cleanup(self, days: float) -> int:
         """Delete checks older than `days`; returns how many were removed."""
         if not self.root.is_dir():
@@ -94,8 +108,8 @@ class SupabaseStore:
         url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_SECRET_KEY")
         return cls(url, key) if url and key else None
 
-    def _rows(self, method: str, query: str = "", **kw) -> httpx.Response:
-        r = self.http.request(method, f"{self.url}/rest/v1/checks{query}", **kw)
+    def _rows(self, method: str, query: str = "", table: str = "checks", **kw) -> httpx.Response:
+        r = self.http.request(method, f"{self.url}/rest/v1/{table}{query}", **kw)
         r.raise_for_status()
         return r
 
@@ -153,8 +167,22 @@ class SupabaseStore:
         r.raise_for_status()
         return RedirectResponse(f"{self.url}/storage/v1{r.json()['signedURL']}")
 
+    def reviews(self, check_id: str) -> dict[int, dict]:
+        rows = self._rows("GET", f"?check_id=eq.{check_id}&select=finding,verdict,comment", table="reviews").json()
+        return {r["finding"]: {"verdict": r["verdict"], "comment": r["comment"]} for r in rows}
+
+    def set_review(self, check_id: str, finding: int, verdict: str | None, comment: str) -> None:
+        where = f"?check_id=eq.{check_id}&finding=eq.{finding}"
+        if verdict is None and not comment:  # an empty review is no review
+            self._rows("DELETE", where, table="reviews")
+            return
+        self._rows("POST", "?on_conflict=check_id,finding", table="reviews",
+                   headers={"Prefer": "resolution=merge-duplicates"},
+                   json={"check_id": check_id, "finding": finding, "verdict": verdict, "comment": comment,
+                         "updated_at": datetime.now(UTC).isoformat()})
+
     def cleanup(self, days: float) -> int:
-        """Delete checks (rows and files) older than `days`; returns how many were removed."""
+        """Delete checks (rows, reviews by cascade, files) older than `days`; returns how many were removed."""
         cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
         n = 0
         while True:  # in batches, so a long backlog does not outgrow one request

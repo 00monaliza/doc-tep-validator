@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import type { Finding, Ref, Report } from "../types";
 import RefPane from "./RefPane";
 
@@ -8,9 +8,12 @@ const readSplit = () => { try { return localStorage.getItem(SPLIT_KEY) !== "0"; 
 const typing = (e: KeyboardEvent) =>
   e.target instanceof HTMLElement && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName);
 
-interface Props { checkId: string; report: Report; selection: { refs: Ref[]; finding?: Finding } | null }
+interface Props {
+  checkId: string; report: Report; selection: { refs: Ref[]; finding?: Finding } | null;
+  top?: ReactNode; // e.g. the expert's verdict on the open finding
+}
 
-export default function Viewer({ checkId, report, selection }: Props) {
+export default function Viewer({ checkId, report, selection, top }: Props) {
   const refs = selection?.refs ?? [];
   const [split, setSplit] = useState(readSplit);
   const [left, setLeft] = useState(0);
@@ -58,13 +61,14 @@ export default function Viewer({ checkId, report, selection }: Props) {
 
   return (
     <section className="panel viewer" aria-label="Документ">
+      {top}
       {refs.length > 1 && (
         <div className="viewer-bar">
           <button type="button" className="toggle" aria-pressed={split} onClick={() => setSplit(v => !v)}>
             {split ? "Рядом" : "По одному"}
           </button>
           <span className="hint">
-            <kbd>j</kbd>/<kbd>k</kbd> замечания · <kbd>←</kbd>/<kbd>→</kbd> места · <kbd>s</kbd> рядом/по одному
+            <kbd>j</kbd>/<kbd>k</kbd> замечания · <kbd>←</kbd>/<kbd>→</kbd> места · <kbd>s</kbd> рядом/по одному · <kbd>1</kbd>/<kbd>2</kbd> вердикт
           </span>
         </div>
       )}

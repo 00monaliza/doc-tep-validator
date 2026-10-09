@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getCapabilities } from "../api";
 
 interface Props {
   status: { text: string; error?: boolean } | null;
@@ -8,6 +9,8 @@ interface Props {
 
 export default function Intake({ status, onFiles, onDemo }: Props) {
   const [over, setOver] = useState(false);
+  const [ocr, setOcr] = useState(true);
+  useEffect(() => { getCapabilities().then(c => setOcr(c.ocr)); }, []);
   const busy = status != null && !status.error;
 
   return (
@@ -35,8 +38,12 @@ export default function Intake({ status, onFiles, onDemo }: Props) {
         <span>Нет своих документов?</span>
         <button type="button" disabled={busy} onClick={() => onDemo("ru", "text")}>Пример на русском</button>
         <button type="button" disabled={busy} onClick={() => onDemo("kz", "text")}>Қазақша мысал</button>
-        <button type="button" disabled={busy} onClick={() => onDemo("kz", "scan")}>Пример-скан</button>
+        {ocr && <button type="button" disabled={busy} onClick={() => onDemo("kz", "scan")}>Пример-скан</button>}
       </div>
+      {!ocr && (
+        <p className="note">На этом сервере сканы (PDF без текстового слоя) не распознаются: нет Tesseract.
+          Загружайте PDF с текстом или DOCX; сканы проверяются при локальном запуске.</p>
+      )}
       <div className={`status${status?.error ? " error" : ""}`} role="status" aria-live="polite">
         {status?.text}
       </div>

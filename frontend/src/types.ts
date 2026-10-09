@@ -58,7 +58,12 @@ export interface Report {
   warnings?: string[];
 }
 
+export type ExpertVerdict = "confirmed" | "false_positive";
+export interface Review { verdict: ExpertVerdict | null; comment: string }
+/** Expert reviews keyed by the finding's index in report.findings. */
+export type Reviews = Record<string, Review>;
+
 export type CheckStatus =
   | { id: string; status: "pending" }
   | { id: string; status: "error"; error: string }
-  | { id: string; status: "done"; report: Report };
+  | { id: string; status: "done"; report: Report; reviews?: Reviews };
