@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from src.crossvalidation.objects import page_texts
 from src.crossvalidation.rules import Mention
-from src.crossvalidation.rules_v1 import check_elevation, check_table_labels, check_volume_method
+from src.crossvalidation.rules_v1 import (
+    check_elevation,
+    check_parameters,
+    check_table_labels,
+    check_volume_method,
+)
 from src.ingestion.real import Page, PageTable, TextLine
 from src.ner.common.tep_baseline import object_index
 
@@ -114,3 +119,25 @@ def test_summary_table_is_not_a_label():
     pages = _section_pages("5.2 Здание цеха", rows)
     index, pts = _ctx(pages)
     assert check_table_labels(pages, pts, index) == []
+
+
+def test_blind_area_material_and_width_differ():
+    pages = _pages(["5. Решения", "5.2 Здание цеха", "Отмостка - бетонная кл. В 7.5, шириной 1000 мм"],
+                   ["7. Благоустройство", "Вокруг зданий выполняется асфальтобетонная отмостка шириной 1,5м."])
+    index, pts = _ctx(pages)
+    found = check_parameters(pts, index)
+    assert [(f.field, f.object) for f in found] == [("blind_area", "all")]
+
+
+def test_blind_area_width_after_class_abbreviation():
+    pages = _pages(["5.2 Здание цеха", "Отмостка - бетонная кл. В 7.5, шириной 1000 мм. Кровля — плоская."],
+                   ["7. Благоустройство", "Вокруг зданий выполняется бетонная отмостка шириной 1,0 м."])
+    index, pts = _ctx(pages)
+    assert check_parameters(pts, index) == []  # 1000 mm = 1,0 m
+
+
+def test_roof_differs_in_kazakh():
+    pages = _pages(["5.1 Қазандық ғимараты", "Шатыр — ПВХ-мембранадан жасалған жалпақ."],
+                   ["7. Абаттандыру", "Ғимараттардың шатыры — профильденген табақтан жасалған еңісті."])
+    index, pts = _ctx(pages)
+    assert [(f.field, f.object) for f in check_parameters(pts, index)] == [("roof", "all")]

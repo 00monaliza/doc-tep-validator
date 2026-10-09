@@ -20,7 +20,7 @@ from src.crossvalidation.rules import Mention, _finding, _quote
 from src.evaluation.schema import Finding, Ref
 from src.ingestion.common.numbers import NUMBER_RE, number_readings
 from src.ingestion.real import Page
-from src.ner.common.parameters import load_parameters
+from src.ner.common.parameters import load_parameters, width_mm
 from src.ner.common.taxonomy import DiscrepancyType
 
 ELEVATION_SLACK_M = 3.0  # a building rarely sits higher above (or below) the relief than this
@@ -155,4 +155,54 @@ def check_table_labels(pages: list[Page], pts: list[PageText], index: ObjectInde
             out.append(_finding(DiscrepancyType.COPY_PASTE_LABEL, "object_label", section,
                                 [Ref(page=pt.page, quote=quote, object=section, value=labels[0])],
                                 note=f"table in the section of {names[section].name!r} is labelled {labels[0]!r}"))
+    return out
+
+
+WIDTH_TOL = 0.01
+# a phrase ends at a full stop before a capitalised word, or at ";" ("кл. В 7.5" does not end it: "В" + space)
+_PHRASE_END = re.compile(_SENTENCE_END.pattern + "|;")
+
+
+def _phrase(text: str, start: int, end: int) -> tuple[int, int]:
+    s = 0
+    for m in _PHRASE_END.finditer(text, 0, start):
+        s = m.end()
+    e = _PHRASE_END.search(text, end)
+    return s, e.start() if e else len(text)
+
+
+def check_parameters(pts: list[PageText], index: ObjectIndex) -> list[Finding]:
+    """Per building, its statements of a parameter together with the general ("all") ones: different materials
+    or widths -> contradiction. The finding belongs to "all" when a general statement takes part."""
+    out = []
+    for name, param in load_parameters().items():
+        if not param.materials:
+            continue
+        by_obj: dict[str, list[tuple[Ref, str | None, float | None]]] = {}
+        for pt in pts:
+            for m in param.mention_re.finditer(pt.text):
+                s, e = _phrase(pt.text, m.start(), m.end())
+                phrase = pt.text[s:e].strip()
+                material = param.material_in(phrase)
+                width = width_mm(phrase) if param.has_width else None
+                if material is None and width is None:
+                    continue
+                obj = resolve(pt, index, m.start(), m.end())[0] or "all"
+                value = ", ".join(x for x in (material, f"{width:g} мм" if width else None) if x)
+                ref = Ref(page=pt.page, quote=_quote(pt.text, phrase), object=obj, value=value)
+                by_obj.setdefault(obj, []).append((ref, material, width))
+        general = by_obj.get("all", [])
+        groups = [items + general for obj, items in by_obj.items() if obj != "all"] or [general]
+        seen = set()
+        for group in groups:
+            materials = {mat for _, mat, _ in group if mat}
+            widths = sorted(w for _, _, w in group if w)
+            if len(materials) <= 1 and not (widths and widths[-1] - widths[0] > WIDTH_TOL * widths[-1]):
+                continue
+            scope = "all" if any(r.object == "all" for r, _, _ in group) else group[0][0].object
+            if scope in seen:
+                continue
+            seen.add(scope)
+            out.append(_finding(DiscrepancyType.PARAMETER_CONTRADICTION, name, scope, [r for r, _, _ in group],
+                                note=f"{name}: " + "; ".join(str(r.value) for r, _, _ in group)))
     return out
