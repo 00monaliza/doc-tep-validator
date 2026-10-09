@@ -173,7 +173,8 @@ def test_name_row_above_unlabelled_data_row():
 
 def test_relief_with_words_between_from_and_number():
     pages = _pages(["Высотные отметки разреза колеблются в пределах от высотных отметок 314,75 м до 315,04 м."],
-                   ["5.1 Здание офиса", "Условная отметка 0.000 соответствует абсолютной отметке - 489,79 по генплану."])
+                   ["5.1 Здание офиса",
+                    "Условная отметка 0.000 соответствует абсолютной отметке - 489,79 по генплану."])
     index, pts = _ctx(pages)
     assert len(check_elevation(pts, index)) == 1
 
@@ -181,7 +182,8 @@ def test_relief_with_words_between_from_and_number():
 def test_unknown_name_flagged_only_where_repeated():
     office = PageTable([HEADER, ["Здание офиса", "312,91", "3116,37"]], (0, 40.0, 500, 80.0), HEADER)
     shop = PageTable([HEADER, ["Здание офиса", "199,50", "518,70"]], (0, 40.0, 500, 80.0), HEADER)
-    pages = [_page(1, ["5.1 Административно-бытовой корпус", "Показатели", "Здание офиса 312,91 3116,37"], [office]),
+    pages = [_page(1, ["5.1 Административно-бытовой корпус", "Показатели", "Здание офиса 312,91 3116,37"],
+                   [office]),
              _page(2, ["5.2 Здание цеха", "Показатели", "Здание офиса 199,50 518,70"], [shop])]
     index, pts = _ctx(pages)
     found = check_table_labels(pages, pts, index)
