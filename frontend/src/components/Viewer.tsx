@@ -61,15 +61,24 @@ export default function Viewer({ checkId, report, selection, top }: Props) {
 
   return (
     <section className="panel viewer" aria-label="Документ">
-      {top}
-      {refs.length > 1 && (
+      {(top || refs.length > 1) && (
         <div className="viewer-bar">
-          <button type="button" className="toggle" aria-pressed={split} onClick={() => setSplit(v => !v)}>
-            {split ? "Рядом" : "По одному"}
-          </button>
-          <span className="hint">
-            <kbd>j</kbd>/<kbd>k</kbd> замечания · <kbd>←</kbd>/<kbd>→</kbd> места · <kbd>s</kbd> рядом/по одному · <kbd>1</kbd>/<kbd>2</kbd> вердикт
-          </span>
+          {top}
+          {refs.length > 1 && (
+            <button type="button" className="toggle" aria-pressed={split} onClick={() => setSplit(v => !v)}
+              title="Клавиша s">
+              {split ? "Рядом" : "По одному"}
+            </button>
+          )}
+          <details className="keys">
+            <summary aria-label="Клавиши">?</summary>
+            <ul>
+              <li><kbd>j</kbd> / <kbd>k</kbd> — следующее / предыдущее замечание</li>
+              <li><kbd>←</kbd> / <kbd>→</kbd> — места замечания</li>
+              <li><kbd>s</kbd> — рядом / по одному</li>
+              <li><kbd>1</kbd> / <kbd>2</kbd> — подтверждаю / ложное</li>
+            </ul>
+          </details>
         </div>
       )}
       <div className={sideBySide ? "panes split" : "panes"}>

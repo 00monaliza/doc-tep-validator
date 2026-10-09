@@ -35,10 +35,13 @@ export default function ReportView({ checkId, report, initialReviews, onReset }:
   const c = report.completeness;
   const s = report.summary;
 
-  const pick = (f: Finding) => {
+  const pick = (f: Finding, fromTap = false) => {
     setCurrent(f);
     setSelection({ refs: f.refs, finding: f });
     if (ok.includes(f)) setMatchesOpen(true);
+    // on a phone the document is below the list: a tap should show it
+    if (fromTap && window.matchMedia("(max-width: 900px)").matches)
+      setTimeout(() => document.querySelector(".viewer")?.scrollIntoView({ behavior: "smooth" }));
   };
 
   const review = async (f: Finding, next: Review) => {
@@ -105,12 +108,13 @@ export default function ReportView({ checkId, report, initialReviews, onReset }:
     <div className="app">
       <header className="stamp">
         <div className="title">
-          <small>
-            Проверка пакета · <button className="link" onClick={onReset}>новая проверка</button>
-            {" · "}<button className="link" onClick={() => exportXlsx(report, reviews, checkId)
-              .catch(e => setSaveError(`Экспорт не удался: ${(e as Error).message}`))}>скачать XLSX</button>
-          </small>
+          <small>Проверка пакета</small>
           <strong>{report.documents.length} файл(ов), язык: {LANG[report.lang] ?? report.lang}</strong>
+          <div className="actions">
+            <button type="button" className="primary" onClick={() => exportXlsx(report, reviews, checkId)
+              .catch(e => setSaveError(`Экспорт не удался: ${(e as Error).message}`))}>Скачать XLSX</button>
+            <button type="button" onClick={onReset}>Новая проверка</button>
+          </div>
         </div>
         <div className={c.missing.length ? "bad" : "ok"}><small>Разделы</small><strong>{c.present.length} из {c.required.length}</strong></div>
         <div className={s.MISMATCH ? "bad" : "ok"}><small>Расхождения</small><strong>{s.MISMATCH}</strong></div>
@@ -133,7 +137,7 @@ export default function ReportView({ checkId, report, initialReviews, onReset }:
             {tab === "findings" && (
               <Findings
                 report={report} bad={bad} ok={ok} filter={filter} onFilter={setFilter}
-                matchesOpen={matchesOpen} onMatchesOpen={setMatchesOpen} current={current} onPick={pick}
+                matchesOpen={matchesOpen} onMatchesOpen={setMatchesOpen} current={current} onPick={f => pick(f, true)}
                 reviewOf={reviewOf}
               />
             )}

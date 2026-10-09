@@ -82,7 +82,7 @@ table.grid tr.clickable:hover td { background: #EFF3EF; }
 /* ---------- лист документа ---------- */
 .viewer-head { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
 .viewer-head .doc { font: 600 15px var(--cond); margin-right: auto; overflow-wrap: anywhere; }
-.refs button { background: var(--sheet); border: 1px solid var(--rule); padding: 4px 10px; cursor: pointer; font: 500 13px var(--cond); }
+.refs button { background: var(--sheet); border: 1px solid var(--control); padding: 4px 10px; cursor: pointer; font: 500 13px var(--cond); }
 .refs button[aria-pressed="true"] { border-color: var(--graphite); background: var(--graphite); color: var(--sheet); }
 .evidence { padding: 8px 12px; font-size: 14px; color: var(--graphite-2); border-bottom: 1px solid var(--rule); }
 .evidence mark { background: none; color: var(--pencil); font-weight: 600; }
@@ -138,7 +138,7 @@ kbd { font: 500 11px var(--cond); border: 1px solid var(--rule); border-bottom-w
 /* ---------- фильтры ---------- */
 .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--rule); }
 .filters:empty { display: none; }
-.filters select { font: 500 13px var(--cond); color: var(--graphite); background: var(--sheet); border: 1px solid var(--rule); padding: 3px 6px; max-width: 100%; }
+.filters select { font: 500 13px var(--cond); color: var(--graphite); background: var(--sheet); border: 1px solid var(--control); padding: 3px 6px; max-width: 100%; }
 .filters .shown { font-size: 12px; color: var(--graphite-2); }
 
 @media (max-width: 900px) {
@@ -151,11 +151,11 @@ kbd { font: 500 11px var(--cond); border: 1px solid var(--rule); border-bottom-w
 .stamp { grid-template-columns: minmax(220px, 2.2fr) repeat(5, minmax(110px, 1fr)); }
 .review-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--rule); background: var(--sheet); }
 .review-bar .label { font: 600 13px var(--cond); color: var(--graphite-2); }
-.review-bar .expert { background: var(--sheet); border: 1px solid var(--rule); padding: 3px 10px; cursor: pointer; font: 500 13px var(--cond); }
+.review-bar .expert { background: var(--sheet); border: 1px solid var(--control); padding: 3px 10px; cursor: pointer; font: 500 13px var(--cond); }
 .review-bar .expert.x-confirmed[aria-pressed="true"] { background: var(--stamp); border-color: var(--stamp); color: var(--sheet); }
 .review-bar .expert.x-false_positive[aria-pressed="true"] { background: var(--graphite-2); border-color: var(--graphite-2); color: var(--sheet); }
 .review-bar .expert[aria-pressed="true"] kbd { color: var(--graphite); }
-.review-bar input { flex: 1; min-width: 180px; font: 14px var(--body); padding: 4px 8px; border: 1px solid var(--rule); background: #fff; color: var(--graphite); }
+.review-bar input { flex: 1; min-width: 180px; font: 14px var(--body); padding: 4px 8px; border: 1px solid var(--control); background: #fff; color: var(--graphite); }
 .review-bar .save-state { font-size: 12px; color: var(--graphite-2); min-width: 70px; }
 .review-bar .save-state.error { color: var(--pencil); }
 .verdict.x-confirmed { color: var(--stamp); border-color: var(--stamp); background: var(--stamp-wash); }
@@ -168,13 +168,30 @@ kbd { font: 500 11px var(--cond); border: 1px solid var(--rule); border-bottom-w
 .file-review table.grid { background: var(--sheet); border: 1px solid var(--rule); margin-bottom: 12px; }
 .file-review td.file { font: 500 14px var(--cond); overflow-wrap: anywhere; }
 .file-review td.how { color: var(--graphite-2); font-size: 13px; }
-.file-review select { font: 500 13px var(--cond); padding: 3px 6px; border: 1px solid var(--rule); background: #fff; color: var(--graphite); max-width: 100%; }
+.file-review select { font: 500 13px var(--cond); padding: 3px 6px; border: 1px solid var(--control); background: #fff; color: var(--graphite); max-width: 100%; }
 .file-review .note { margin: 8px 0; }
 .demo button.primary { background: var(--graphite); color: var(--sheet); }
 
 /* ---------- листание и масштаб ---------- */
 .page-bar { display: flex; gap: 6px; align-items: center; padding: 4px 12px; border-bottom: 1px solid var(--rule); font: 500 13px var(--cond); color: var(--graphite-2); flex-wrap: wrap; }
-.page-bar button { background: var(--sheet); border: 1px solid var(--rule); min-width: 28px; padding: 1px 8px; cursor: pointer; font: 500 13px var(--cond); color: var(--graphite); }
+.page-bar button { background: var(--sheet); border: 1px solid var(--control); min-width: 28px; min-height: 26px; padding: 2px 8px; cursor: pointer; font: 500 13px var(--cond); color: var(--graphite); }
 .page-bar button:disabled { opacity: .4; cursor: default; }
 .page-bar .back { color: var(--pencil); border-color: var(--pencil); }
 .page-bar .zoom { margin-left: auto; display: flex; gap: 4px; }
+
+/* ---------- одна полоса над документом, действия в шапке ---------- */
+.viewer-bar .review-bar { flex: 1; padding: 0; border: 0; background: none; }
+.keys { position: relative; font-size: 13px; }
+.keys summary { list-style: none; cursor: pointer; width: 26px; height: 26px; display: grid; place-items: center;
+  border: 1px solid var(--control); border-radius: 50%; font: 600 13px var(--cond); color: var(--graphite-2); }
+.keys summary::-webkit-details-marker { display: none; }
+.keys[open] summary { background: var(--graphite); color: var(--sheet); border-color: var(--graphite); }
+.keys ul { position: absolute; right: 0; top: 32px; z-index: 5; margin: 0; padding: 8px 12px; list-style: none; width: max-content;
+  background: var(--sheet); border: 1px solid var(--graphite); box-shadow: 0 4px 12px rgb(0 0 0 / .12); }
+.keys li { padding: 2px 0; color: var(--graphite); }
+.stamp .actions { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.stamp .actions button { background: var(--sheet); border: 1px solid var(--control); padding: 3px 10px; min-height: 28px; cursor: pointer;
+  font: 500 13px var(--cond); color: var(--graphite); }
+.stamp .actions button.primary { background: var(--graphite); color: var(--sheet); border-color: var(--graphite); }
+/* элементы управления не ниже 24 px (WCAG 2.5.8) */
+.filters select, .review-bar .expert, .review-bar input, .viewer-bar .toggle, .refs button, .file-review select { min-height: 26px; }
