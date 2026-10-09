@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import secrets
 import shutil
 import tempfile
 import time
@@ -18,6 +19,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from functools import cache
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 from fastapi.responses import FileResponse, RedirectResponse, Response
@@ -34,12 +36,40 @@ class LocalStore:
         (self._dir(check_id) / "files").mkdir(parents=True)
         self._status(check_id, status)
 
-    def start(self, check_id: str) -> bool:
-        """uploaded -> pending; False if the check was not waiting for its start."""
-        if (self.get(check_id) or {}).get("status") != "uploaded":
+    def transition(self, check_id: str, old: str, new: str) -> bool:
+        """old -> new; False if the check was not in `old` (one process: no race to guard against)."""
+        if (self.get(check_id) or {}).get("status") != old:
             return False
-        self._status(check_id, "pending")
+        self._status(check_id, new)
         return True
+
+    def start(self, check_id: str) -> bool:
+        return self.transition(check_id, "uploaded", "pending")
+
+    def upload_targets(self, check_id: str, names: list[str]) -> dict[str, str]:
+        """Where the browser PUTs each file: the local upload endpoint, guarded by a per-check token."""
+        token = secrets.token_urlsafe(24)
+        (self._dir(check_id) / "upload.json").write_text(json.dumps({"token": token, "names": names}), encoding="utf-8")
+        return {n: f"/api/checks/{check_id}/upload/{quote(n)}?token={token}" for n in names}
+
+    def accept_upload(self, check_id: str, name: str, token: str, data: bytes) -> bool:
+        path = self._dir(check_id) / "upload.json"
+        if not path.is_file():
+            return False
+        expected = json.loads(path.read_text(encoding="utf-8"))
+        if not secrets.compare_digest(token, expected["token"]) or name not in expected["names"]:
+            return False
+        (self._dir(check_id) / "files" / name).write_bytes(data)
+        return True
+
+    def set_files(self, check_id: str, names: list[str]) -> None:
+        pass  # the folder itself is the list
+
+    def names(self, check_id: str) -> list[str]:
+        path = self._dir(check_id) / "upload.json"
+        if path.is_file():  # what the browser was told to upload
+            return json.loads(path.read_text(encoding="utf-8"))["names"]
+        return sorted(p.name for p in (self._dir(check_id) / "files").iterdir())
 
     def sections(self, check_id: str) -> dict[str, dict]:
         path = self._dir(check_id) / "sections.json"
@@ -147,11 +177,31 @@ class SupabaseStore:
     def create(self, check_id: str, source: str, status: str = "pending") -> None:
         self._rows("POST", json={"id": check_id, "status": status, "source": source})
 
-    def start(self, check_id: str) -> bool:
-        """uploaded -> pending in one conditional update, so two starts cannot both run the check."""
-        rows = self._rows("PATCH", f"?id=eq.{check_id}&status=eq.uploaded", headers={"Prefer": "return=representation"},
-                          json={"status": "pending", "status_changed_at": datetime.now(UTC).isoformat()}).json()
+    def transition(self, check_id: str, old: str, new: str) -> bool:
+        """old -> new in one conditional update, so two requests cannot both make the step."""
+        rows = self._rows("PATCH", f"?id=eq.{check_id}&status=eq.{old}", headers={"Prefer": "return=representation"},
+                          json={"status": new, "status_changed_at": datetime.now(UTC).isoformat()}).json()
         return bool(rows)
+
+    def start(self, check_id: str) -> bool:
+        return self.transition(check_id, "uploaded", "pending")
+
+    def upload_targets(self, check_id: str, names: list[str]) -> dict[str, str]:
+        """Signed upload URLs (2 h): the browser sends files straight to Storage, past the 4.5 MB
+        request limit of a Vercel function."""
+        out = {}
+        for n in names:
+            r = self.http.post(f"{self.url}/storage/v1/object/upload/sign/{self.BUCKET}/{self._key(check_id, n)}",
+                               headers={"x-upsert": "true"})
+            r.raise_for_status()
+            out[n] = f"{self.url}/storage/v1{r.json()['url']}"
+        return out
+
+    def accept_upload(self, check_id: str, name: str, token: str, data: bytes) -> bool:
+        return False  # files go straight to Storage
+
+    def set_files(self, check_id: str, names: list[str]) -> None:
+        self._set(check_id, files=names)
 
     def sections(self, check_id: str) -> dict[str, dict]:
         rows = self._rows("GET", f"?id=eq.{check_id}&select=sections").json()
@@ -171,12 +221,12 @@ class SupabaseStore:
         finally:  # written once, and also on failure, so remove() finds what did get uploaded
             self._set(check_id, files=list(dict.fromkeys(names)))
 
-    def _names(self, check_id: str) -> list[str]:
+    def names(self, check_id: str) -> list[str]:
         rows = self._rows("GET", f"?id=eq.{check_id}&select=files").json()
         return rows[0]["files"] if rows else []
 
     def remove(self, check_id: str) -> None:
-        prefixes = [self._key(check_id, n) for n in self._names(check_id)]
+        prefixes = [self._key(check_id, n) for n in self.names(check_id)]
         if prefixes:
             self.http.request("DELETE", f"{self.url}/storage/v1/object/{self.BUCKET}", json={"prefixes": prefixes})
         self._rows("DELETE", f"?id=eq.{check_id}")
@@ -184,7 +234,7 @@ class SupabaseStore:
     @contextmanager
     def files(self, check_id: str) -> Iterator[Path]:
         with tempfile.TemporaryDirectory() as tmp:
-            for name in self._names(check_id):
+            for name in self.names(check_id):
                 r = self.http.get(self._obj(check_id, name).replace("/object/", "/object/authenticated/", 1))
                 r.raise_for_status()
                 (Path(tmp) / name).write_bytes(r.content)
@@ -208,7 +258,7 @@ class SupabaseStore:
         return out
 
     def file_response(self, check_id: str, name: str) -> Response | None:
-        if name not in self._names(check_id):
+        if name not in self.names(check_id):
             return None
         r = self.http.post(self._obj(check_id, name).replace("/object/", "/object/sign/", 1), json={"expiresIn": 600})
         r.raise_for_status()

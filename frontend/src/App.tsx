@@ -33,9 +33,12 @@ export default function App() {
   }
 
   async function upload(files: FileList) {
-    setStatus({ text: "Загружаем файлы и определяем разделы…" });
+    setStatus({ text: "Загружаем файлы…" });
+    const mb = (b: number) => (b / 2 ** 20).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
     try {
-      const { id, files: uploaded } = await uploadFiles(files);
+      const { id, files: uploaded } = await uploadFiles(files, (sent, total) => setStatus({
+        text: sent < total ? `Загружаем файлы: ${mb(sent)} из ${mb(total)} МБ…` : "Определяем разделы…",
+      }));
       history.replaceState(null, "", `?check=${id}`);
       setScreen({ kind: "review", id, files: uploaded });
       setStatus(null);

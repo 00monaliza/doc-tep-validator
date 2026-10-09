@@ -4,6 +4,9 @@ Run:  uv run uvicorn api.main:app --reload     then open http://127.0.0.1:8000
 
 POST /api/checks                    multipart `files` (PDF/DOCX) -> {id, status}; with ?review=1 the check waits
                                     in status "uploaded" with each file's detected section, until /start
+POST /api/checks/init               {files: [{name, size}]} -> {id, uploads: {name: url}}; the browser PUTs each
+                                    file to its url (Supabase signed URL, or /upload locally), then calls
+POST /api/checks/{id}/uploaded      -> status "uploaded" with each file's detected section
 POST /api/checks/{id}/start         {files: {name: "PZ"|"AR"|"KR"|"SMETA"|"auto"|"skip"}} -> run the check
 GET  /api/checks/{id}               status + report when done
 GET  /api/checks/{id}/files/{name}  uploaded file (for the in-browser PDF viewer)
@@ -28,7 +31,7 @@ import uuid
 from pathlib import Path
 from typing import Literal
 
-from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -92,15 +95,92 @@ def _schedule(store: LocalStore | SupabaseStore, check_id: str, background: Back
         background.add_task(_run, store, check_id)
 
 
+def _classify_path(path: Path) -> dict:
+    try:
+        section, how = classify_file(path)
+    except Exception:  # noqa: BLE001 — an unreadable file is the user's to sort out before the start
+        section, how = None, "unreadable"
+    return {"section": section.value if section else None, "how": how, "use": True, "user": False}
+
+
 def _classify(name: str, data: bytes) -> dict:
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / name
         path.write_bytes(data)
-        try:
-            section, how = classify_file(path)
-        except Exception:  # noqa: BLE001 — an unreadable file is the user's to sort out before the start
-            section, how = None, "unreadable"
-    return {"section": section.value if section else None, "how": how, "use": True, "user": False}
+        return _classify_path(path)
+
+
+def _check_name(name: str) -> str:
+    name = Path(name or "").name
+    if Path(name).suffix.lower() not in ALLOWED:
+        raise HTTPException(400, f"{name!r}: only PDF and DOCX are accepted")
+    return name
+
+
+class FileSpec(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    size: int = Field(ge=1)
+
+
+class Init(BaseModel):
+    files: list[FileSpec] = Field(min_length=1, max_length=MAX_FILES)
+
+
+@app.post("/api/checks/init")
+def init_check(body: Init) -> dict:
+    names = [_check_name(f.name) for f in body.files]
+    if len(set(names)) != len(names):
+        raise HTTPException(400, "file names repeat")
+    for f in body.files:
+        if f.size > MAX_FILE_BYTES:
+            raise HTTPException(413, f"{f.name!r} is larger than {MAX_FILE_BYTES // 2**20} MB")
+    store, check_id = _store(), uuid.uuid4().hex
+    store.create(check_id, "upload", status="receiving")
+    try:
+        store.set_files(check_id, names)
+        uploads = store.upload_targets(check_id, names)
+    except Exception as e:  # noqa: BLE001
+        store.remove(check_id)
+        raise HTTPException(502, f"Загрузка не подготовлена: {type(e).__name__}") from e
+    return {"id": check_id, "uploads": uploads}
+
+
+@app.put("/api/checks/{check_id}/upload/{name}")
+async def upload_file(check_id: str, name: str, token: str, request: Request) -> dict:
+    """The local stand-in for a Storage signed URL."""
+    data = bytearray()
+    async for chunk in request.stream():
+        data += chunk
+        if len(data) > MAX_FILE_BYTES:
+            raise HTTPException(413, f"{name!r} is larger than {MAX_FILE_BYTES // 2**20} MB")
+    if not _store().accept_upload(_valid_id(check_id), Path(name).name, token, bytes(data)):
+        raise HTTPException(403, "upload not allowed")
+    return {"name": name, "size": len(data)}
+
+
+@app.post("/api/checks/{check_id}/uploaded")
+def uploaded(check_id: str) -> dict:
+    store = _store()
+    status = store.get(_valid_id(check_id))
+    if status is None:
+        raise HTTPException(404, "check not found")
+    if status["status"] != "receiving":
+        raise HTTPException(409, "files already received")
+    try:
+        with store.files(check_id) as d:
+            present = {p.name: p for p in d.iterdir()}
+            missing = [n for n in store.names(check_id) if n not in present]
+            if missing:
+                raise HTTPException(400, f"не загрузились: {', '.join(missing)}")
+            sections = {n: _classify_path(p) for n, p in present.items()}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001 — e.g. an object that never reached Storage
+        raise HTTPException(400, f"не все файлы загрузились ({type(e).__name__})") from e
+    store.set_sections(check_id, sections)
+    if not store.transition(check_id, "receiving", "uploaded"):
+        raise HTTPException(409, "files already received")
+    return {"id": check_id, "status": "uploaded", "files": sections}
 
 
 @app.post("/api/checks")

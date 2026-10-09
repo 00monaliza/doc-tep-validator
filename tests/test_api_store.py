@@ -193,3 +193,46 @@ def test_stale_pending_check_is_reported_as_error(client, tmp_path):
     os.utime(tmp_path / ("d" * 32) / "status.json", (old, old))
     body = client.get(f"/api/checks/{'d' * 32}").json()
     assert body["status"] == "error" and "прервана" in body["error"]
+
+
+def _init(client, names):
+    specs = [{"name": n, "size": (SAMPLE / n).stat().st_size} for n in names]
+    return client.post("/api/checks/init", json={"files": specs})
+
+
+def test_direct_upload_flow(client):
+    r = _init(client, ["PZ.pdf", "AR.pdf"]).json()
+    check_id, uploads = r["id"], r["uploads"]
+    assert set(uploads) == {"PZ.pdf", "AR.pdf"}
+    assert client.get(f"/api/checks/{check_id}").json()["status"] == "receiving"
+    for name, url in uploads.items():
+        assert client.put(url, content=(SAMPLE / name).read_bytes()).status_code == 200
+    done = client.post(f"/api/checks/{check_id}/uploaded").json()
+    assert done["status"] == "uploaded"
+    assert {n: f["section"] for n, f in done["files"].items()} == {"PZ.pdf": "PZ", "AR.pdf": "AR"}
+    assert client.post(f"/api/checks/{check_id}/uploaded").status_code == 409  # only once
+    client.post(f"/api/checks/{check_id}/start", json={})
+    assert _wait(client, check_id)["status"] == "done"
+
+
+def test_direct_upload_needs_every_file(client):
+    r = _init(client, ["PZ.pdf", "AR.pdf"]).json()
+    client.put(r["uploads"]["PZ.pdf"], content=(SAMPLE / "PZ.pdf").read_bytes())
+    resp = client.post(f"/api/checks/{r['id']}/uploaded")
+    assert resp.status_code == 400 and "AR.pdf" in resp.json()["detail"]
+
+
+def test_direct_upload_rejects_wrong_token_and_name(client):
+    r = _init(client, ["PZ.pdf"]).json()
+    url = r["uploads"]["PZ.pdf"]
+    assert client.put(url.replace("token=", "token=x"), content=b"%PDF").status_code == 403
+    assert client.put(url.replace("PZ.pdf", "other.pdf"), content=b"%PDF").status_code == 403
+
+
+def test_init_validates_files(client):
+    assert client.post("/api/checks/init", json={"files": []}).status_code == 422
+    assert client.post("/api/checks/init", json={"files": [{"name": "a.exe", "size": 1}]}).status_code == 400
+    big = {"name": "a.pdf", "size": api.main.MAX_FILE_BYTES + 1}
+    assert client.post("/api/checks/init", json={"files": [big]}).status_code == 413
+    twice = [{"name": "a.pdf", "size": 1}, {"name": "a.pdf", "size": 1}]
+    assert client.post("/api/checks/init", json={"files": twice}).status_code == 400

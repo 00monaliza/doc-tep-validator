@@ -68,6 +68,7 @@ export interface UploadedFile { section: Section | null; how: string; use: boole
 export type Choice = Section | "auto" | "skip";
 
 export type CheckStatus =
+  | { id: string; status: "receiving" }
   | { id: string; status: "uploaded"; files: Record<string, UploadedFile> }
   | { id: string; status: "pending" }
   | { id: string; status: "error"; error: string }
