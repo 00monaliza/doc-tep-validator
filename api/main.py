@@ -12,7 +12,11 @@ GET  /api/checks/{id}               status + report when done
 GET  /api/checks/{id}/files/{name}  uploaded file (for the in-browser PDF viewer)
 POST /api/demo/{lang}               run on the bundled synthetic sample (ru|kz)
 PUT  /api/checks/{id}/reviews/{n}    expert verdict on finding n: {verdict: confirmed|false_positive|null, comment}
-GET  /api/capabilities              what this server can do: {"ocr": bool} (no Tesseract on Vercel)
+GET  /api/capabilities              {"ocr": bool, "auth": {url, key} | null} (no Tesseract on Vercel)
+GET  /api/checks/{id}/files/{n}/link  a URL to open the file with (signed Storage URL on Vercel)
+
+With Supabase configured every /api/checks… call needs `Authorization: Bearer <Supabase access token>`
+and sees only the caller's own checks (api/_auth.py); a local run has no login.
 GET  /api/cron/cleanup              delete checks older than RETENTION_DAYS (Vercel Cron, CRON_SECRET)
 GET  /                              the React interface from frontend/dist (npm --prefix frontend run build)
 
@@ -31,11 +35,13 @@ import uuid
 from pathlib import Path
 from typing import Literal
 
-from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from api import _auth
+from api._auth import current_user
 from api._store import LocalStore, SupabaseStore
 from src.ner.common.models import BACKBONES
 from src.ner.common.taxonomy import DiscrepancyType, Section
@@ -70,6 +76,18 @@ def _valid_id(check_id: str) -> str:
     if not ID_RE.match(check_id):
         raise HTTPException(404, "check not found")
     return check_id
+
+
+User = Depends(current_user)  # the caller's Supabase user id; None when auth is off (local run)
+
+
+def _owned(store: LocalStore | SupabaseStore, check_id: str, user: str | None) -> dict:
+    status = store.get(_valid_id(check_id))
+    # someone else's check is answered exactly like a missing one
+    if status is None or (user is not None and status.get("owner") != user):
+        raise HTTPException(404, "check not found")
+    status.pop("owner", None)
+    return status
 
 
 def _run(store: LocalStore | SupabaseStore, check_id: str) -> None:
@@ -127,7 +145,7 @@ class Init(BaseModel):
 
 
 @app.post("/api/checks/init")
-def init_check(body: Init) -> dict:
+def init_check(body: Init, user: str | None = User) -> dict:
     names = [_check_name(f.name) for f in body.files]
     if len(set(names)) != len(names):
         raise HTTPException(400, "file names repeat")
@@ -135,7 +153,7 @@ def init_check(body: Init) -> dict:
         if f.size > MAX_FILE_BYTES:
             raise HTTPException(413, f"{f.name!r} is larger than {MAX_FILE_BYTES // 2**20} MB")
     store, check_id = _store(), uuid.uuid4().hex
-    store.create(check_id, "upload", status="receiving")
+    store.create(check_id, "upload", status="receiving", owner=user)
     try:
         store.set_files(check_id, names)
         uploads = store.upload_targets(check_id, names)
@@ -159,11 +177,9 @@ async def upload_file(check_id: str, name: str, token: str, request: Request) ->
 
 
 @app.post("/api/checks/{check_id}/uploaded")
-def uploaded(check_id: str) -> dict:
+def uploaded(check_id: str, user: str | None = User) -> dict:
     store = _store()
-    status = store.get(_valid_id(check_id))
-    if status is None:
-        raise HTTPException(404, "check not found")
+    status = _owned(store, check_id, user)
     if status["status"] != "receiving":
         raise HTTPException(409, "files already received")
     try:
@@ -184,7 +200,8 @@ def uploaded(check_id: str) -> dict:
 
 
 @app.post("/api/checks")
-def create_check(files: list[UploadFile], background: BackgroundTasks, review: bool = False) -> dict:
+def create_check(files: list[UploadFile], background: BackgroundTasks, review: bool = False,
+                 user: str | None = User) -> dict:
     # a plain `def`: FastAPI runs it in a worker thread, so PDF parsing and storage calls do not block the loop
     if not files or len(files) > MAX_FILES:
         raise HTTPException(400, f"upload 1–{MAX_FILES} files")
@@ -198,7 +215,7 @@ def create_check(files: list[UploadFile], background: BackgroundTasks, review: b
             raise HTTPException(413, f"{name!r} is larger than {MAX_FILE_BYTES // 2**20} MB")
         received.append((name, data))
     store, check_id = _store(), uuid.uuid4().hex
-    store.create(check_id, "upload", status="uploaded" if review else "pending")
+    store.create(check_id, "upload", status="uploaded" if review else "pending", owner=user)
     try:
         store.put_files(check_id, received)
         if review:
@@ -218,11 +235,9 @@ class Start(BaseModel):
 
 
 @app.post("/api/checks/{check_id}/start")
-def start_check(check_id: str, body: Start, background: BackgroundTasks) -> dict:
+def start_check(check_id: str, body: Start, background: BackgroundTasks, user: str | None = User) -> dict:
     store = _store()
-    status = store.get(_valid_id(check_id))
-    if status is None:
-        raise HTTPException(404, "check not found")
+    status = _owned(store, check_id, user)
     if status["status"] != "uploaded":
         raise HTTPException(409, "check already started")
     sections = store.sections(check_id)
@@ -244,11 +259,11 @@ def start_check(check_id: str, body: Start, background: BackgroundTasks) -> dict
 
 
 @app.post("/api/demo/{lang}")
-def demo(lang: str, background: BackgroundTasks, kind: str = "text") -> dict:
+def demo(lang: str, background: BackgroundTasks, kind: str = "text", user: str | None = User) -> dict:
     if lang not in ("ru", "kz") or kind not in ("text", "scan"):
         raise HTTPException(404, "unknown demo")
     store, check_id = _store(), uuid.uuid4().hex
-    store.create(check_id, f"demo:{lang}:{kind}")
+    store.create(check_id, f"demo:{lang}:{kind}", owner=user)
     store.put_files(check_id, [(src.name, src.read_bytes())
                                for src in sorted((SAMPLES / lang / f"{lang}_00001" / kind).glob("*.pdf"))])
     _schedule(store, check_id, background)
@@ -256,11 +271,9 @@ def demo(lang: str, background: BackgroundTasks, kind: str = "text") -> dict:
 
 
 @app.get("/api/checks/{check_id}")
-def get_check(check_id: str) -> dict:
+def get_check(check_id: str, user: str | None = User) -> dict:
     store = _store()
-    status = store.get(_valid_id(check_id))
-    if status is None:
-        raise HTTPException(404, "check not found")
+    status = _owned(store, check_id, user)
     if status.pop("age", 0) > STALE_AFTER_S and status["status"] == "pending":
         status = {"status": "error", "error": "проверка прервана: превышено время обработки, загрузите файлы заново"}
     if status["status"] == "done":
@@ -276,10 +289,10 @@ class Review(BaseModel):
 
 
 @app.put("/api/checks/{check_id}/reviews/{finding}")
-def put_review(check_id: str, finding: int, review: Review) -> dict:
+def put_review(check_id: str, finding: int, review: Review, user: str | None = User) -> dict:
     store = _store()
-    status = store.get(_valid_id(check_id))
-    if status is None or status["status"] != "done":
+    status = _owned(store, check_id, user)
+    if status["status"] != "done":
         raise HTTPException(404, "check not found")
     if not 0 <= finding < len(status["report"]["findings"]):
         raise HTTPException(404, "finding not found")
@@ -288,11 +301,24 @@ def put_review(check_id: str, finding: int, review: Review) -> dict:
 
 
 @app.get("/api/checks/{check_id}/files/{name}")
-def get_file(check_id: str, name: str) -> Response:
-    response = _store().file_response(_valid_id(check_id), Path(name).name)
+def get_file(check_id: str, name: str, user: str | None = User) -> Response:
+    store = _store()
+    _owned(store, check_id, user)
+    response = store.file_response(check_id, Path(name).name)
     if response is None:
         raise HTTPException(404, "file not found")
     return response
+
+
+@app.get("/api/checks/{check_id}/files/{name}/link")
+def get_file_link(check_id: str, name: str, user: str | None = User) -> dict:
+    """A URL the PDF viewer opens without our auth header (a signed Storage URL on Vercel)."""
+    store = _store()
+    _owned(store, check_id, user)
+    link = store.file_link(check_id, Path(name).name)
+    if link is None:
+        raise HTTPException(404, "file not found")
+    return {"url": link}
 
 
 @app.get("/health")
@@ -303,7 +329,7 @@ def health() -> dict:
 
 @app.get("/api/capabilities")
 def capabilities() -> dict:
-    return {"ocr": shutil.which("tesseract") is not None}
+    return {"ocr": shutil.which("tesseract") is not None, "auth": _auth.public_config()}
 
 
 @app.get("/api/cron/cleanup")

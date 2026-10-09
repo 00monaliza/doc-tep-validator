@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { startDemo, startUploaded, uploadFiles, waitForCheck } from "./api";
+import { Unauthorized, getCapabilities, startDemo, startUploaded, uploadFiles, waitForCheck } from "./api";
+import { authEnabled, currentEmail, initAuth, onSignedOut, signIn, signOut } from "./auth";
 import FileReview from "./components/FileReview";
 import Intake from "./components/Intake";
+import Login from "./components/Login";
 import ReportView from "./components/ReportView";
 import type { Choice, Report, Reviews, UploadedFile } from "./types";
 
@@ -9,13 +11,25 @@ const ID_RE = /^[0-9a-f]{32}$/;
 
 type Status = { text: string; error?: boolean } | null;
 type Screen =
+  | { kind: "loading" }
+  | { kind: "login" }
   | { kind: "intake" }
   | { kind: "review"; id: string; files: Record<string, UploadedFile> }
   | { kind: "report"; id: string; report: Report; reviews: Reviews };
 
+/** Who is signed in, for the header; null when the server needs no login (local run). */
+export type Account = { email: string; onSignOut: () => void } | null;
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>({ kind: "intake" });
+  const [screen, setScreen] = useState<Screen>({ kind: "loading" });
   const [status, setStatus] = useState<Status>(null);
+  const [ocr, setOcr] = useState(true);
+  const [email, setEmail] = useState<string | null>(null);
+
+  const fail = (e: unknown) => {
+    if (e instanceof Unauthorized) { setEmail(null); setScreen({ kind: "login" }); setStatus(null); return; }
+    setStatus({ text: (e as Error).message, error: true });
+  };
 
   async function follow(start: Promise<string> | string, slow = false) {
     setStatus({ text: slow ? "Распознаём сканы, это займёт до минуты…" : "Проверяем документы…" });
@@ -28,7 +42,7 @@ export default function App() {
         : { kind: "review", id, files: outcome.files });
       setStatus(null);
     } catch (e) {
-      setStatus({ text: (e as Error).message, error: true });
+      fail(e);
     }
   }
 
@@ -43,19 +57,44 @@ export default function App() {
       setScreen({ kind: "review", id, files: uploaded });
       setStatus(null);
     } catch (e) {
-      setStatus({ text: (e as Error).message, error: true });
+      fail(e);
     }
   }
 
   const reset = () => { history.replaceState(null, "", location.pathname); setScreen({ kind: "intake" }); setStatus(null); };
 
-  useEffect(() => {
+  // after sign-in (or with no login at all): open the check from the link, or the intake
+  const enter = () => {
     const opened = new URLSearchParams(location.search).get("check");
-    if (opened && ID_RE.test(opened)) follow(opened);
+    if (opened && ID_RE.test(opened)) { setScreen({ kind: "intake" }); follow(opened); } else setScreen({ kind: "intake" });
+  };
+
+  useEffect(() => {
+    let unsubscribe = () => {};
+    (async () => {
+      const caps = await getCapabilities();
+      setOcr(caps.ocr);
+      await initAuth(caps.auth);
+      unsubscribe = onSignedOut(() => { setEmail(null); setScreen({ kind: "login" }); });
+      const who = await currentEmail();
+      setEmail(who);
+      if (authEnabled() && !who) setScreen({ kind: "login" });
+      else enter();
+    })();
+    return () => unsubscribe();
   }, []);
 
+  const account: Account = email ? { email, onSignOut: () => { signOut(); } } : null;
+
+  if (screen.kind === "loading") return <div className="intake"><p>Загрузка…</p></div>;
+  if (screen.kind === "login") {
+    return <Login onSignIn={async (e, p) => { await signIn(e, p); setEmail(await currentEmail()); enter(); }} />;
+  }
   if (screen.kind === "report") {
-    return <ReportView checkId={screen.id} report={screen.report} initialReviews={screen.reviews} onReset={reset} />;
+    return (
+      <ReportView checkId={screen.id} report={screen.report} initialReviews={screen.reviews} onReset={reset}
+        account={account} onUnauthorized={() => fail(new Unauthorized())} />
+    );
   }
   if (screen.kind === "review") {
     const id = screen.id;
@@ -69,7 +108,7 @@ export default function App() {
   }
   return (
     <Intake
-      status={status}
+      status={status} ocr={ocr} account={account}
       onFiles={upload}
       onDemo={(lang, kind) => follow(startDemo(lang, kind), kind === "scan")}
     />

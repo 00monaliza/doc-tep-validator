@@ -1,7 +1,7 @@
 import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useEffect, useRef, useState } from "react";
-import { fileUrl } from "../api";
+import { fileLink } from "../api";
 import { SECTION, SECTION_FULL } from "../labels";
 import type { Finding, Ref, Report } from "../types";
 
@@ -55,9 +55,12 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
     }
     let cancelled = false; // a newer selection cancels an unfinished page render
     (async () => {
-      const url = fileUrl(checkId, doc.file);
-      pdfCache[url] ??= pdfjs.getDocument(url).promise;
-      const pdf = await pdfCache[url];
+      const key = `${checkId}/${doc.file}`;
+      // the link is signed for 10 minutes: the whole file is read at once, not in ranges later
+      pdfCache[key] ??= fileLink(checkId, doc.file)
+        .then(url => pdfjs.getDocument({ url, disableRange: true, disableStream: true }).promise)
+        .catch(e => { delete pdfCache[key]; throw e; });
+      const pdf = await pdfCache[key];
       if (cancelled) return;
       setPages(pdf.numPages);
       const p = await pdf.getPage(Math.min(Math.max(1, pageNo), pdf.numPages));
@@ -84,7 +87,7 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
         wrap.scrollTop = Math.max(0, page.offsetTop + top * scale - wrap.clientHeight / 2);
         wrap.scrollLeft = Math.max(0, page.offsetLeft + ((x0 + x1) / 2) * scale - wrap.clientWidth / 2);
       }
-    })();
+    })().catch(e => { if (!cancelled) setNote((e as Error).message); });
     return () => { cancelled = true; };
   }, [checkId, doc, ref, pageNo, zoom]);
 

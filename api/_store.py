@@ -32,8 +32,9 @@ class LocalStore:
     def _dir(self, check_id: str) -> Path:
         return self.root / check_id
 
-    def create(self, check_id: str, source: str, status: str = "pending") -> None:
+    def create(self, check_id: str, source: str, status: str = "pending", owner: str | None = None) -> None:
         (self._dir(check_id) / "files").mkdir(parents=True)
+        (self._dir(check_id) / "meta.json").write_text(json.dumps({"source": source, "owner": owner}), encoding="utf-8")
         self._status(check_id, status)
 
     def transition(self, check_id: str, old: str, new: str) -> bool:
@@ -108,6 +109,8 @@ class LocalStore:
         status = json.loads(path.read_text(encoding="utf-8"))
         status.pop("trace", None)
         status["age"] = time.time() - path.stat().st_mtime  # seconds since the status last changed
+        meta = self._dir(check_id) / "meta.json"
+        status["owner"] = json.loads(meta.read_text(encoding="utf-8"))["owner"] if meta.is_file() else None
         if status["status"] == "done":
             status["report"] = json.loads((self._dir(check_id) / "report.json").read_text(encoding="utf-8"))
         return status
@@ -115,6 +118,12 @@ class LocalStore:
     def file_response(self, check_id: str, name: str) -> Response | None:
         path = self._dir(check_id) / "files" / name
         return FileResponse(path) if path.is_file() else None
+
+    def file_link(self, check_id: str, name: str) -> str | None:
+        """A URL the browser can open without our auth header (local runs have no auth)."""
+        if not (self._dir(check_id) / "files" / name).is_file():
+            return None
+        return f"/api/checks/{check_id}/files/{quote(name)}"
 
     def reviews(self, check_id: str) -> dict[int, dict]:
         path = self._dir(check_id) / "reviews.json"
@@ -174,8 +183,8 @@ class SupabaseStore:
             fields["status_changed_at"] = datetime.now(UTC).isoformat()
         self._rows("PATCH", f"?id=eq.{check_id}", json=fields)
 
-    def create(self, check_id: str, source: str, status: str = "pending") -> None:
-        self._rows("POST", json={"id": check_id, "status": status, "source": source})
+    def create(self, check_id: str, source: str, status: str = "pending", owner: str | None = None) -> None:
+        self._rows("POST", json={"id": check_id, "status": status, "source": source, "owner": owner})
 
     def transition(self, check_id: str, old: str, new: str) -> bool:
         """old -> new in one conditional update, so two requests cannot both make the step."""
@@ -245,24 +254,29 @@ class SupabaseStore:
         self._set(check_id, status=status, error=error, report=report)
 
     def get(self, check_id: str) -> dict | None:
-        rows = self._rows("GET", f"?id=eq.{check_id}&select=status,error,report,status_changed_at").json()
+        rows = self._rows("GET", f"?id=eq.{check_id}&select=status,error,report,status_changed_at,owner").json()
         if not rows:
             return None
         row = rows[0]
         changed = datetime.fromisoformat(row["status_changed_at"])
-        out = {"status": row["status"], "age": (datetime.now(UTC) - changed).total_seconds()}
+        out = {"status": row["status"], "age": (datetime.now(UTC) - changed).total_seconds(), "owner": row["owner"]}
         if row["status"] == "error":
             out["error"] = row["error"]
         if row["status"] == "done":
             out["report"] = row["report"]
         return out
 
-    def file_response(self, check_id: str, name: str) -> Response | None:
+    def file_link(self, check_id: str, name: str) -> str | None:
+        """A signed URL (10 min): the browser opens the PDF straight from Storage."""
         if name not in self.names(check_id):
             return None
         r = self.http.post(self._obj(check_id, name).replace("/object/", "/object/sign/", 1), json={"expiresIn": 600})
         r.raise_for_status()
-        return RedirectResponse(f"{self.url}/storage/v1{r.json()['signedURL']}")
+        return f"{self.url}/storage/v1{r.json()['signedURL']}"
+
+    def file_response(self, check_id: str, name: str) -> Response | None:
+        link = self.file_link(check_id, name)
+        return RedirectResponse(link) if link else None
 
     def reviews(self, check_id: str) -> dict[int, dict]:
         rows = self._rows("GET", f"?check_id=eq.{check_id}&select=finding,verdict,comment", table="reviews").json()

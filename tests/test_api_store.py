@@ -60,7 +60,7 @@ def test_index_serves_the_interface(client):
 
 def test_capabilities_reports_ocr(client, monkeypatch):
     monkeypatch.setattr(api.main.shutil, "which", lambda _: None)
-    assert client.get("/api/capabilities").json() == {"ocr": False}
+    assert client.get("/api/capabilities").json() == {"ocr": False, "auth": None}
 
 
 def _done_check(client) -> str:
@@ -236,3 +236,51 @@ def test_init_validates_files(client):
     assert client.post("/api/checks/init", json={"files": [big]}).status_code == 413
     twice = [{"name": "a.pdf", "size": 1}, {"name": "a.pdf", "size": 1}]
     assert client.post("/api/checks/init", json={"files": twice}).status_code == 400
+
+
+@pytest.fixture
+def authed(tmp_path, monkeypatch):
+    """Auth on (as on Vercel) over a local folder store; tokens "token-a" / "token-b" are users a / b."""
+    from api import _auth
+    monkeypatch.setattr(api.main, "UPLOADS", tmp_path)
+    monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.setattr(api.main, "_store", lambda: LocalStore(tmp_path))
+    monkeypatch.setattr(_auth, "enabled", lambda: True)
+    users = {"token-a": ("user-a", "a@example.kz"), "token-b": ("user-b", "b@example.kz")}
+    monkeypatch.setattr(_auth, "_verify", lambda token: users.get(token))
+    return TestClient(app)
+
+
+A = {"Authorization": "Bearer token-a"}
+B = {"Authorization": "Bearer token-b"}
+
+
+def test_auth_required(authed):
+    assert authed.post("/api/demo/ru").status_code == 401
+    assert authed.post("/api/demo/ru", headers={"Authorization": "Bearer wrong"}).status_code == 401
+    assert authed.post("/api/checks/init", json={"files": [{"name": "a.pdf", "size": 1}]}).status_code == 401
+    assert authed.get("/api/capabilities").status_code == 200  # the sign-in screen needs it
+
+
+def test_checks_are_private_to_their_owner(authed):
+    check_id = authed.post("/api/demo/ru", headers=A).json()["id"]
+    for _ in range(200):
+        if authed.get(f"/api/checks/{check_id}", headers=A).json()["status"] == "done":
+            break
+        time.sleep(0.05)
+    assert "owner" not in authed.get(f"/api/checks/{check_id}", headers=A).json()
+    assert authed.get(f"/api/checks/{check_id}/files/PZ.pdf/link", headers=A).status_code == 200
+    # user b sees nothing of it, exactly as if it did not exist
+    assert authed.get(f"/api/checks/{check_id}", headers=B).status_code == 404
+    assert authed.get(f"/api/checks/{check_id}/files/PZ.pdf", headers=B).status_code == 404
+    assert authed.get(f"/api/checks/{check_id}/files/PZ.pdf/link", headers=B).status_code == 404
+    assert authed.put(f"/api/checks/{check_id}/reviews/0", json={"verdict": "confirmed"}, headers=B).status_code == 404
+    assert authed.post(f"/api/checks/{check_id}/start", json={}, headers=B).status_code == 404
+
+
+def test_upload_flow_belongs_to_its_owner(authed):
+    specs = [{"name": "PZ.pdf", "size": (SAMPLE / "PZ.pdf").stat().st_size}]
+    r = authed.post("/api/checks/init", json={"files": specs}, headers=A).json()
+    authed.put(r["uploads"]["PZ.pdf"], content=(SAMPLE / "PZ.pdf").read_bytes())
+    assert authed.post(f"/api/checks/{r['id']}/uploaded", headers=B).status_code == 404
+    assert authed.post(f"/api/checks/{r['id']}/uploaded", headers=A).status_code == 200

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { saveReview } from "../api";
+import type { Account } from "../App";
+import { Unauthorized, saveReview } from "../api";
 import { exportXlsx } from "../export";
 import { LANG } from "../labels";
 import type { ExpertVerdict, Finding, Ref, Report, Review, Reviews } from "../types";
@@ -13,9 +14,12 @@ type Tab = "findings" | "tep" | "compl";
 
 const EMPTY: Review = { verdict: null, comment: "" };
 
-interface Props { checkId: string; report: Report; initialReviews: Reviews; onReset: () => void }
+interface Props {
+  checkId: string; report: Report; initialReviews: Reviews; onReset: () => void;
+  account: Account; onUnauthorized: () => void;
+}
 
-export default function ReportView({ checkId, report, initialReviews, onReset }: Props) {
+export default function ReportView({ checkId, report, initialReviews, onReset, account, onUnauthorized }: Props) {
   const [filter, setFilter] = useState<Filter>(NO_FILTER);
   const [reviews, setReviews] = useState<Reviews>(initialReviews);
   const [saving, setSaving] = useState(false);
@@ -56,6 +60,7 @@ export default function ReportView({ checkId, report, initialReviews, onReset }:
     try {
       await saveReview(checkId, Number(key), next);
     } catch (e) {
+      if (e instanceof Unauthorized) { onUnauthorized(); return; }
       setReviews(r => {
         const { [key]: _, ...rest } = r;
         return prev ? { ...rest, [key]: prev } : rest;
@@ -114,6 +119,9 @@ export default function ReportView({ checkId, report, initialReviews, onReset }:
             <button type="button" className="primary" onClick={() => exportXlsx(report, reviews, checkId)
               .catch(e => setSaveError(`Экспорт не удался: ${(e as Error).message}`))}>Скачать XLSX</button>
             <button type="button" onClick={onReset}>Новая проверка</button>
+            {account && (
+              <button type="button" onClick={account.onSignOut} title={account.email}>Выйти</button>
+            )}
           </div>
         </div>
         <div className={c.missing.length ? "bad" : "ok"}><small>Разделы</small><strong>{c.present.length} из {c.required.length}</strong></div>

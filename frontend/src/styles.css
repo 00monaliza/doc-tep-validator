@@ -195,3 +195,9 @@ kbd { font: 500 11px var(--cond); border: 1px solid var(--rule); border-bottom-w
 .stamp .actions button.primary { background: var(--graphite); color: var(--sheet); border-color: var(--graphite); }
 /* элементы управления не ниже 24 px (WCAG 2.5.8) */
 .filters select, .review-bar .expert, .review-bar input, .viewer-bar .toggle, .refs button, .file-review select { min-height: 26px; }
+
+/* ---------- вход ---------- */
+.login form { display: grid; gap: 12px; max-width: 360px; }
+.login label { display: grid; gap: 4px; font: 500 14px var(--cond); color: var(--graphite-2); }
+.login input { font: 15px var(--body); padding: 8px 10px; min-height: 36px; border: 1px solid var(--control); background: #fff; color: var(--graphite); }
+.intake .account { text-align: right; font-size: 13px; color: var(--graphite-2); margin-bottom: 12px; }

@@ -1,20 +1,25 @@
-import { useEffect, useState } from "react";
-import { getCapabilities } from "../api";
+import { useState } from "react";
+import type { Account } from "../App";
 
 interface Props {
   status: { text: string; error?: boolean } | null;
+  ocr: boolean; // the server can read scans (no Tesseract on Vercel)
+  account: Account;
   onFiles: (files: FileList) => void;
   onDemo: (lang: "ru" | "kz", kind: "text" | "scan") => void;
 }
 
-export default function Intake({ status, onFiles, onDemo }: Props) {
+export default function Intake({ status, ocr, account, onFiles, onDemo }: Props) {
   const [over, setOver] = useState(false);
-  const [ocr, setOcr] = useState(true);
-  useEffect(() => { getCapabilities().then(c => setOcr(c.ocr)); }, []);
   const busy = status != null && !status.error;
 
   return (
     <section className="intake" aria-labelledby="intake-title">
+      {account && (
+        <div className="account">
+          {account.email} · <button type="button" className="link" onClick={account.onSignOut}>выйти</button>
+        </div>
+      )}
       <h1 id="intake-title">Сверка ТЭП между разделами проекта</h1>
       <p>
         Загрузите пояснительную записку, текстовую часть АР и КР и сметную документацию на русском или
