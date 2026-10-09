@@ -16,6 +16,7 @@ wording still comes from ``tep_lexicon.json``.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass
 
@@ -23,6 +24,59 @@ from src.ner.common.lexicon import Lexicon, squash
 
 METHODS = ("exact", "fuzzy", "embedding")
 _LETTER_RE = re.compile(r"[^\W\d_]")
+FUZZY_MIN = 0.75  # share of a label's (weighted) words found in the text; tuned on v3-dev
+FUZZY_MARGIN = 0.2  # over the next field or a negative label
+NEGATIVE = "_negative"  # pseudo-field of lexicon "negatives" ("Площадь участка")
+HOMOGLYPHS = str.maketrans("aceopxyki", "асеорхукі")  # Latin letters OCR puts into Cyrillic words
+SYMBOLS = {"s": "площадь", "v": "объем"}  # "S общ.", "V стр."
+# a word, a contraction "кол-во" / "ст-ть", and a truncation dot
+_TOKEN_RE = re.compile(r"[^\W\d_]+(?:-[^\W\d_]{1,3}(?![^\W\d_]))?\.?")
+
+
+def tokens(text: str) -> list[tuple[str, bool]]:
+    """(normalised word, is a truncation): 'Пл.' -> ('пл', True), 'кол-во' -> ('кол', True)."""
+    out = []
+    for m in _TOKEN_RE.finditer(text):
+        raw = m.group().lower()
+        bare = raw.rstrip(".")
+        if bare in SYMBOLS:  # before the look-alike mapping: Latin S, V
+            out.append((SYMBOLS[bare], False))
+            continue
+        word = raw.translate(HOMOGLYPHS).replace("ё", "е")
+        abbrev = word.endswith(".") or "-" in word
+        word = word.split("-")[0].rstrip(".")
+        if len(word) >= 2:
+            out.append((word, abbrev))
+    return out
+
+
+def _common_prefix(a: str, b: str) -> int:
+    n = 0
+    for x, y in zip(a, b, strict=False):
+        if x != y:
+            break
+        n += 1
+    return n
+
+
+def _one_edit(a: str, b: str) -> bool:
+    """Levenshtein distance <= 1."""
+    if abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) > len(b):
+        a, b = b, a
+    i = _common_prefix(a, b)
+    return a[i + 1:] == b[i + 1:] if len(a) == len(b) else a[i:] == b[i + 1:]
+
+
+def word_matches(token: str, abbrev: bool, word: str) -> bool:
+    """Same word up to inflection (shared prefix), one OCR edit, or a truncation of it."""
+    if abbrev and len(token) >= 2 and word.startswith(token):
+        return True
+    cp, short = _common_prefix(token, word), min(len(token), len(word))
+    if cp >= 4 or (cp >= 3 and cp >= short - 2):
+        return True
+    return short >= 5 and _one_edit(token, word)
 
 
 @dataclass(frozen=True)
@@ -45,6 +99,14 @@ class LabelMatcher:
                      for f in lex.field_units},
         }
         self._memo: dict[tuple[str, str | None, str], Match | None] = {}
+        self._labels = [(f, ws) for f, labs in lex.raw_labels.items() for lab in labs
+                        if (ws := [w for w, _ in tokens(lab)])]
+        self._labels += [(NEGATIVE, ws) for lab in lex.negatives if (ws := [w for w, _ in tokens(lab)])]
+        vocab = {w for _, ws in self._labels for w in ws}
+        n = len(lex.field_units)
+        df = {w: len({f for f, ws in self._labels if f != NEGATIVE and any(word_matches(w, False, x) for x in ws)})
+              for w in vocab}
+        self._weight = {w: math.log(1 + n / max(df[w], 1)) for w in vocab}  # rarer across fields = heavier
 
     def match(self, text: str, unit: str | None = None, where: str = "table") -> Match | None:
         """Field named by `text` (a table cell, or the words next to a number when `where='text'`)."""
@@ -58,12 +120,6 @@ class LabelMatcher:
             return set(self.lex.field_units)
         return {f for f, u in self.lex.field_units.items() if u == unit}
 
-    def _match(self, text: str, unit: str | None, where: str) -> Match | None:
-        allowed = self._allowed(unit)
-        if not allowed or not _LETTER_RE.search(text):
-            return None
-        return self._exact(text, allowed, where)
-
     def _exact(self, text: str, allowed: set[str], where: str) -> Match | None:
         s = squash(text)
         best, best_len = None, 0
@@ -72,3 +128,37 @@ class LabelMatcher:
                 if lab and lab in s and len(lab) > best_len:
                     best, best_len = fld, len(lab)
         return Match(best, 1.0, "exact") if best else None
+
+    def _fuzzy(self, text: str, allowed: set[str]) -> tuple[Match | None, float]:
+        """(match, evidence): the best label coverage per field; evidence is the best among real fields."""
+        toks = tokens(text)
+        if not toks:
+            return None, 0.0
+        best: dict[str, float] = {}
+        for f, words in self._labels:
+            if f != NEGATIVE and f not in allowed:
+                continue
+            total = sum(self._weight[w] for w in words)
+            hit = sum(self._weight[w] for w in words if any(word_matches(t, a, w) for t, a in toks))
+            best[f] = max(best.get(f, 0.0), hit / total if total else 0.0)
+        ranked = sorted(best.items(), key=lambda kv: kv[1], reverse=True)
+        if not ranked or ranked[0][1] == 0:
+            return None, 0.0
+        (top_f, top), second = ranked[0], ranked[1][1] if len(ranked) > 1 else 0.0
+        if top_f == NEGATIVE and top >= FUZZY_MIN:
+            return None, 0.0  # a known non-TEP quantity: no embedding either
+        evidence = max((s for f, s in ranked if f != NEGATIVE), default=0.0)
+        if top_f != NEGATIVE and top >= FUZZY_MIN and top - second >= FUZZY_MARGIN:
+            return Match(top_f, round(top, 3), "fuzzy"), evidence
+        return None, evidence
+
+    def _match(self, text: str, unit: str | None, where: str) -> Match | None:
+        allowed = self._allowed(unit)
+        if not allowed or not _LETTER_RE.search(text):
+            return None
+        if m := self._exact(text, allowed, where):
+            return m
+        if "fuzzy" not in self.methods:
+            return None
+        m, _ = self._fuzzy(text, allowed)
+        return m
