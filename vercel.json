@@ -6,7 +6,7 @@
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/main.py": {
-      "maxDuration": 60,
+      "maxDuration": 300,
       "excludeFiles": "{frontend/**,tests/**,notebooks/**,docs/**,annotations/**,scripts/**,assets/**,api/static/**,data/real/**,data/uploads/**,data/synthetic/ru/**,data/synthetic/kz/**,data/synthetic/samples/*/*/text/*.docx,data/synthetic/samples/*/*/scan/*.jpg}"
     }
   },
@@ -21,5 +21,8 @@
       "path": "/api/cron/cleanup",
       "schedule": "0 3 * * *"
     }
+  ],
+  "regions": [
+    "bom1"
   ]
 }

@@ -7,6 +7,7 @@ underscore keeps Vercel from turning this file into a function of its own.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -15,8 +16,8 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from functools import cache
 from pathlib import Path
-from urllib.parse import quote
 
 import httpx
 from fastapi.responses import FileResponse, RedirectResponse, Response
@@ -33,8 +34,12 @@ class LocalStore:
         (self._dir(check_id) / "files").mkdir(parents=True)
         self._status(check_id, status)
 
-    def set_status(self, check_id: str, status: str) -> None:
-        self._status(check_id, status)
+    def start(self, check_id: str) -> bool:
+        """uploaded -> pending; False if the check was not waiting for its start."""
+        if (self.get(check_id) or {}).get("status") != "uploaded":
+            return False
+        self._status(check_id, "pending")
+        return True
 
     def sections(self, check_id: str) -> dict[str, dict]:
         path = self._dir(check_id) / "sections.json"
@@ -47,8 +52,9 @@ class LocalStore:
         (self._dir(check_id) / "status.json").write_text(
             json.dumps({"status": status} | extra, ensure_ascii=False), encoding="utf-8")
 
-    def put_file(self, check_id: str, name: str, data: bytes) -> None:
-        (self._dir(check_id) / "files" / name).write_bytes(data)
+    def put_files(self, check_id: str, files: list[tuple[str, bytes]]) -> None:
+        for name, data in files:
+            (self._dir(check_id) / "files" / name).write_bytes(data)
 
     def remove(self, check_id: str) -> None:
         shutil.rmtree(self._dir(check_id), ignore_errors=True)
@@ -71,6 +77,7 @@ class LocalStore:
             return None
         status = json.loads(path.read_text(encoding="utf-8"))
         status.pop("trace", None)
+        status["age"] = time.time() - path.stat().st_mtime  # seconds since the status last changed
         if status["status"] == "done":
             status["report"] = json.loads((self._dir(check_id) / "report.json").read_text(encoding="utf-8"))
         return status
@@ -116,41 +123,60 @@ class SupabaseStore:
     @classmethod
     def from_env(cls) -> SupabaseStore | None:
         url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_SECRET_KEY")
-        return cls(url, key) if url and key else None
+        return _supabase(url, key) if url and key else None
 
     def _rows(self, method: str, query: str = "", table: str = "checks", **kw) -> httpx.Response:
         r = self.http.request(method, f"{self.url}/rest/v1/{table}{query}", **kw)
         r.raise_for_status()
         return r
 
+    @staticmethod
+    def _key(check_id: str, name: str) -> str:
+        # Storage keys allow ASCII only, and documents are named in Russian or Kazakh: the object is
+        # stored under a hash of its name, the name itself stays in checks.files
+        return f"{check_id}/{hashlib.sha1(name.encode()).hexdigest()[:20]}{Path(name).suffix.lower()}"
+
     def _obj(self, check_id: str, name: str) -> str:
-        return f"{self.url}/storage/v1/object/{self.BUCKET}/{check_id}/{quote(name)}"
+        return f"{self.url}/storage/v1/object/{self.BUCKET}/{self._key(check_id, name)}"
+
+    def _set(self, check_id: str, **fields) -> None:
+        if "status" in fields:
+            fields["status_changed_at"] = datetime.now(UTC).isoformat()
+        self._rows("PATCH", f"?id=eq.{check_id}", json=fields)
 
     def create(self, check_id: str, source: str, status: str = "pending") -> None:
         self._rows("POST", json={"id": check_id, "status": status, "source": source})
 
-    def set_status(self, check_id: str, status: str) -> None:
-        self._rows("PATCH", f"?id=eq.{check_id}", json={"status": status})
+    def start(self, check_id: str) -> bool:
+        """uploaded -> pending in one conditional update, so two starts cannot both run the check."""
+        rows = self._rows("PATCH", f"?id=eq.{check_id}&status=eq.uploaded", headers={"Prefer": "return=representation"},
+                          json={"status": "pending", "status_changed_at": datetime.now(UTC).isoformat()}).json()
+        return bool(rows)
 
     def sections(self, check_id: str) -> dict[str, dict]:
         rows = self._rows("GET", f"?id=eq.{check_id}&select=sections").json()
         return rows[0]["sections"] if rows else {}
 
     def set_sections(self, check_id: str, sections: dict[str, dict]) -> None:
-        self._rows("PATCH", f"?id=eq.{check_id}", json={"sections": sections})
+        self._set(check_id, sections=sections)
 
-    def put_file(self, check_id: str, name: str, data: bytes) -> None:
-        ctype = "application/pdf" if name.lower().endswith(".pdf") else "application/octet-stream"
-        self.http.post(self._obj(check_id, name), content=data,
-                       headers={"Content-Type": ctype, "x-upsert": "true"}).raise_for_status()
-        self._rows("PATCH", f"?id=eq.{check_id}", json={"files": self._names(check_id) + [name]})
+    def put_files(self, check_id: str, files: list[tuple[str, bytes]]) -> None:
+        names: list[str] = []
+        try:
+            for name, data in files:
+                ctype = "application/pdf" if name.lower().endswith(".pdf") else "application/octet-stream"
+                self.http.post(self._obj(check_id, name), content=data,
+                               headers={"Content-Type": ctype, "x-upsert": "true"}).raise_for_status()
+                names.append(name)
+        finally:  # written once, and also on failure, so remove() finds what did get uploaded
+            self._set(check_id, files=list(dict.fromkeys(names)))
 
     def _names(self, check_id: str) -> list[str]:
         rows = self._rows("GET", f"?id=eq.{check_id}&select=files").json()
         return rows[0]["files"] if rows else []
 
     def remove(self, check_id: str) -> None:
-        prefixes = [f"{check_id}/{n}" for n in self._names(check_id)]
+        prefixes = [self._key(check_id, n) for n in self._names(check_id)]
         if prefixes:
             self.http.request("DELETE", f"{self.url}/storage/v1/object/{self.BUCKET}", json={"prefixes": prefixes})
         self._rows("DELETE", f"?id=eq.{check_id}")
@@ -166,14 +192,15 @@ class SupabaseStore:
 
     def finish(self, check_id: str, status: str, error: str | None = None,
                report: dict | None = None, trace: str | None = None) -> None:
-        self._rows("PATCH", f"?id=eq.{check_id}", json={"status": status, "error": error, "report": report})
+        self._set(check_id, status=status, error=error, report=report)
 
     def get(self, check_id: str) -> dict | None:
-        rows = self._rows("GET", f"?id=eq.{check_id}&select=status,error,report").json()
+        rows = self._rows("GET", f"?id=eq.{check_id}&select=status,error,report,status_changed_at").json()
         if not rows:
             return None
         row = rows[0]
-        out = {"status": row["status"]}
+        changed = datetime.fromisoformat(row["status_changed_at"])
+        out = {"status": row["status"], "age": (datetime.now(UTC) - changed).total_seconds()}
         if row["status"] == "error":
             out["error"] = row["error"]
         if row["status"] == "done":
@@ -212,3 +239,9 @@ class SupabaseStore:
             n += len(rows)
             if len(rows) < 100:
                 return n
+
+
+@cache
+def _supabase(url: str, key: str) -> SupabaseStore:
+    """One store, and so one HTTP connection pool, per process instead of one per request."""
+    return SupabaseStore(url, key)

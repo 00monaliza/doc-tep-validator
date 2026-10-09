@@ -48,6 +48,8 @@ MAX_FILES = 20
 ID_RE = re.compile(r"^[0-9a-f]{32}$")
 RETENTION_DAYS = float(os.environ.get("RETENTION_DAYS", "7"))
 SYNC_ANALYSIS = bool(os.environ.get("VERCEL") or os.environ.get("SYNC_ANALYSIS"))
+# a check still "pending" after this long was cut off (function time limit, server restart)
+STALE_AFTER_S = 330 if SYNC_ANALYSIS else 1800  # 300 s = maxDuration in vercel.json
 
 app = FastAPI(title="ТЭП-валидатор", version="0.1.0")
 
@@ -102,26 +104,30 @@ def _classify(name: str, data: bytes) -> dict:
 
 
 @app.post("/api/checks")
-async def create_check(files: list[UploadFile], background: BackgroundTasks, review: bool = False) -> dict:
+def create_check(files: list[UploadFile], background: BackgroundTasks, review: bool = False) -> dict:
+    # a plain `def`: FastAPI runs it in a worker thread, so PDF parsing and storage calls do not block the loop
     if not files or len(files) > MAX_FILES:
         raise HTTPException(400, f"upload 1–{MAX_FILES} files")
-    store, check_id = _store(), uuid.uuid4().hex
-    store.create(check_id, "upload", status="uploaded" if review else "pending")
-    sections: dict[str, dict] = {}
-    for f in files:
+    received: list[tuple[str, bytes]] = []
+    for f in files:  # everything is checked before anything is stored
         name = Path(f.filename or "").name
         if Path(name).suffix.lower() not in ALLOWED:
-            store.remove(check_id)
             raise HTTPException(400, f"{name!r}: only PDF and DOCX are accepted")
-        data = await f.read(MAX_FILE_BYTES + 1)
+        data = f.file.read(MAX_FILE_BYTES + 1)
         if len(data) > MAX_FILE_BYTES:
-            store.remove(check_id)
             raise HTTPException(413, f"{name!r} is larger than {MAX_FILE_BYTES // 2**20} MB")
-        store.put_file(check_id, name, data)
+        received.append((name, data))
+    store, check_id = _store(), uuid.uuid4().hex
+    store.create(check_id, "upload", status="uploaded" if review else "pending")
+    try:
+        store.put_files(check_id, received)
         if review:
-            sections[name] = _classify(name, data)
+            sections = {name: _classify(name, data) for name, data in received}
+            store.set_sections(check_id, sections)
+    except Exception as e:  # noqa: BLE001 — leave no half-stored check behind
+        store.remove(check_id)
+        raise HTTPException(502, f"Файлы не сохранены: {type(e).__name__}") from e
     if review:
-        store.set_sections(check_id, sections)
         return {"id": check_id, "status": "uploaded", "files": sections}
     _schedule(store, check_id, background)
     return {"id": check_id, "status": "pending"}
@@ -151,7 +157,8 @@ def start_check(check_id: str, body: Start, background: BackgroundTasks) -> dict
     if not any(c["use"] for c in sections.values()):
         raise HTTPException(400, "no files left to check")
     store.set_sections(check_id, sections)
-    store.set_status(check_id, "pending")
+    if not store.start(check_id):  # someone started it in the meantime
+        raise HTTPException(409, "check already started")
     _schedule(store, check_id, background)
     return {"id": check_id, "status": "pending"}
 
@@ -162,8 +169,8 @@ def demo(lang: str, background: BackgroundTasks, kind: str = "text") -> dict:
         raise HTTPException(404, "unknown demo")
     store, check_id = _store(), uuid.uuid4().hex
     store.create(check_id, f"demo:{lang}:{kind}")
-    for src in sorted((SAMPLES / lang / f"{lang}_00001" / kind).glob("*.pdf")):
-        store.put_file(check_id, src.name, src.read_bytes())
+    store.put_files(check_id, [(src.name, src.read_bytes())
+                               for src in sorted((SAMPLES / lang / f"{lang}_00001" / kind).glob("*.pdf"))])
     _schedule(store, check_id, background)
     return {"id": check_id, "status": "pending"}
 
@@ -174,6 +181,8 @@ def get_check(check_id: str) -> dict:
     status = store.get(_valid_id(check_id))
     if status is None:
         raise HTTPException(404, "check not found")
+    if status.pop("age", 0) > STALE_AFTER_S and status["status"] == "pending":
+        status = {"status": "error", "error": "проверка прервана: превышено время обработки, загрузите файлы заново"}
     if status["status"] == "done":
         status["reviews"] = {str(k): v for k, v in store.reviews(check_id).items()}
     if status["status"] == "uploaded":

@@ -5,13 +5,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 import api.main
-from api._store import LocalStore
+from api._store import LocalStore, SupabaseStore
 from api.main import app
 
 
 def _check(store: LocalStore, check_id: str, age_days: float) -> None:
     store.create(check_id, "upload")
-    store.put_file(check_id, "PZ.pdf", b"%PDF-1.4")
+    store.put_files(check_id, [("PZ.pdf", b"%PDF-1.4")])
     t = time.time() - age_days * 86400
     os.utime(store.root / check_id / "status.json", (t, t))
 
@@ -148,3 +148,48 @@ def test_start_rejects_bad_choices(client):
 def test_upload_without_review_runs_at_once(client):
     r = _upload(client, ["PZ.pdf", "AR.pdf"], review=False).json()
     assert r["status"] == "pending" and _wait(client, r["id"])["status"] == "done"
+
+
+def test_storage_keys_are_ascii_for_cyrillic_names():
+    a = SupabaseStore._key("f" * 32, "ПЗ Жилой дом.PDF")
+    b = SupabaseStore._key("f" * 32, "ПЗ Жилой дом №2.pdf")
+    assert a.isascii() and a.startswith("f" * 32 + "/") and a.endswith(".pdf")
+    assert a != b and a == SupabaseStore._key("f" * 32, "ПЗ Жилой дом.PDF")
+
+
+def test_cyrillic_file_names_roundtrip(client):
+    files = [("files", ("ПЗ Жилой дом.pdf", (SAMPLE / "PZ.pdf").read_bytes()))]
+    r = client.post("/api/checks?review=1", files=files).json()
+    assert r["files"]["ПЗ Жилой дом.pdf"]["section"] == "PZ"
+    assert client.get(f"/api/checks/{r['id']}/files/ПЗ Жилой дом.pdf").status_code == 200
+
+
+def test_failed_upload_leaves_nothing(client, tmp_path, monkeypatch):
+    def broken(self, check_id, files):
+        raise OSError("disk full")
+    monkeypatch.setattr(LocalStore, "put_files", broken)
+    r = _upload(client, ["PZ.pdf"])
+    assert r.status_code == 502
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_bad_file_is_rejected_before_anything_is_stored(client, tmp_path):
+    files = [("files", ("PZ.pdf", (SAMPLE / "PZ.pdf").read_bytes())), ("files", ("x.exe", b"MZ"))]
+    assert client.post("/api/checks?review=1", files=files).status_code == 400
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_check_can_start_only_once(tmp_path):
+    store = LocalStore(tmp_path)
+    store.create("a" * 32, "upload", status="uploaded")
+    assert store.start("a" * 32) is True
+    assert store.start("a" * 32) is False
+
+
+def test_stale_pending_check_is_reported_as_error(client, tmp_path):
+    store = LocalStore(tmp_path)
+    store.create("d" * 32, "upload")  # pending, but nobody is running it
+    old = time.time() - 2 * 3600
+    os.utime(tmp_path / ("d" * 32) / "status.json", (old, old))
+    body = client.get(f"/api/checks/{'d' * 32}").json()
+    assert body["status"] == "error" and "прервана" in body["error"]
