@@ -2,7 +2,9 @@
 
 Run:  uv run uvicorn api.main:app --reload     then open http://127.0.0.1:8000
 
-POST /api/checks                    multipart `files` (PDF/DOCX) -> {id, status}
+POST /api/checks                    multipart `files` (PDF/DOCX) -> {id, status}; with ?review=1 the check waits
+                                    in status "uploaded" with each file's detected section, until /start
+POST /api/checks/{id}/start         {files: {name: "PZ"|"AR"|"KR"|"SMETA"|"auto"|"skip"}} -> run the check
 GET  /api/checks/{id}               status + report when done
 GET  /api/checks/{id}/files/{name}  uploaded file (for the in-browser PDF viewer)
 POST /api/demo/{lang}               run on the bundled synthetic sample (ru|kz)
@@ -20,6 +22,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import tempfile
 import traceback
 import uuid
 from pathlib import Path
@@ -32,8 +35,8 @@ from pydantic import BaseModel, Field
 
 from api._store import LocalStore, SupabaseStore
 from src.ner.common.models import BACKBONES
-from src.ner.common.taxonomy import DiscrepancyType
-from src.pipeline import analyze_package
+from src.ner.common.taxonomy import DiscrepancyType, Section
+from src.pipeline import analyze_package, classify_file
 
 ROOT = Path(__file__).resolve().parents[1]
 UPLOADS = ROOT / "data" / "uploads"
@@ -66,9 +69,12 @@ def _valid_id(check_id: str) -> str:
 
 def _run(store: LocalStore | SupabaseStore, check_id: str) -> None:
     try:
+        chosen = store.sections(check_id)  # the user's choice before the start, if any
         with store.files(check_id) as d:
-            files = sorted(p for p in d.iterdir() if p.suffix.lower() in ALLOWED)
-            report = analyze_package(files)
+            files = sorted(p for p in d.iterdir()
+                           if p.suffix.lower() in ALLOWED and chosen.get(p.name, {}).get("use", True))
+            overrides = {n: Section(c["section"]) for n, c in chosen.items() if c.get("user") and c.get("section")}
+            report = analyze_package(files, overrides)
         for doc in report["documents"]:
             doc.pop("path", None)  # do not leak server paths
         store.finish(check_id, "done", report=report)
@@ -84,12 +90,24 @@ def _schedule(store: LocalStore | SupabaseStore, check_id: str, background: Back
         background.add_task(_run, store, check_id)
 
 
+def _classify(name: str, data: bytes) -> dict:
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / name
+        path.write_bytes(data)
+        try:
+            section, how = classify_file(path)
+        except Exception:  # noqa: BLE001 — an unreadable file is the user's to sort out before the start
+            section, how = None, "unreadable"
+    return {"section": section.value if section else None, "how": how, "use": True, "user": False}
+
+
 @app.post("/api/checks")
-async def create_check(files: list[UploadFile], background: BackgroundTasks) -> dict:
+async def create_check(files: list[UploadFile], background: BackgroundTasks, review: bool = False) -> dict:
     if not files or len(files) > MAX_FILES:
         raise HTTPException(400, f"upload 1–{MAX_FILES} files")
     store, check_id = _store(), uuid.uuid4().hex
-    store.create(check_id, "upload")
+    store.create(check_id, "upload", status="uploaded" if review else "pending")
+    sections: dict[str, dict] = {}
     for f in files:
         name = Path(f.filename or "").name
         if Path(name).suffix.lower() not in ALLOWED:
@@ -100,6 +118,40 @@ async def create_check(files: list[UploadFile], background: BackgroundTasks) -> 
             store.remove(check_id)
             raise HTTPException(413, f"{name!r} is larger than {MAX_FILE_BYTES // 2**20} MB")
         store.put_file(check_id, name, data)
+        if review:
+            sections[name] = _classify(name, data)
+    if review:
+        store.set_sections(check_id, sections)
+        return {"id": check_id, "status": "uploaded", "files": sections}
+    _schedule(store, check_id, background)
+    return {"id": check_id, "status": "pending"}
+
+
+class Start(BaseModel):
+    files: dict[str, Literal["PZ", "AR", "KR", "SMETA", "auto", "skip"]] = {}
+
+
+@app.post("/api/checks/{check_id}/start")
+def start_check(check_id: str, body: Start, background: BackgroundTasks) -> dict:
+    store = _store()
+    status = store.get(_valid_id(check_id))
+    if status is None:
+        raise HTTPException(404, "check not found")
+    if status["status"] != "uploaded":
+        raise HTTPException(409, "check already started")
+    sections = store.sections(check_id)
+    unknown = set(body.files) - set(sections)
+    if unknown:
+        raise HTTPException(400, f"unknown files: {sorted(unknown)}")
+    for name, choice in body.files.items():
+        c = sections[name]
+        c["use"] = choice != "skip"
+        if choice not in ("auto", "skip"):
+            c["user"], c["section"] = True, choice
+    if not any(c["use"] for c in sections.values()):
+        raise HTTPException(400, "no files left to check")
+    store.set_sections(check_id, sections)
+    store.set_status(check_id, "pending")
     _schedule(store, check_id, background)
     return {"id": check_id, "status": "pending"}
 
@@ -124,6 +176,8 @@ def get_check(check_id: str) -> dict:
         raise HTTPException(404, "check not found")
     if status["status"] == "done":
         status["reviews"] = {str(k): v for k, v in store.reviews(check_id).items()}
+    if status["status"] == "uploaded":
+        status["files"] = store.sections(check_id)
     return {"id": check_id} | status
 
 

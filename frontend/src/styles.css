@@ -162,3 +162,12 @@ kbd { font: 500 11px var(--cond); border: 1px solid var(--rule); border-bottom-w
 .verdict.x-false_positive { color: var(--graphite-2); border-color: var(--graphite-2); text-decoration: line-through; }
 .expert-comment { font-style: italic; }
 @media (max-width: 900px) { .stamp { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- файлы перед проверкой ---------- */
+.file-review { max-width: 820px; }
+.file-review table.grid { background: var(--sheet); border: 1px solid var(--rule); margin-bottom: 12px; }
+.file-review td.file { font: 500 14px var(--cond); overflow-wrap: anywhere; }
+.file-review td.how { color: var(--graphite-2); font-size: 13px; }
+.file-review select { font: 500 13px var(--cond); padding: 3px 6px; border: 1px solid var(--rule); background: #fff; color: var(--graphite); max-width: 100%; }
+.file-review .note { margin: 8px 0; }
+.demo button.primary { background: var(--graphite); color: var(--sheet); }

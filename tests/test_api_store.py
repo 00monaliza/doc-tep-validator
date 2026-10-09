@@ -92,3 +92,59 @@ def test_reviews_reject_bad_input(client):
     assert client.put(f"{url}/0", json={"verdict": "maybe"}).status_code == 422
     assert client.put(f"{url}/999", json={"verdict": "confirmed"}).status_code == 404
     assert client.put(f"/api/checks/{'0' * 32}/reviews/0", json={"verdict": "confirmed"}).status_code == 404
+
+
+SAMPLE = api.main.SAMPLES / "ru" / "ru_00001" / "text"
+
+
+def _upload(client, names, review=True):
+    files = [("files", (n, (SAMPLE / n).read_bytes())) for n in names]
+    return client.post(f"/api/checks{'?review=1' if review else ''}", files=files)
+
+
+def _wait(client, check_id):
+    for _ in range(200):
+        body = client.get(f"/api/checks/{check_id}").json()
+        if body["status"] in ("done", "error"):
+            return body
+        time.sleep(0.05)
+    raise AssertionError("check did not finish")
+
+
+def test_review_upload_shows_detected_sections(client):
+    r = _upload(client, ["PZ.pdf", "AR.docx", "KR.pdf", "SMETA.pdf"]).json()
+    assert r["status"] == "uploaded"
+    assert {n: f["section"] for n, f in r["files"].items()} == {
+        "PZ.pdf": "PZ", "AR.docx": "AR", "KR.pdf": "KR", "SMETA.pdf": "SMETA"}
+    body = client.get(f"/api/checks/{r['id']}").json()  # a reopened link resumes the review
+    assert body["status"] == "uploaded" and set(body["files"]) == set(r["files"])
+
+
+def test_start_with_choices(client):
+    r = _upload(client, ["PZ.pdf", "AR.pdf", "KR.pdf", "SMETA.pdf"]).json()
+    start = client.post(f"/api/checks/{r['id']}/start", json={"files": {"SMETA.pdf": "skip", "KR.pdf": "auto"}})
+    assert start.status_code == 200
+    report = _wait(client, r["id"])["report"]
+    assert sorted(d["file"] for d in report["documents"]) == ["AR.pdf", "KR.pdf", "PZ.pdf"]
+    assert report["completeness"]["missing"] == ["SMETA"]
+    assert client.post(f"/api/checks/{r['id']}/start", json={}).status_code == 409  # only once
+
+
+def test_start_section_override(client):
+    r = _upload(client, ["PZ.pdf", "AR.pdf"]).json()
+    client.post(f"/api/checks/{r['id']}/start", json={"files": {"AR.pdf": "KR"}})
+    docs = {d["file"]: d for d in _wait(client, r["id"])["report"]["documents"]}
+    assert docs["AR.pdf"]["section"] == "KR" and docs["AR.pdf"]["section_detected_by"] == "user"
+
+
+def test_start_rejects_bad_choices(client):
+    r = _upload(client, ["PZ.pdf"]).json()
+    url = f"/api/checks/{r['id']}/start"
+    assert client.post(url, json={"files": {"other.pdf": "PZ"}}).status_code == 400
+    assert client.post(url, json={"files": {"PZ.pdf": "XX"}}).status_code == 422
+    assert client.post(url, json={"files": {"PZ.pdf": "skip"}}).status_code == 400
+
+
+def test_upload_without_review_runs_at_once(client):
+    r = _upload(client, ["PZ.pdf", "AR.pdf"], review=False).json()
+    assert r["status"] == "pending" and _wait(client, r["id"])["status"] == "done"

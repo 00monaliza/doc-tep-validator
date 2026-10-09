@@ -29,9 +29,19 @@ class LocalStore:
     def _dir(self, check_id: str) -> Path:
         return self.root / check_id
 
-    def create(self, check_id: str, source: str) -> None:
+    def create(self, check_id: str, source: str, status: str = "pending") -> None:
         (self._dir(check_id) / "files").mkdir(parents=True)
-        self._status(check_id, "pending")
+        self._status(check_id, status)
+
+    def set_status(self, check_id: str, status: str) -> None:
+        self._status(check_id, status)
+
+    def sections(self, check_id: str) -> dict[str, dict]:
+        path = self._dir(check_id) / "sections.json"
+        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+    def set_sections(self, check_id: str, sections: dict[str, dict]) -> None:
+        (self._dir(check_id) / "sections.json").write_text(json.dumps(sections, ensure_ascii=False), encoding="utf-8")
 
     def _status(self, check_id: str, status: str, **extra) -> None:
         (self._dir(check_id) / "status.json").write_text(
@@ -116,8 +126,18 @@ class SupabaseStore:
     def _obj(self, check_id: str, name: str) -> str:
         return f"{self.url}/storage/v1/object/{self.BUCKET}/{check_id}/{quote(name)}"
 
-    def create(self, check_id: str, source: str) -> None:
-        self._rows("POST", json={"id": check_id, "status": "pending", "source": source})
+    def create(self, check_id: str, source: str, status: str = "pending") -> None:
+        self._rows("POST", json={"id": check_id, "status": status, "source": source})
+
+    def set_status(self, check_id: str, status: str) -> None:
+        self._rows("PATCH", f"?id=eq.{check_id}", json={"status": status})
+
+    def sections(self, check_id: str) -> dict[str, dict]:
+        rows = self._rows("GET", f"?id=eq.{check_id}&select=sections").json()
+        return rows[0]["sections"] if rows else {}
+
+    def set_sections(self, check_id: str, sections: dict[str, dict]) -> None:
+        self._rows("PATCH", f"?id=eq.{check_id}", json={"sections": sections})
 
     def put_file(self, check_id: str, name: str, data: bytes) -> None:
         ctype = "application/pdf" if name.lower().endswith(".pdf") else "application/octet-stream"

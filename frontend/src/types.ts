@@ -63,7 +63,12 @@ export interface Review { verdict: ExpertVerdict | null; comment: string }
 /** Expert reviews keyed by the finding's index in report.findings. */
 export type Reviews = Record<string, Review>;
 
+/** A file waiting for the start, with the section the server detected (or the user chose). */
+export interface UploadedFile { section: Section | null; how: string; use: boolean; user: boolean }
+export type Choice = Section | "auto" | "skip";
+
 export type CheckStatus =
+  | { id: string; status: "uploaded"; files: Record<string, UploadedFile> }
   | { id: string; status: "pending" }
   | { id: string; status: "error"; error: string }
   | { id: string; status: "done"; report: Report; reviews?: Reviews };
