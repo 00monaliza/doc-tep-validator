@@ -6,6 +6,8 @@ slot-level precision / recall / F1 per field, plus sentence-only extraction.
 Seeds 1-20 were used while writing the rules; report on unseen seeds.
 
     uv run python scripts/eval_tep_extraction.py --seeds 5001-5040 --lang ru kz --profile v2
+    uv run python scripts/eval_tep_extraction.py --profile v3-dev --seeds 1-50 --ablation   # tuning
+    uv run python scripts/eval_tep_extraction.py --profile v3-test --seeds 8000-8099 --ablation  # final, once
     uv run python scripts/eval_tep_extraction.py --real      # dev real document(s), if present
 """
 
@@ -34,7 +36,7 @@ from src.evaluation.extraction_eval import (  # noqa: E402
 from src.ingestion.common import pdf  # noqa: E402
 from src.ingestion.real import load_pages  # noqa: E402
 from src.ner.common.tep_baseline import STAGES, extract  # noqa: E402
-from src.synthesis.generator import generate_set  # noqa: E402
+from src.synthesis.generator import PROFILES, generate_set  # noqa: E402
 
 
 def seeds(spec: str) -> list[int]:
@@ -46,44 +48,55 @@ def fmt(p: float, r: float, f1: float) -> str:
     return f"{p:5.2f} {r:5.2f} {f1:5.2f}"
 
 
+def stage_list(spec: str) -> tuple[str, ...]:
+    stages = tuple(s for s in spec.split(",") if s)
+    if stages != STAGES[: len(stages)]:
+        raise argparse.ArgumentTypeError(f"stages must be a prefix of {','.join(STAGES)}")
+    return stages
+
+
 def run_synthetic(args) -> dict:
+    prefixes = [STAGES[:i] for i in range(1, len(STAGES) + 1)] if args.ablation else [args.stages]
     report = {}
     with tempfile.TemporaryDirectory() as tmp:
         for profile in args.profile:
             for lang in args.lang:
-                base, rx = Scores(), Scores()
-                t_tp, t_fp, t_fn, obj_ok = Counter(), Counter(), Counter(), []
-                ignored = 0
+                scores = {p: Scores() for p in prefixes}
+                texts = {p: (Counter(), Counter(), Counter()) for p in prefixes}
+                rx, ignored = Scores(), 0
                 for seed in seeds(args.seeds):
                     set_dir = generate_set(lang, seed, Path(tmp) / profile, scans=False, profile=profile)
                     gt = json.loads((set_dir / "ground_truth.json").read_text(encoding="utf-8"))
                     pz = set_dir / "text" / "PZ.pdf"
-                    gold = gold_slots(gt)
-                    ex = extract(load_pages(pz))
-                    pred, ign = predicted_slots(ex, gt, gold)
-                    ignored += ign
-                    base.add(pred, gold)
+                    gold, pages = gold_slots(gt), load_pages(pz)
+                    for p in prefixes:
+                        ex = extract(pages, stages=p)
+                        pred, ign = predicted_slots(ex, gt, gold)
+                        scores[p].add(pred, gold)
+                        for acc, c in zip(texts[p], text_scores(ex, gt)[:3], strict=True):
+                            acc.update(c)
+                        ignored += ign if p == prefixes[-1] else 0
                     rx.add({("b1", f): v for f, v in regex_extract(pdf.extract_text(pz), lang).items()}, gold)
-                    tp, fp, fn, ok = text_scores(ex, gt)
-                    t_tp, t_fp, t_fn = t_tp + tp, t_fp + fp, t_fn + fn
-                    obj_ok += ok
-                print(f"\n== {profile} {lang}, seeds {args.seeds}: slot extraction (P R F1)")
-                print(f"{'field':<30} {'gold':>5}  {'rule baseline':<17}  regex (one phrase)")
-                rows = {}
+
+                last = prefixes[-1]
+                print(f"\n== {profile} {lang}, seeds {args.seeds}, stages {'+'.join(last)}: slots (P R F1)")
+                print(f"{'field':<30} {'gold':>5}  {'extractor':<17}  regex (one phrase)")
                 for f in (*FIELDS, None):
-                    b, r = base.prf(f), rx.prf(f)
-                    name = f or "ALL"
+                    b, r = scores[last].prf(f), rx.prf(f)
                     rx_s = fmt(*r[:3]) if f in (None, "total_area_m2", "building_area_m2") else "    —"
-                    print(f"{name:<30} {b[3]:>5}  {fmt(*b[:3])}  {rx_s}")
-                    rows[name] = {"gold": b[3], "baseline": b[:3], "regex": r[:3]}
+                    print(f"{f or 'ALL':<30} {b[3]:>5}  {fmt(*b[:3])}  {rx_s}")
                 print(f"(building fields outside any building in multi-building sets, not scored: {ignored})")
-                tp, fp, fn = sum(t_tp.values()), sum(t_fp.values()), sum(t_fn.values())
-                p = tp / (tp + fp) if tp + fp else 0
-                r = tp / (tp + fn) if tp + fn else 0
-                print(f"sentences only: P {p:.2f} R {r:.2f} (tp {tp}, fp {fp}, fn {fn}); "
-                      f"object of matched building mentions correct: {sum(obj_ok)}/{len(obj_ok)}")
-                for f in sorted(set(t_tp) | set(t_fp) | set(t_fn)):
-                    print(f"   {f:<28} tp {t_tp[f]:>3} fp {t_fp[f]:>3} fn {t_fn[f]:>3}")
+                if args.ablation:
+                    print(f"{'stages':<32} slots P R F1        sentences P R")
+                rows = {}
+                for p in prefixes:
+                    tp, fp, fn = (sum(c.values()) for c in texts[p])
+                    tp_ = tp / (tp + fp) if tp + fp else 0
+                    tr_ = tp / (tp + fn) if tp + fn else 0
+                    if args.ablation:
+                        print(f"{'+'.join(p):<32} {fmt(*scores[p].prf()[:3])}   {tp_:5.2f} {tr_:5.2f}")
+                    rows["+".join(p)] = {f or "ALL": scores[p].prf(f)[:3] for f in (*FIELDS, None)} | {
+                        "sentences": [tp_, tr_]}
                 report[f"{profile}_{lang}"] = rows
     return report
 
@@ -102,12 +115,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--seeds", default="5001-5040")
     ap.add_argument("--lang", nargs="+", default=["ru", "kz"])
-    ap.add_argument("--profile", nargs="+", default=["v2"])
+    ap.add_argument("--profile", nargs="+", default=["v2"], choices=PROFILES)
+    ap.add_argument("--stages", type=stage_list, default=STAGES, help=f"prefix of {','.join(STAGES)}")
+    ap.add_argument("--ablation", action="store_true", help="score every prefix of the stages")
     ap.add_argument("--real", action="store_true", help="evaluate on annotated real dev documents instead")
     ap.add_argument("--json", type=Path, help="write the slot scores here")
     args = ap.parse_args()
     if args.real:
-        run_real(STAGES)
+        run_real(args.stages)
         return 0
     report = run_synthetic(args)
     if args.json:
