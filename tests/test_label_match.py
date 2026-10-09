@@ -1,4 +1,8 @@
-from src.ner.common.label_match import LabelMatcher, Match, tokens, word_matches
+import pytest
+import torch
+
+from src.ner.common.label_embed import get_embedder
+from src.ner.common.label_match import EMBED_UNAVAILABLE, LabelMatcher, Match, tokens, word_matches
 from src.ner.common.lexicon import load_lexicon
 
 
@@ -61,3 +65,59 @@ def test_fuzzy_abstains_on_non_tep():
     assert m.match("Здание котельной") is None
     assert m.match("Площадь участка", "m2") is None
     assert m.match("Площадь", "m2") is None  # which area? ambiguous
+
+
+ALL = ("exact", "fuzzy", "embedding")
+
+
+class FakeEmbedder:
+    """Fixed vectors: texts in `known` get their vector, everything else a vector orthogonal to all of them."""
+
+    def __init__(self, known: dict[str, list[float]], ok: bool = True):
+        self.known, self.ok, self.calls = known, ok, 0
+
+    def available(self) -> bool:
+        return self.ok
+
+    def embed(self, texts):
+        self.calls += 1
+        dim = len(next(iter(self.known.values())))
+        rows = [self.known.get(t, [0.0] * (dim - 1) + [1.0]) for t in texts]
+        return torch.nn.functional.normalize(torch.tensor(rows), dim=-1)
+
+
+def test_embedding_decides_when_fuzzy_is_unsure():
+    # "Площадь под зданием": fuzzy sees area words but cannot choose between building and total area
+    fake = FakeEmbedder({"Площадь под зданием": [1.0, 0.0, 0.0], "Площадь застройки": [1.0, 0.0, 0.0]})
+    m = LabelMatcher(load_lexicon(), methods=ALL, embedder=fake)
+    got = m.match("Площадь под зданием", "m2")
+    assert got is not None and got.field == "building_area_m2" and got.method == "embedding"
+
+
+def test_embedding_respects_negatives_and_units():
+    fake = FakeEmbedder({"Площадь земли под зданием": [1.0, 0.0, 0.0], "Площадь участка": [1.0, 0.0, 0.0]})
+    m = LabelMatcher(load_lexicon(), methods=ALL, embedder=fake)
+    assert m.match("Площадь земли под зданием", "m2") is None  # nearest prototype is a negative
+    assert m.match("Площадь под зданием", "m3") is None  # no m3 field is close
+
+
+def test_no_embedding_without_fuzzy_evidence():
+    fake = FakeEmbedder({"Классная комната": [1.0, 0.0], "Площадь застройки": [1.0, 0.0]})
+    m = LabelMatcher(load_lexicon(), methods=ALL, embedder=fake)
+    assert m.match("Классная комната") is None and fake.calls == 0
+
+
+def test_unavailable_embedder_warns_once():
+    m = LabelMatcher(load_lexicon(), methods=ALL, embedder=FakeEmbedder({"x": [1.0]}, ok=False))
+    m.match("Площадь под зданием", "m2")
+    m.match("Площадь под всем зданием", "m2")
+    assert m.warnings == [EMBED_UNAVAILABLE]
+
+
+@pytest.mark.skipif(not get_embedder().available(), reason="модель не скачана: scripts/fetch_models.py")
+def test_real_model_smoke():
+    m = LabelMatcher(load_lexicon(), methods=ALL)
+    assert m.match("Площадь участка", "m2") is None
+    got = m.match("Площадь под зданием", "m2")
+    assert got is None or got.field in {"building_area_m2", "total_area_m2", "useful_area_m2"}
+    assert m.warnings == []

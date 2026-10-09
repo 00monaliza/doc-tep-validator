@@ -51,7 +51,15 @@ def _ocr_layout(path: Path) -> tuple[Layout, str]:
     return layout, lang
 
 
-def analyze_document(path: Path, loc: Locator) -> dict:
+def classify_file(path: Path) -> tuple[Section | None, str]:
+    """The section of a file from its text layer only (no OCR), to show before the check runs."""
+    if path.suffix.lower() == ".docx":
+        return detect_section(parse_docx(path))
+    layout = parse_pdf(path)
+    return detect_section(layout) if layout.has_text() else (None, "scan")
+
+
+def analyze_document(path: Path, loc: Locator, section_override: Section | None = None) -> dict:
     ocr = False
     if path.suffix.lower() == ".docx":
         layout = parse_docx(path)
@@ -63,7 +71,7 @@ def analyze_document(path: Path, loc: Locator) -> dict:
         else:
             layout, lang = _ocr_layout(path)
             ocr = True
-    section, how = detect_section(layout)
+    section, how = (section_override, "user") if section_override else detect_section(layout)
     doc = {"file": path.name, "path": str(path), "lang": lang, "section": section.value if section else None,
            "section_detected_by": how, "pages": layout.n_pages, "ocr": ocr, "object_title": doc_object_name(layout),
            "_extractions": [], "_objects": {}, "_by_object": {}, "_findings": []}
@@ -71,6 +79,7 @@ def analyze_document(path: Path, loc: Locator) -> dict:
     if section == Section.PZ and path.suffix.lower() == ".pdf" and not ocr:
         pages = load_pages(path)
         ex = extract_pz(pages)
+        doc["_warnings"] = ex.warnings
         doc["_objects"] = ex.objects
         doc["_by_object"] = pz_tep(ex, path, loc)
         v0 = run_rules(pages)
@@ -106,10 +115,11 @@ def _pz_for_engine(pz: dict, others: list[dict]) -> tuple[dict[str, Extraction] 
     return fields, building, None
 
 
-def analyze_package(paths: list[Path]) -> dict:
+def analyze_package(paths: list[Path], sections: dict[str, Section] | None = None) -> dict:
+    """`sections` overrides the detected section of a file, by file name (the user's choice)."""
     loc = Locator()
     try:
-        docs = [analyze_document(Path(p), loc) for p in paths]
+        docs = [analyze_document(Path(p), loc, (sections or {}).get(Path(p).name)) for p in paths]
     finally:
         loc.close()
     warnings: list[str] = []
@@ -164,6 +174,8 @@ def analyze_package(paths: list[Path]) -> dict:
         else:
             tep_out["PZ"] = {f: e.to_json() for f, e in tep.get(Section.PZ, {}).items()}
     findings = inner + cross
+    for d in docs:
+        warnings += [w for w in d.get("_warnings", []) if w not in warnings]
     for d in docs:
         for k in [k for k in d if k.startswith("_")]:
             del d[k]

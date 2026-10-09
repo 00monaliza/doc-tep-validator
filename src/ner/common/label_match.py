@@ -28,6 +28,12 @@ FUZZY_MIN = 0.75  # share of a label's (weighted) words found in the text; tuned
 FUZZY_MARGIN = 0.2  # over the next field or a negative label
 NEGATIVE = "_negative"  # pseudo-field of lexicon "negatives" ("Площадь участка")
 HOMOGLYPHS = str.maketrans("aceopxyki", "асеорхукі")  # Latin letters OCR puts into Cyrillic words
+EMBED_MIN = 0.86  # cosine to the nearest lexicon label; tuned on v3-dev
+EMBED_MARGIN = 0.02  # over the best label of another field or a negative
+EMBED_EVIDENCE = 0.4  # fuzzy evidence needed before asking the model (keeps cell names like "Гараж" out)
+EMBED_MAX_LEN = 80
+EMBED_UNAVAILABLE = ("Модель для незнакомых названий показателей не найдена (scripts/fetch_models.py): "
+                     "показатели распознаны по словарю и нечёткому сопоставлению.")
 SYMBOLS = {"s": "площадь", "v": "объем"}  # "S общ.", "V стр."
 # a word, a contraction "кол-во" / "ст-ть", and a truncation dot
 _TOKEN_RE = re.compile(r"[^\W\d_]+(?:-[^\W\d_]{1,3}(?![^\W\d_]))?\.?")
@@ -107,6 +113,8 @@ class LabelMatcher:
         df = {w: len({f for f, ws in self._labels if f != NEGATIVE and any(word_matches(w, False, x) for x in ws)})
               for w in vocab}
         self._weight = {w: math.log(1 + n / max(df[w], 1)) for w in vocab}  # rarer across fields = heavier
+        self._prototypes = [(f, lab) for f, labs in lex.raw_labels.items() for lab in labs]
+        self._prototypes += [(NEGATIVE, lab) for lab in lex.negatives]
 
     def match(self, text: str, unit: str | None = None, where: str = "table") -> Match | None:
         """Field named by `text` (a table cell, or the words next to a number when `where='text'`)."""
@@ -114,6 +122,31 @@ class LabelMatcher:
         if key not in self._memo:
             self._memo[key] = self._match(text, unit, where)
         return self._memo[key]
+
+    @property
+    def embedder(self):
+        if self._embedder is None:
+            from src.ner.common.label_embed import get_embedder
+
+            self._embedder = get_embedder()
+        return self._embedder
+
+    def _embedding(self, text: str, allowed: set[str]) -> Match | None:
+        if not self.embedder.available():
+            if EMBED_UNAVAILABLE not in self.warnings:
+                self.warnings.append(EMBED_UNAVAILABLE)
+            return None
+        vecs = self.embedder.embed([text] + [lab for _, lab in self._prototypes])
+        sims = (vecs[1:] @ vecs[0]).tolist()
+        best: dict[str, float] = {}
+        for (f, _), s in zip(self._prototypes, sims, strict=True):
+            if f == NEGATIVE or f in allowed:
+                best[f] = max(best.get(f, -1.0), s)
+        ranked = sorted(best.items(), key=lambda kv: kv[1], reverse=True)
+        (top_f, top), second = ranked[0], ranked[1][1] if len(ranked) > 1 else -1.0
+        if top_f != NEGATIVE and top >= EMBED_MIN and top - second >= EMBED_MARGIN:
+            return Match(top_f, round(top, 3), "embedding")
+        return None
 
     def _allowed(self, unit: str | None) -> set[str]:
         if unit is None or not self.unit_check:
@@ -160,5 +193,9 @@ class LabelMatcher:
             return m
         if "fuzzy" not in self.methods:
             return None
-        m, _ = self._fuzzy(text, allowed)
-        return m
+        m, evidence = self._fuzzy(text, allowed)
+        if m or "embedding" not in self.methods or where != "table":
+            return m
+        if evidence >= EMBED_EVIDENCE and len(text) <= EMBED_MAX_LEN:
+            return self._embedding(text, allowed)
+        return None
