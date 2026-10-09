@@ -251,7 +251,7 @@ def _anchor_re(lex: Lexicon) -> re.Pattern[str]:
     for canon in TEXT_UNITS:
         forms = [_spelling(s) for s in sorted(lex.units.get(canon, ()), key=len, reverse=True)]
         groups.append(f"(?P<{canon}>{'|'.join(forms + EXTRA_UNIT_FORMS.get(canon, []))})")
-    return re.compile(rf"(?P<num>{NUMBER_RE.pattern})\s*(?:{'|'.join(groups)})(?![^\W\d_]|\d)", re.IGNORECASE)
+    return re.compile(rf"(?P<num>{NUMBER_RE.pattern})\s*(?:{'|'.join(groups)})(?![^\W\d_]|\d|/)", re.IGNORECASE)
 
 
 def _left_start(text: str, start: int, floor: int) -> int:
@@ -270,11 +270,17 @@ def _right_end(text: str, end: int) -> int:
 
 
 def _in_table(page: Page, pt: PageText, pos: int) -> bool:
-    """Whether a position of the page text lies on a line inside a table (tables are read as tables)."""
+    """Whether a position lies on a line that belongs to a table (tables are read as tables). The line must
+    contain a non-empty cell of a table it overlaps: a sheet frame detected as a table has no such cells."""
     if not pt.line_tops:
         return False
-    top = pt.line_tops[max(bisect.bisect_right(pt.line_starts, pos) - 1, 0)]
-    return any(t.bbox[1] - 1 <= top <= t.bbox[3] for t in page.tables)
+    i = max(bisect.bisect_right(pt.line_starts, pos) - 1, 0)
+    top = pt.line_tops[i]
+    end = pt.line_starts[i + 1] if i + 1 < len(pt.line_starts) else len(pt.text)
+    line = squash(pt.text[pt.line_starts[i]:end])
+    return any(t.bbox[1] - 1 <= top <= t.bbox[3]
+               and any(len(c) >= 2 and c in line for c in map(squash, sum(t.rows, [])))
+               for t in page.tables)
 
 
 def _text_anchored(pages: list[Page], pts: list[PageText], index: ObjectIndex, lex: Lexicon,

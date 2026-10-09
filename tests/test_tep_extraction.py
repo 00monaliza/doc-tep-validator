@@ -105,3 +105,15 @@ def test_kazakh_case_ending_on_unit_word():
     page = _page(["Құрылыстың сметалық құны 2026 жылғы ағымдағы бағамен ресурстық әдіспен анықталды және "
                   "12 % ҚҚС-ты қоса алғанда 596 709,301 мың теңгені құрайды."])
     assert _text_values([page], STAGES[:2]) == {"estimated_cost_ktg": 596709.301}
+
+
+def test_per_unit_rates_are_not_tep():
+    page = _page(["Объём водопотребления составляет 12,5 м³/сут."])
+    assert _text_values([page], STAGES[:2]) == {}
+
+
+def test_page_frame_table_does_not_silence_sentences():
+    line = "Площадь застройки здания составляет 512,4 м²."
+    frame = PageTable([["", ""], ["", "Лист"]], (0, 0, 600, 840), ["", ""])
+    page = Page(1, line, [TextLine(line, 100.0)], [frame])
+    assert _text_values([page], STAGES[:2]) == {"building_area_m2": 512.4}
