@@ -30,6 +30,7 @@ or embedded one.
 
 from __future__ import annotations
 
+import bisect
 import re
 from dataclasses import dataclass, field
 from functools import cache
@@ -238,7 +239,9 @@ BOUNDARY_RE = re.compile(r"[.!?]\s+(?=[A-ZА-ЯЁӘҒҚҢӨҰҮҺІ])|;|,\s")
 
 
 def _spelling(s: str) -> str:
-    return re.escape(s.strip()).replace(r"\.", r"\.?\s?").replace(r"\ ", r"\s?")
+    """Regex of a unit spelling: optional dots and spaces; a word unit may take a case ending ('теңгені')."""
+    rx = re.escape(s.strip()).replace(r"\.", r"\.?\s?").replace(r"\ ", r"\s?")
+    return rx + r"[^\W\d_]{0,4}" if re.search(r"[^\W\d_]{4}$", s.strip()) else rx
 
 
 @cache
@@ -253,6 +256,8 @@ def _anchor_re(lex: Lexicon) -> re.Pattern[str]:
 
 def _left_start(text: str, start: int, floor: int) -> int:
     lo = max(floor, start - TEXT_WINDOW)
+    if lo == start - TEXT_WINDOW and lo > 0 and not text[lo - 1].isspace():  # do not start mid-word
+        lo = text.find(" ", lo, start) + 1 or lo
     for b in BOUNDARY_RE.finditer(text, lo, start):
         lo = b.end()
     return lo
@@ -264,16 +269,28 @@ def _right_end(text: str, end: int) -> int:
     return b.start() if b else hi
 
 
-def _text_anchored(pts: list[PageText], index: ObjectIndex, lex: Lexicon, matcher: LabelMatcher) -> list[Candidate]:
-    """Sentence TEP read from the number: every 'number + TEP unit' is named by the words before it
-    (or after it, Kazakh order), up to a clause boundary or the previous number."""
+def _in_table(page: Page, pt: PageText, pos: int) -> bool:
+    """Whether a position of the page text lies on a line inside a table (tables are read as tables)."""
+    if not pt.line_tops:
+        return False
+    top = pt.line_tops[max(bisect.bisect_right(pt.line_starts, pos) - 1, 0)]
+    return any(t.bbox[1] - 1 <= top <= t.bbox[3] for t in page.tables)
+
+
+def _text_anchored(pages: list[Page], pts: list[PageText], index: ObjectIndex, lex: Lexicon,
+                   matcher: LabelMatcher) -> list[Candidate]:
+    """Sentence TEP read from the number: every 'number + TEP unit' outside tables is named by the words
+    before it (or after it, Kazakh order), up to a clause boundary or the previous number."""
     out, seen = [], set()
-    for pt in pts:
+    for page, pt in zip(pages, pts, strict=True):
         text = pt.text.replace("ё", "е").replace("Ё", "Е")  # same length: offsets stay valid
         prev_end = 0
         for m in _anchor_re(lex).finditer(text):
             unit = next(k for k in TEXT_UNITS if m.group(k))
             s = m.start("num")
+            if _in_table(page, pt, s):
+                prev_end = m.end()
+                continue
             lo = _left_start(text, s, prev_end)
             found, qs, qe = matcher.match(text[lo:s], unit, where="text"), lo, m.end()
             if found is None:
@@ -344,7 +361,7 @@ def extract(pages: list[Page], lex: Lexicon | None = None, stages: tuple[str, ..
                 for m, v, row in _vertical(table, lex, matcher):
                     cands.append(Candidate(ctx or PROJECT, m.field, v, "table_v", page.number,
                                            _row_quote(pt, row, ""), m.method, m.score))
-    cands += _text_anchored(pts, index, lex, matcher) if "anchor" in stages else _text(pts, index, lex)
+    cands += _text_anchored(pages, pts, index, lex, matcher) if "anchor" in stages else _text(pts, index, lex)
 
     buildings = [o for o in names if o != PROJECT]
     if len(buildings) == 1:  # one building: the general values are its values

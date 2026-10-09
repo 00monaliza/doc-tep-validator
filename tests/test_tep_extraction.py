@@ -87,3 +87,21 @@ def test_site_area_rows_are_not_tep():
 def test_label_with_colon_and_spaced_unit():
     page = _page(["Площадь застройки: 512,40 кв. м."])
     assert _text_values([page], STAGES[:2]) == {"building_area_m2": 512.4}
+
+
+def test_table_rows_are_not_read_as_sentences():
+    rows = [["№", "Показатель", "Значение", "Ед. изм."], ["1", "Площадь застройки", "512,40", "м²"],
+            ["2", "Строительный объём", "3 100,00", "м³"]]
+    lines = [TextLine("Технико-экономические показатели", 0.0), TextLine("1 Площадь застройки 512,40 м²", 905.0),
+             TextLine("2 Строительный объём 3 100,00 м³", 925.0)]
+    page = Page(1, "\n".join(ln.text for ln in lines), lines, [PageTable(rows, (0, 900, 500, 990), rows[0])])
+    ex = extract([page])
+    assert {c.field for c in ex.candidates if c.source.startswith("table")} == {"building_area_m2",
+                                                                                 "construction_volume_m3"}
+    assert [c for c in ex.candidates if c.source == "text"] == []
+
+
+def test_kazakh_case_ending_on_unit_word():
+    page = _page(["Құрылыстың сметалық құны 2026 жылғы ағымдағы бағамен ресурстық әдіспен анықталды және "
+                  "12 % ҚҚС-ты қоса алғанда 596 709,301 мың теңгені құрайды."])
+    assert _text_values([page], STAGES[:2]) == {"estimated_cost_ktg": 596709.301}
