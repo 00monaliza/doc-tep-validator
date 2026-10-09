@@ -3,6 +3,9 @@
 * ПЗ with a text layer: the lexicon extractor (``ner.common.tep_baseline``) reads
   TEP per building, and rules v0 (``crossvalidation.rules``) check the note
   itself: table totals, one TEP stated differently, seismicity, geometry.
+  ``detectors="v0"`` reproduces the frozen research system S1 (exact lexicon
+  extraction, rules v0); ``"v1"`` (default, the service) adds the robust
+  extraction and ``crossvalidation.rules_v1``.
 * АР, КР, смета and DOCX: section-specific table rules (``ner.common.rules``).
 * Image-only PDFs (scans): Tesseract + unit normalisation in line mode, which
   is less reliable; such documents are flagged in the report.
@@ -31,7 +34,7 @@ from src.ingestion.common.pdf import rasterize
 from src.ingestion.real import load_pages
 from src.ner.common.rules import Extraction, extract, extract_ocr_lines, resolve
 from src.ner.common.taxonomy import Section
-from src.ner.common.tep_baseline import PROJECT
+from src.ner.common.tep_baseline import PROJECT, STAGES
 from src.ner.common.tep_baseline import extract as extract_pz
 
 OCR_DPI = 300
@@ -59,7 +62,8 @@ def classify_file(path: Path) -> tuple[Section | None, str]:
     return detect_section(layout) if layout.has_text() else (None, "scan")
 
 
-def analyze_document(path: Path, loc: Locator, section_override: Section | None = None) -> dict:
+def analyze_document(path: Path, loc: Locator, section_override: Section | None = None,
+                     detectors: str = "v1") -> dict:
     ocr = False
     if path.suffix.lower() == ".docx":
         layout = parse_docx(path)
@@ -78,7 +82,7 @@ def analyze_document(path: Path, loc: Locator, section_override: Section | None 
 
     if section == Section.PZ and path.suffix.lower() == ".pdf" and not ocr:
         pages = load_pages(path)
-        ex = extract_pz(pages)
+        ex = extract_pz(pages, stages=STAGES[:1] if detectors == "v0" else STAGES)
         doc["_warnings"] = ex.warnings
         doc["_objects"] = ex.objects
         doc["_by_object"] = pz_tep(ex, path, loc)
@@ -115,11 +119,13 @@ def _pz_for_engine(pz: dict, others: list[dict]) -> tuple[dict[str, Extraction] 
     return fields, building, None
 
 
-def analyze_package(paths: list[Path], sections: dict[str, Section] | None = None) -> dict:
-    """`sections` overrides the detected section of a file, by file name (the user's choice)."""
+def analyze_package(paths: list[Path], sections: dict[str, Section] | None = None, detectors: str = "v1") -> dict:
+    """`sections` overrides the detected section of a file, by file name (the user's choice).
+    `detectors`: "v0" is the frozen research system S1, "v1" the service (see the module docstring)."""
+    assert detectors in ("v0", "v1"), detectors
     loc = Locator()
     try:
-        docs = [analyze_document(Path(p), loc, (sections or {}).get(Path(p).name)) for p in paths]
+        docs = [analyze_document(Path(p), loc, (sections or {}).get(Path(p).name), detectors) for p in paths]
     finally:
         loc.close()
     warnings: list[str] = []
