@@ -49,7 +49,7 @@ def _num(text: str) -> float | None:
 
 
 def _object(pt: PageText, index: ObjectIndex, start: int, end: int) -> str | None:
-    obj, _ = resolve(pt, index, start, end)
+    obj, _ = resolve(pt, index, start, end, prefer_heading=True)
     if obj is None and len(index.objects) == 1:
         return index.objects[0].id
     return obj
@@ -127,7 +127,8 @@ def check_volume_method(pts: list[PageText], index: ObjectIndex, mentions: list[
                     for v in volumes for s in areas for h in clear.get(obj, [])
                     if abs(s.value * h.value - v.value) <= VOLUME_METHOD_TOL * v.value), None)
         if hit is None and floors.get(obj) and volumes and areas:
-            v, s = min(volumes, key=lambda m: m.value), max(areas, key=lambda m: m.value)
+            tables = [m for m in volumes if m.source == "table"] or volumes  # a text repeat may itself be wrong
+            v, s = min(tables, key=lambda m: m.value), max(areas, key=lambda m: m.value)
             if v.value / (s.value * floors[obj]) < MIN_STOREY_M:
                 hit = [Ref(page=v.page, quote=v.quote, object=obj, value=v.value, unit="m3",
                            derived=f"{v.value:g} / ({s.value:g} x {floors[obj]}) < {MIN_STOREY_M:g} m"),
@@ -136,6 +137,14 @@ def check_volume_method(pts: list[PageText], index: ObjectIndex, mentions: list[
             out.append(_finding(DiscrepancyType.TEP_CALCULATION_METHOD, "construction_volume_m3", obj, hit,
                                 confidence="needs_expert", note=hit[0].derived or ""))
     return out
+
+
+def _any_quote(page_text: str, *candidates: str) -> str | None:
+    """The first candidate found in the page text (a name wrapped in a narrow cell is not), or None."""
+    try:
+        return _quote(page_text, *candidates)
+    except ValueError:
+        return None
 
 
 def _row_label(row: list[str]) -> str:
@@ -166,7 +175,10 @@ def check_table_labels(pages: list[Page], pts: list[PageText], index: ObjectInde
             named = index.mentioned(label) if label else set()
             if not label or section in named or not (named or OBJECT_NOUN_RE.search(label)):
                 continue
-            quote = _quote(pt.text, " ".join(c for c in row if c), label)
+            quote = _any_quote(pt.text, " ".join(c for c in row if c), label, label.split()[0],
+                               *(c for c in body[data[0]] if _num(c) is not None))
+            if quote is None:
+                continue
             candidates.append((section, label, Ref(page=pt.page, quote=quote, object=section, value=label),
                                bool(named)))
     first_section: dict[str, str] = {}
@@ -210,7 +222,7 @@ def check_parameters(pts: list[PageText], index: ObjectIndex) -> list[Finding]:
                 width = width_mm(phrase) if param.has_width else None
                 if material is None and width is None:
                     continue
-                obj = resolve(pt, index, m.start(), m.end())[0] or "all"
+                obj = resolve(pt, index, m.start(), m.end(), prefer_heading=True)[0] or "all"
                 value = ", ".join(x for x in (material, f"{width:g} мм" if width else None) if x)
                 ref = Ref(page=pt.page, quote=_quote(pt.text, phrase), object=obj, value=value)
                 by_obj.setdefault(obj, []).append((ref, material, width))

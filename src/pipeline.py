@@ -87,7 +87,7 @@ def analyze_document(path: Path, loc: Locator, section_override: Section | None 
         doc["_warnings"] = ex.warnings
         doc["_objects"] = ex.objects
         doc["_by_object"] = pz_tep(ex, path, loc)
-        v0 = run_rules(pages)
+        v0 = run_rules(pages, prefer_heading=detectors == "v1")
         findings = list(v0.findings)
         if detectors == "v1":
             extra, warns = run_rules_v1(pages, v0)

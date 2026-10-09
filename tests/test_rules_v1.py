@@ -188,3 +188,40 @@ def test_unknown_name_flagged_only_where_repeated():
     index, pts = _ctx(pages)
     found = check_table_labels(pages, pts, index)
     assert [index.by_id()[f.object].name for f in found] == ["Здание цеха"]
+
+
+def _mislabelled_section() -> list[Page]:
+    rows = [["Наименование", "Площадь застройки", "Строительный объём"], ["Здание школы", "120,50", "640,00"]]
+    table = PageTable(rows, (0, 40.0, 500, 50.0), rows[0])
+    return [_page(1, ["5. Решения", "5.1 Здание школы", "Текст."]),
+            _page(2, ["5.2 Здание котельной", "Показатели", "Здание школы 120,50 640,00",
+                      "Характеристика здания: уровень ответственности — II, степень огнестойкости — III."], [table])]
+
+
+def test_prefer_heading_keeps_values_in_their_section():
+    pages = _mislabelled_section()
+    index, _ = _ctx(pages)
+    boiler = next(o.id for o in index.objects if "котельн" in o.name)
+    school = next(o.id for o in index.objects if "школ" in o.name)
+    robust = run_rules(pages, prefer_heading=True)
+    assert {m.object for m in robust.mentions if m.source == "table"} == {boiler}
+    assert {m.object for m in run_rules(pages).mentions if m.source == "table"} == {school}  # v0 as frozen
+
+
+def test_wrapped_label_still_quoted():
+    rows = [HEADER, ["Здание офиса", "199,50", "518,70"]]
+    table = PageTable(rows, (0, 40.0, 500, 60.0), rows[0])
+    page2 = _page(2, ["5.2 Здание цеха", "Показатели", "Здание 199,50 518,70", "офиса"], [table])
+    pages = [_page(1, ["5. Решения", "5.1 Здание офиса", "Текст."]), page2]
+    index, pts = _ctx(pages)
+    found = check_table_labels(pages, pts, index)
+    assert len(found) == 1 and found[0].refs[0].quote in pts[1].text
+
+
+def test_storey_rule_uses_the_table_volume():
+    pages = _pages(["5.1 Здание детского сада", "Описание."])
+    index, pts = _ctx(pages)
+    b = index.objects[0].id
+    mentions = [_m(b, "construction_volume_m3", 8250.0), _m(b, "building_area_m2", 687.5),
+                Mention(b, "construction_volume_m3", 4117.51, 2, "q", "text", "test")]  # wrong text repeat
+    assert check_volume_method(pts, index, mentions, {b: 3}) == []

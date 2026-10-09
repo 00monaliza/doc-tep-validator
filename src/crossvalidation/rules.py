@@ -132,8 +132,9 @@ def check_table_totals(pages: list[Page], pts: list[PageText], carried: list[str
 
 
 def table_mentions(pages: list[Page], pts: list[PageText], carried: list[str | None],
-                   index: ObjectIndex) -> list[Mention]:
-    """TEP values from data rows of tables whose header names a TEP field."""
+                   index: ObjectIndex, prefer_heading: bool = False) -> list[Mention]:
+    """TEP values from data rows of tables whose header names a TEP field. With `prefer_heading`, a table
+    with one data row inside a building's section describes that building, whatever its row label says."""
     out = []
     for page, pt, car in zip(pages, pts, carried, strict=True):
         for table in page.tables:
@@ -141,13 +142,16 @@ def table_mentions(pages: list[Page], pts: list[PageText], carried: list[str | N
             if not cols:
                 continue
             ctx = _table_object(pt, table, car)
+            data = [r for r in table.rows[1:] if not TOTAL_RE.match(next((c for c in r if c), ""))
+                    and any(_num(r[c]) is not None for c in cols if c < len(r))]
+            single = prefer_heading and ctx is not None and len(data) == 1
             for row in table.rows[1:]:
                 first = next((c for c in row if c), "")
                 if TOTAL_RE.match(first):
                     continue
                 label = next((c for c in row if re.search(r"[^\W\d_]", c)), "")  # skip a "№" column
                 named = index.mentioned(label) if label else set()
-                obj, how = (next(iter(named)), "row label") if len(named) == 1 else (ctx, "heading")
+                obj, how = (next(iter(named)), "row label") if len(named) == 1 and not single else (ctx, "heading")
                 for col, fld in cols.items():
                     value = _num(row[col]) if col < len(row) else None
                     if value is not None:
@@ -162,7 +166,7 @@ BARE_VOLUME_RU = re.compile(rf"(?<![^\W\d_])объ[её]м\w*(?P<tail>(?:\s+[^\W
 BARE_VOLUME_KZ = re.compile(rf"(?P<head>(?:[^\W\d_]+\s+){{1,4}})көлем\w*\s*[-–—:]?\s*{_NUM}\s*{_UNIT}", re.IGNORECASE)
 
 
-def text_mentions(pts: list[PageText], index: ObjectIndex) -> list[Mention]:
+def text_mentions(pts: list[PageText], index: ObjectIndex, prefer_heading: bool = False) -> list[Mention]:
     """TEP values stated in sentences, label first ("строительный объём … 4963,84 м³") or
     number first, as Kazakh word order puts it ("… 4 330,23 м³ құрылыс көлемі")."""
     out = []
@@ -180,7 +184,7 @@ def text_mentions(pts: list[PageText], index: ObjectIndex) -> list[Mention]:
                         if value is None or key in seen:
                             continue
                         seen.add(key)
-                        obj, how = resolve(pt, index, m.start(), m.end())
+                        obj, how = resolve(pt, index, m.start(), m.end(), prefer_heading)
                         out.append(Mention(obj, fld, value, pt.page, _quote(pt.text, m.group()), "text", how))
         # bare "объём <здание> … N м³" / "<ғимарат> көлемі — N м³": a volume is the building's
         # construction volume only if it names a building of this document right next to the word
@@ -221,18 +225,18 @@ def check_cross_section(mentions: list[Mention]) -> list[Finding]:
     return out
 
 
-def _scope(pt: PageText, index: ObjectIndex, start: int, end: int) -> str:
+def _scope(pt: PageText, index: ObjectIndex, start: int, end: int, prefer_heading: bool = False) -> str:
     """'site' unless the sentence is about one building and not about the site/district."""
     sentence = pt.sentence(start, end)
     if SITE_SCOPE_RE.search(sentence):
         return "site"
-    obj, how = resolve(pt, index, start, end)
+    obj, how = resolve(pt, index, start, end, prefer_heading)
     if obj is not None and (how == "mention" or BUILDING_SCOPE_RE.search(sentence)):
         return obj
     return "site"
 
 
-def check_seismicity(pts: list[PageText], index: ObjectIndex) -> list[Finding]:
+def check_seismicity(pts: list[PageText], index: ObjectIndex, prefer_heading: bool = False) -> list[Finding]:
     """Seismicity belongs to the site by default; a document may state it for one building.
 
     Contradictions: several site values; several values of one building; a building value
@@ -242,7 +246,7 @@ def check_seismicity(pts: list[PageText], index: ObjectIndex) -> list[Finding]:
     for pt in pts:
         for rx in (SEISMIC_RE, SEISMIC_KZ_RE):
             for m in rx.finditer(pt.text):
-                scope = _scope(pt, index, m.start(), m.end())
+                scope = _scope(pt, index, m.start(), m.end(), prefer_heading)
                 ref = Ref(page=pt.page, quote=_quote(pt.text, m.group()), object=scope, value=int(m.group("num")))
                 by_scope.setdefault(scope, []).append(ref)
     out = []
@@ -278,7 +282,8 @@ def _latin_roman(text: str) -> str:
                   lambda m: m.group().replace("І", "I"), text)
 
 
-def check_fire_resistance(pts: list[PageText], index: ObjectIndex) -> tuple[list[Finding], list[dict]]:
+def check_fire_resistance(pts: list[PageText], index: ObjectIndex,
+                          prefer_heading: bool = False) -> tuple[list[Finding], list[dict]]:
     """Fire resistance is a property of a building: one building, several degrees -> contradiction.
 
     A statement outside any building section belongs to the building only if the document
@@ -294,7 +299,7 @@ def check_fire_resistance(pts: list[PageText], index: ObjectIndex) -> tuple[list
             for m in rx.finditer(text):
                 found.setdefault(m.start("val"), m)  # one reading per numeral
         for m in found.values():
-            obj, how = resolve(pt, index, m.start(), m.end())
+            obj, how = resolve(pt, index, m.start(), m.end(), prefer_heading)
             if obj is None and len(buildings) == 1:
                 obj = buildings[0]
             quote = _quote(pt.text, pt.text[m.start():m.end()])
@@ -313,7 +318,7 @@ def check_fire_resistance(pts: list[PageText], index: ObjectIndex) -> tuple[list
 
 
 def check_geometry(pts: list[PageText], index: ObjectIndex, mentions: list[Mention],
-                   unresolved: list[dict]) -> list[Finding]:
+                   unresolved: list[dict], prefer_heading: bool = False) -> list[Finding]:
     """Building area (outer contour) must not be smaller than the area within the axes."""
     out = []
     areas: dict[str, list[Mention]] = {}
@@ -326,7 +331,7 @@ def check_geometry(pts: list[PageText], index: ObjectIndex, mentions: list[Menti
                 a, b = _num(m.group("a")), _num(m.group("b"))
                 if a is None or b is None:
                     continue
-                obj, how = resolve(pt, index, m.start(), m.end())
+                obj, how = resolve(pt, index, m.start(), m.end(), prefer_heading)
                 if obj is None:
                     unresolved.append({"rule": "GEOMETRY_INCONSISTENCY", "page": pt.page, "quote": m.group(),
                                        "reason": how})
@@ -344,22 +349,26 @@ def check_geometry(pts: list[PageText], index: ObjectIndex, mentions: list[Menti
     return out
 
 
-def run_rules(pages: list[Page]) -> RuleReport:
+def run_rules(pages: list[Page], prefer_heading: bool = False) -> RuleReport:
+    """Rules v0. `prefer_heading` (detectors v1 only; S1 keeps the default) attributes values inside a
+    building's section to that building first: a table or sentence naming another building there is a
+    labelling error (``rules_v1.check_table_labels``), not a statement about the other building."""
     index = object_index(pages)
     pts = page_texts(pages, index)
     carried = [None] + [pt.ctx_after for pt in pts[:-1]]
     report = RuleReport(objects={o.id: o.name for o in index.objects} | {"site": "Площадка",
                                                                           "document": "Документ в целом"})
-    report.mentions = table_mentions(pages, pts, carried, index) + text_mentions(pts, index)
+    report.mentions = (table_mentions(pages, pts, carried, index, prefer_heading)
+                       + text_mentions(pts, index, prefer_heading))
     for m in report.mentions:
         if m.object is None:
             report.unresolved.append({"rule": "TEP_CROSS_SECTION_MISMATCH", "page": m.page, "quote": m.quote,
                                       "field": m.field, "value": m.value, "reason": m.how})
     findings = (check_table_totals(pages, pts, carried)
                 + check_cross_section(report.mentions)
-                + check_seismicity(pts, index)
-                + check_geometry(pts, index, report.mentions, report.unresolved))
-    fire, fire_unresolved = check_fire_resistance(pts, index)
+                + check_seismicity(pts, index, prefer_heading)
+                + check_geometry(pts, index, report.mentions, report.unresolved, prefer_heading))
+    fire, fire_unresolved = check_fire_resistance(pts, index, prefer_heading)
     findings += fire
     report.unresolved += fire_unresolved
     for i, f in enumerate(findings, start=1):

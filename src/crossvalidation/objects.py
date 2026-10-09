@@ -164,8 +164,14 @@ def page_texts(pages: list[Page], index: ObjectIndex) -> list[PageText]:
     return out
 
 
-def resolve(pt: PageText, index: ObjectIndex, start: int, end: int) -> tuple[str | None, str]:
-    """(object id or None, how it was resolved) for a span of ``pt.text``."""
+def resolve(pt: PageText, index: ObjectIndex, start: int, end: int,
+            prefer_heading: bool = False) -> tuple[str | None, str]:
+    """(object id or None, how it was resolved) for a span of ``pt.text``.
+
+    With `prefer_heading`, a position inside a building's section belongs to that building even if the
+    sentence (which may run into a table's text) names another one."""
+    if prefer_heading and (ctx := pt.context_at(start)) is not None:
+        return ctx, "heading"
     mentioned = index.mentioned(pt.sentence(start, end))
     if len(mentioned) == 1:
         return next(iter(mentioned)), "mention"

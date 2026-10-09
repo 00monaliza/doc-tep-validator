@@ -41,7 +41,7 @@ def main() -> int:
         return 1
     for ann in anns:
         pages = load_pages(source_path(ann))
-        report = run_rules(pages)
+        report = run_rules(pages, prefer_heading=args.detectors == "v1")
         if args.detectors == "v1":
             extra, _ = run_rules_v1(pages, report)
             report.findings += extra
