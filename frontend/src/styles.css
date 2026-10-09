@@ -86,7 +86,7 @@ table.grid tr.clickable:hover td { background: #EFF3EF; }
 .refs button[aria-pressed="true"] { border-color: var(--graphite); background: var(--graphite); color: var(--sheet); }
 .evidence { padding: 8px 12px; font-size: 14px; color: var(--graphite-2); border-bottom: 1px solid var(--rule); }
 .evidence mark { background: none; color: var(--pencil); font-weight: 600; }
-.canvas-wrap { flex: 1; overflow: auto; padding: 16px; background: #DDE3DF; }
+.canvas-wrap { position: relative; flex: 1; overflow: auto; padding: 16px; background: #DDE3DF; }
 .page { position: relative; margin: 0 auto; box-shadow: 0 0 0 1px var(--rule); background: #fff; width: fit-content; }
 .page canvas { display: block; }
 .pencil-ring { position: absolute; border: 2.5px solid var(--pencil); border-radius: 46% 54% 48% 52% / 58% 44% 56% 42%;
