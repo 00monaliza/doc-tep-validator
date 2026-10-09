@@ -20,6 +20,12 @@ uv run python scripts/generate_synthetic.py --lang ru kz --seeds 1-100   # ко�
 uv run uvicorn api.main:app --port 8000     # затем открыть http://127.0.0.1:8000
 ```
 
+Фронт на React + Vite (`frontend/`, тот же API, проксирует `/api` на :8000):
+
+```bash
+npm --prefix frontend install && npm --prefix frontend run dev   # http://localhost:5173
+```
+
 Пользователь загружает пакет (ПЗ, АР, КР, смета; PDF или DOCX; RU или KZ) и получает отчёт с тремя вкладками:
 
 - **Замечания** — ошибки внутри ПЗ и расхождения между разделами, с зданием, к которому они относятся;
