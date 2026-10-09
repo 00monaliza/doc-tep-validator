@@ -8,7 +8,7 @@ import pytest
 
 from src.evaluation.annotations import ANNOTATIONS_DIR, load_annotation, source_path
 from src.evaluation.extraction_eval import Scores, gold_slots, predicted_slots, real_verdicts
-from src.ingestion.real import load_pages
+from src.ingestion.real import Page, PageTable, TextLine, load_pages
 from src.ner.common.tep_baseline import STAGES, extract
 from src.synthesis.generator import generate_set
 
@@ -42,3 +42,48 @@ def test_real_dev_document_does_not_regress():
         verdicts = [v for *_, v in real_verdicts(extract(load_pages(source_path(ann))), ann)]
         assert verdicts.count("ok") >= 8, verdicts
         assert not [v for v in verdicts if v.startswith("wrong")], verdicts
+
+
+
+
+def _page(lines: list[str], tables: list[list[list[str]]] = ()) -> Page:
+    text_lines = [TextLine(text=t, top=20.0 * i) for i, t in enumerate(lines)]
+    page_tables = [PageTable(rows=rows, bbox=(0, 900 + 100 * k, 500, 990 + 100 * k), header=rows[0])
+                   for k, rows in enumerate(tables)]
+    return Page(number=1, text="\n".join(lines), lines=text_lines, tables=page_tables)
+
+
+def _text_values(pages, stages=STAGES) -> dict[str, float]:
+    ex = extract(pages, stages=stages)
+    return {c.field: c.value for c in ex.candidates if c.source == "text"}
+
+
+def test_two_values_in_one_sentence():
+    page = _page(["Проектом принята общая площадь здания 1 247,79 м² при строительном объёме 4 963,84 м³."])
+    assert _text_values([page], STAGES[:2]) == {"total_area_m2": 1247.79, "construction_volume_m3": 4963.84}
+
+
+def test_kazakh_number_before_label():
+    page = _page(["Қазандық ғимаратының 1 124,98 м³ құрылыс көлемі жобада қабылданған."])
+    assert _text_values([page], STAGES[:2]) == {"construction_volume_m3": 1124.98}
+
+
+def test_numbers_without_tep_unit_are_ignored():
+    page = _page(["Сметная стоимость определена в текущих ценах 2026 г., степень огнестойкости II."])
+    assert _text_values([page], STAGES[:2]) == {}
+
+
+def test_site_area_rows_are_not_tep():
+    table = [["Наименование", "Ед. изм.", "Значение"],
+             ["Площадь участка", "м²", "5 000,00"],
+             ["Площадь озеленения", "м²", "1 200,00"],
+             ["Площадь застройки", "м²", "512,40"],
+             ["Строительный объём", "м³", "3 100,00"]]
+    ex = extract([_page(["Генеральный план"], [table])])
+    fields = {c.field: c.value for c in ex.candidates if c.source.startswith("table")}
+    assert fields == {"building_area_m2": 512.4, "construction_volume_m3": 3100.0}
+
+
+def test_label_with_colon_and_spaced_unit():
+    page = _page(["Площадь застройки: 512,40 кв. м."])
+    assert _text_values([page], STAGES[:2]) == {"building_area_m2": 512.4}

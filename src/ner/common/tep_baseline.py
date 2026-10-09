@@ -35,7 +35,7 @@ from dataclasses import dataclass, field
 from functools import cache
 
 from src.crossvalidation.objects import ObjectIndex, PageText, build_index, object_headings, page_texts, resolve
-from src.ingestion.common.numbers import NUMBER_RE, number_readings
+from src.ingestion.common.numbers import M2_IN_TEXT, M3_IN_TEXT, NUMBER_RE, number_readings
 from src.ingestion.real import Page, PageTable, norm_ws
 from src.ner.common.label_match import METHODS, LabelMatcher, Match
 from src.ner.common.lexicon import LEXICON_PATH, Lexicon, load_lexicon, squash  # noqa: F401  (re-exported)
@@ -230,6 +230,78 @@ def _text(pts: list[PageText], index: ObjectIndex, lex: Lexicon) -> list[Candida
     return out
 
 
+TEXT_WINDOW = 120  # characters searched for the label on each side of a number
+TEXT_UNITS = ("m2", "m3", "kKZT", "month")  # floors: "3-этажное" patterns
+EXTRA_UNIT_FORMS = {"m2": [M2_IN_TEXT], "m3": [M3_IN_TEXT]}
+# end of a clause: sentence end before a capital letter, ';', or ', ' (a decimal comma has no space)
+BOUNDARY_RE = re.compile(r"[.!?]\s+(?=[A-ZА-ЯЁӘҒҚҢӨҰҮҺІ])|;|,\s")
+
+
+def _spelling(s: str) -> str:
+    return re.escape(s.strip()).replace(r"\.", r"\.?\s?").replace(r"\ ", r"\s?")
+
+
+@cache
+def _anchor_re(lex: Lexicon) -> re.Pattern[str]:
+    """A number followed by a TEP unit in any spelling; the unit's group is named by its canonical id."""
+    groups = []
+    for canon in TEXT_UNITS:
+        forms = [_spelling(s) for s in sorted(lex.units.get(canon, ()), key=len, reverse=True)]
+        groups.append(f"(?P<{canon}>{'|'.join(forms + EXTRA_UNIT_FORMS.get(canon, []))})")
+    return re.compile(rf"(?P<num>{NUMBER_RE.pattern})\s*(?:{'|'.join(groups)})(?![^\W\d_]|\d)", re.IGNORECASE)
+
+
+def _left_start(text: str, start: int, floor: int) -> int:
+    lo = max(floor, start - TEXT_WINDOW)
+    for b in BOUNDARY_RE.finditer(text, lo, start):
+        lo = b.end()
+    return lo
+
+
+def _right_end(text: str, end: int) -> int:
+    hi = min(len(text), end + TEXT_WINDOW)
+    b = BOUNDARY_RE.search(text, end, hi)
+    return b.start() if b else hi
+
+
+def _text_anchored(pts: list[PageText], index: ObjectIndex, lex: Lexicon, matcher: LabelMatcher) -> list[Candidate]:
+    """Sentence TEP read from the number: every 'number + TEP unit' is named by the words before it
+    (or after it, Kazakh order), up to a clause boundary or the previous number."""
+    out, seen = [], set()
+    for pt in pts:
+        text = pt.text.replace("ё", "е").replace("Ё", "Е")  # same length: offsets stay valid
+        prev_end = 0
+        for m in _anchor_re(lex).finditer(text):
+            unit = next(k for k in TEXT_UNITS if m.group(k))
+            s = m.start("num")
+            lo = _left_start(text, s, prev_end)
+            found, qs, qe = matcher.match(text[lo:s], unit, where="text"), lo, m.end()
+            if found is None:
+                hi = _right_end(text, m.end())
+                found, qs, qe = matcher.match(text[m.end():hi], unit, where="text"), s, hi
+            prev_end = m.end()
+            if found is None or (pt.page, s) in seen:
+                continue
+            value = _value(m.group("num"), found.field, lex)
+            if value is None:
+                continue
+            seen.add((pt.page, s))
+            obj, _ = resolve(pt, index, qs, qe)
+            out.append(Candidate(obj or PROJECT, found.field, value, "text", pt.page, pt.text[qs:qe].strip(),
+                                 found.method, found.score))
+        for fld, rx, _ in _text_patterns(lex):  # floors: "3-этажное", "2 қабатты"
+            if lex.field_units[fld] != "floor":
+                continue
+            for m in rx.finditer(text):
+                s = m.start("num")
+                if (pt.page, s) in seen or (value := _value(m.group("num"), fld, lex)) is None:
+                    continue
+                seen.add((pt.page, s))
+                obj, _ = resolve(pt, index, m.start(), m.end())
+                out.append(Candidate(obj or PROJECT, fld, value, "text", pt.page, pt.text[m.start():m.end()]))
+    return out
+
+
 # ------------------------------------------------------------------ main
 def object_index(pages: list[Page], lex: Lexicon | None = None, matcher: LabelMatcher | None = None) -> ObjectIndex:
     """Objects of a document: numbered building headings, plus the row labels of horizontal
@@ -272,7 +344,7 @@ def extract(pages: list[Page], lex: Lexicon | None = None, stages: tuple[str, ..
                 for m, v, row in _vertical(table, lex, matcher):
                     cands.append(Candidate(ctx or PROJECT, m.field, v, "table_v", page.number,
                                            _row_quote(pt, row, ""), m.method, m.score))
-    cands += _text(pts, index, lex)
+    cands += _text_anchored(pts, index, lex, matcher) if "anchor" in stages else _text(pts, index, lex)
 
     buildings = [o for o in names if o != PROJECT]
     if len(buildings) == 1:  # one building: the general values are its values
