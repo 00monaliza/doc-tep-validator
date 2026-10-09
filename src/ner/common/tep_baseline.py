@@ -27,92 +27,17 @@ repeat, round or contradict the tables.
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field
 from functools import cache
-from pathlib import Path
 
 from src.crossvalidation.objects import ObjectIndex, PageText, build_index, object_headings, page_texts, resolve
 from src.ingestion.common.numbers import NUMBER_RE, number_readings
 from src.ingestion.real import Page, PageTable, norm_ws
+from src.ner.common.lexicon import LEXICON_PATH, Lexicon, load_lexicon, squash  # noqa: F401  (re-exported)
 
-LEXICON_PATH = Path(__file__).resolve().parents[1] / "data" / "tep_lexicon.json"
 PROJECT = "project"
 PRIORITY = {"table_h": 0, "table_v": 1, "text": 2}
-
-
-def squash(s: str) -> str:
-    """Case-, 'ё'-, space- and punctuation-insensitive form of a label."""
-    return re.sub(r"[\W_]+", "", s.lower().replace("ё", "е"))
-
-
-def _flatten(by_source: dict) -> list[str]:
-    return [x for items in by_source.values() for x in items]
-
-
-@dataclass(frozen=True, eq=False)  # hashed by identity (cached patterns)
-class Lexicon:
-    field_units: dict[str, str]
-    table_labels: dict[str, list[str]]  # field -> squashed labels (all languages)
-    text_labels: dict[str, list[str]]  # field -> labels as written
-    number_first: dict[str, list[str]]  # field -> labels that follow the number
-    units: dict[str, list[str]]  # canonical unit -> spellings
-    number_headers: list[str]
-    units_row: list[str]
-    total_row: list[str]
-
-    def field_of(self, label: str) -> str | None:
-        """Field whose longest label occurs in `label` (ignoring spaces/punctuation)."""
-        s = squash(label)
-        best, best_len = None, 0
-        for fld, labels in self.table_labels.items():
-            for lab in labels:
-                if lab and lab in s and len(lab) > best_len:
-                    best, best_len = fld, len(lab)
-        return best
-
-    def unit_of(self, text: str) -> str | None:
-        s = squash(text)
-        if not s:
-            return None
-        for canon, spellings in self.units.items():
-            if any(s == squash(u) for u in spellings):
-                return canon
-        return None
-
-    def is_total(self, text: str) -> bool:
-        return any(squash(text).startswith(squash(t)) for t in self.total_row)
-
-    def is_units_row(self, text: str) -> bool:
-        return any(squash(text).startswith(squash(t)) for t in self.units_row)
-
-
-@cache
-def load_lexicon(path: Path = LEXICON_PATH) -> Lexicon:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    fields = data["fields"]
-
-    def per_field(key: str, squashed: bool) -> dict[str, list[str]]:
-        out = {}
-        for fld, spec in fields.items():
-            labels = [x for lang in spec.get(key, {}).values() for x in _flatten(lang)]
-            labels = list(dict.fromkeys(squash(x) if squashed else x.lower() for x in labels))
-            if labels:
-                out[fld] = labels
-        return out
-
-    h = data["headers"]
-    return Lexicon(
-        field_units={f: spec["unit"] for f, spec in fields.items()},
-        table_labels=per_field("table", True),
-        text_labels=per_field("text", False),
-        number_first=per_field("text_number_first", False),
-        units={u: list(dict.fromkeys(_flatten(v))) for u, v in data["units"].items()},
-        number_headers=_flatten(h["number"]),
-        units_row=_flatten(h["units_row"]),
-        total_row=_flatten(h["total_row"]),
-    )
 
 
 @dataclass

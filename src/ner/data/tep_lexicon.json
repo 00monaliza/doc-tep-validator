@@ -1,5 +1,5 @@
 {
-  "_about": "Synonyms of TEP labels for the rule-based extraction baseline (src/ner/common/tep_baseline.py). Every entry lists its source: 'synthetic' = the generator lexicons (src/synthesis), 'dev:real_opz_zhbi2' = the one real development document. Nothing may be added from test documents. Matching of table labels ignores case, 'ё', spaces and punctuation; text labels are matched by word stems.",
+  "_about": "Synonyms of TEP labels for the rule-based extraction baseline (src/ner/common/tep_baseline.py). Every entry lists its source: 'synthetic' = the generator lexicons (src/synthesis), 'dev:real_opz_zhbi2' = the one real development document, 'general' = common construction terms (negatives: quantities that are not TEP). Nothing may be added from test documents. Matching of table labels ignores case, 'ё', spaces and punctuation; text labels are matched by word stems.",
   "fields": {
     "floors": {
       "unit": "floor",
@@ -93,5 +93,10 @@
     "number": {"synthetic": ["№ п/п", "№", "Р/с №", "№ пом."]},
     "units_row": {"synthetic": ["Ед. изм.", "Өлш. бірл."], "dev:real_opz_zhbi2": ["Ед. изм"]},
     "total_row": {"synthetic": ["Итого", "Всего", "Барлығы", "Жиыны"], "dev:real_opz_zhbi2": ["ИТОГО"]}
+  },
+  "negatives": {
+    "general": ["Площадь участка", "Площадь земельного участка", "Площадь озеленения", "Площадь покрытий",
+                "Площадь помещения", "Высота этажа", "Объём работ",
+                "Учаскенің ауданы", "Көгалдандыру ауданы", "Жабындар ауданы", "Қабат биіктігі"]
   }
 }

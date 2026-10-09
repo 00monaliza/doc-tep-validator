@@ -88,10 +88,11 @@ _UNIT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("m2", re.compile(r"^(?:[мm]\.?\s*[2²]|кв\.?\s*[мm]\.?|[мm]\.?\s*кв\.?|sq\.?\s*m)$", re.IGNORECASE)),
     ("m3", re.compile(r"^(?:[мm]\.?\s*[3³]|куб\.?\s*[мm]\.?|[мm]\.?\s*куб\.?|cu\.?\s*m)$", re.IGNORECASE)),
 )
+M2_IN_TEXT = r"[мm]\.?\s?[2²]|кв\.\s?[мm]\.?|[мm]\.?\s?кв\.?"
+M3_IN_TEXT = r"[мm]\.?\s?[3³]|куб\.\s?[мm]\.?|[мm]\.?\s?куб\.?"
 # the same forms, searchable inside text (followed by a non-letter)
 UNIT_IN_TEXT_RE = re.compile(
-    r"(?<![^\W\d_])(?:(?P<m2>[мm]\.?\s?[2²]|кв\.\s?[мm]\.?|[мm]\.?\s?кв\.?)|(?P<m3>[мm]\.?\s?[3³]|куб\.\s?[мm]\.?|[мm]\.?\s?куб\.?))"
-    r"(?![^\W\d_]|\d)",
+    rf"(?<![^\W\d_])(?:(?P<m2>{M2_IN_TEXT})|(?P<m3>{M3_IN_TEXT}))(?![^\W\d_]|\d)",
     re.IGNORECASE,
 )
 
