@@ -171,3 +171,10 @@ kbd { font: 500 11px var(--cond); border: 1px solid var(--rule); border-bottom-w
 .file-review select { font: 500 13px var(--cond); padding: 3px 6px; border: 1px solid var(--rule); background: #fff; color: var(--graphite); max-width: 100%; }
 .file-review .note { margin: 8px 0; }
 .demo button.primary { background: var(--graphite); color: var(--sheet); }
+
+/* ---------- листание и масштаб ---------- */
+.page-bar { display: flex; gap: 6px; align-items: center; padding: 4px 12px; border-bottom: 1px solid var(--rule); font: 500 13px var(--cond); color: var(--graphite-2); flex-wrap: wrap; }
+.page-bar button { background: var(--sheet); border: 1px solid var(--rule); min-width: 28px; padding: 1px 8px; cursor: pointer; font: 500 13px var(--cond); color: var(--graphite); }
+.page-bar button:disabled { opacity: .4; cursor: default; }
+.page-bar .back { color: var(--pencil); border-color: var(--pencil); }
+.page-bar .zoom { margin-left: auto; display: flex; gap: 4px; }

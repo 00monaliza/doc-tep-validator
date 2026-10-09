@@ -38,6 +38,11 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
   const [note, setNote] = useState("");
   const ref = refs[idx];
   const doc = ref && report.documents.find(d => d.section === ref.section);
+  const [pageNo, setPageNo] = useState(ref?.page ?? 1);
+  const [pages, setPages] = useState(0);
+  const [zoom, setZoom] = useState(1); // 1 = page width fits the pane
+  useEffect(() => { setPageNo(ref?.page ?? 1); }, [ref]);
+  const isPdf = !!doc && doc.file.toLowerCase().endsWith(".pdf");
 
   useEffect(() => {
     const page = pageRef.current, wrap = wrapRef.current;
@@ -53,10 +58,12 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
       const url = fileUrl(checkId, doc.file);
       pdfCache[url] ??= pdfjs.getDocument(url).promise;
       const pdf = await pdfCache[url];
-      const p = await pdf.getPage(ref.page ?? 1);
+      if (cancelled) return;
+      setPages(pdf.numPages);
+      const p = await pdf.getPage(Math.min(Math.max(1, pageNo), pdf.numPages));
       if (cancelled) return;
       const base = p.getViewport({ scale: 1 });
-      const scale = Math.min(2, (wrap.clientWidth - 32) / base.width);
+      const scale = Math.min(2, (wrap.clientWidth - 32) / base.width) * zoom;
       const vp = p.getViewport({ scale });
       const ratio = window.devicePixelRatio || 1;
       const canvas = document.createElement("canvas");
@@ -65,7 +72,7 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
       await p.render({ canvasContext: canvas.getContext("2d")!, viewport: vp, transform: [ratio, 0, 0, ratio, 0, 0] }).promise;
       if (cancelled) return;
       page.replaceChildren(canvas);
-      if (ref.bbox) {
+      if (ref.bbox && pageNo === (ref.page ?? 1)) { // the circle belongs to the page of the value
         const [x0, top, x1, bottom] = ref.bbox, pad = 5;
         const ring = document.createElement("div");
         ring.className = "pencil-ring";
@@ -75,10 +82,11 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
         });
         page.appendChild(ring);
         wrap.scrollTop = Math.max(0, page.offsetTop + top * scale - wrap.clientHeight / 2);
+        wrap.scrollLeft = Math.max(0, page.offsetLeft + ((x0 + x1) / 2) * scale - wrap.clientWidth / 2);
       }
     })();
     return () => { cancelled = true; };
-  }, [checkId, doc, ref]);
+  }, [checkId, doc, ref, pageNo, zoom]);
 
   return (
     <div className="pane">
@@ -98,6 +106,25 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
         )}
       </div>
       {ref && <div className="evidence"><Evidence r={ref} finding={finding} /></div>}
+      {isPdf && pages > 0 && (
+        <div className="page-bar">
+          <button type="button" aria-label="Предыдущая страница" disabled={pageNo <= 1}
+            onClick={() => setPageNo(p => p - 1)}>‹</button>
+          <span>стр. {pageNo} из {pages}</span>
+          <button type="button" aria-label="Следующая страница" disabled={pageNo >= pages}
+            onClick={() => setPageNo(p => p + 1)}>›</button>
+          {pageNo !== (ref?.page ?? 1) && (
+            <button type="button" className="back" onClick={() => setPageNo(ref?.page ?? 1)}>к значению</button>
+          )}
+          <span className="zoom">
+            <button type="button" aria-label="Уменьшить" disabled={zoom <= 0.5}
+              onClick={() => setZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))}>−</button>
+            <button type="button" onClick={() => setZoom(1)} aria-label="По ширине">{Math.round(zoom * 100)} %</button>
+            <button type="button" aria-label="Увеличить" disabled={zoom >= 3}
+              onClick={() => setZoom(z => Math.min(3, +(z + 0.25).toFixed(2)))}>+</button>
+          </span>
+        </div>
+      )}
       <div className="canvas-wrap" ref={wrapRef}>
         {note && <div className="empty">{note}</div>}
         <div className="page" ref={pageRef} />
