@@ -50,6 +50,7 @@ class Extraction:
     bbox: BBox | None
     source: str  # table | text
     evidence: str  # row / sentence the value was taken from
+    method: str = "exact"  # how the TEP label was recognised (label_match stage)
 
     def to_json(self) -> dict:
         return asdict(self)

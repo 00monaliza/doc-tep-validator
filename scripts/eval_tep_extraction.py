@@ -28,12 +28,12 @@ from src.evaluation.extraction_eval import (  # noqa: E402
     Scores,
     gold_slots,
     predicted_slots,
+    real_verdicts,
     text_scores,
 )
-from src.evaluation.match import map_objects  # noqa: E402
 from src.ingestion.common import pdf  # noqa: E402
 from src.ingestion.real import load_pages  # noqa: E402
-from src.ner.common.tep_baseline import extract  # noqa: E402
+from src.ner.common.tep_baseline import STAGES, extract  # noqa: E402
 from src.synthesis.generator import generate_set  # noqa: E402
 
 
@@ -88,23 +88,14 @@ def run_synthetic(args) -> dict:
     return report
 
 
-def run_real() -> None:
+def run_real(stages) -> None:
     for path in sorted(ANNOTATIONS_DIR.glob("*.json")):
         ann = load_annotation(path)
         if not source_path(ann).exists():
             continue
-        ex = extract(load_pages(source_path(ann)))
-        omap = map_objects(ex.objects, ann.objects)
-        pred = {(omap.get(o, o), f): c.value for (o, f), c in ex.slots.items()}
         print(f"\n== {ann.document_id} (dev document: the lexicon may contain its labels)")
-        for obj, fields in ann.tep.items():
-            for f, gold in fields.items():
-                if f in ("page", "axes_m") or obj not in ("abk", "ceh") and f not in FIELDS:
-                    continue
-                table_value = gold[0] if isinstance(gold, list) else gold  # first listed = table value
-                got = pred.get((obj, f))
-                verdict = "missing" if got is None else "ok" if abs(got - table_value) < 1e-6 else f"wrong ({got:g})"
-                print(f"  {obj:<5} {f:<30} {table_value:>10g}  {verdict}")
+        for obj, f, value, verdict in real_verdicts(extract(load_pages(source_path(ann)), stages=stages), ann):
+            print(f"  {obj:<5} {f:<30} {value:>10g}  {verdict}")
 
 
 def main() -> int:
@@ -116,7 +107,7 @@ def main() -> int:
     ap.add_argument("--json", type=Path, help="write the slot scores here")
     args = ap.parse_args()
     if args.real:
-        run_real()
+        run_real(STAGES)
         return 0
     report = run_synthetic(args)
     if args.json:

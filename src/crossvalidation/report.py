@@ -47,7 +47,7 @@ def pz_tep(ex: PzExtraction, path: Path, loc: Locator) -> dict[str, dict[str, Ex
         raw = raw_number(c.quote, c.value) or fmt(c.value)
         out.setdefault(obj, {})[fld] = Extraction(
             Section.PZ.value, fld, c.value, raw, c.page, loc.bbox(path, c.page, c.quote, raw),
-            "table" if c.source.startswith("table") else "text", c.quote)
+            "table" if c.source.startswith("table") else "text", c.quote, method=c.method)
     return out
 
 

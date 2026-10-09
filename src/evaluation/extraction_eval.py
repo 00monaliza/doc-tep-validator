@@ -96,7 +96,7 @@ def predicted_slots(ex: Extraction, gt: dict, gold: dict) -> tuple[dict[tuple[st
     gt_names = {bid: o["name"] for bid, o in gt["objects"].items()} | {PROJECT: ""}
     omap = map_objects(ex.objects, gt_names)
     buildings = {b for b, _ in gold if b != PROJECT} or {"b1"}
-    pred: dict[tuple[str, str], tuple[int, float]] = {}
+    pred: dict[tuple[str, str], tuple[tuple, float]] = {}
     ignored = 0
     for (obj, f), c in ex.slots.items():
         if f not in FIELDS:
@@ -111,9 +111,25 @@ def predicted_slots(ex: Extraction, gt: dict, gold: dict) -> tuple[dict[tuple[st
         else:
             target = omap.get(obj, f"?{obj}")
         slot = (target, f)
-        if slot not in pred or c.priority < pred[slot][0]:
-            pred[slot] = (c.priority, c.value)
+        if slot not in pred or c.rank < pred[slot][0]:
+            pred[slot] = (c.rank, c.value)
     return {s: v for s, (_, v) in pred.items()}, ignored
+
+
+def real_verdicts(ex: Extraction, ann) -> list[tuple[str, str, float, str]]:
+    """(object, field, table value, 'ok' | 'missing' | 'wrong (<v>)') for every TEP of an annotated real ПЗ."""
+    omap = map_objects(ex.objects, ann.objects)
+    pred = {(omap.get(o, o), f): c.value for (o, f), c in ex.slots.items()}
+    out = []
+    for obj, fields in ann.tep.items():
+        for f, gold in fields.items():
+            if f in ("page", "axes_m") or obj not in ("abk", "ceh") and f not in FIELDS:
+                continue
+            table_value = gold[0] if isinstance(gold, list) else gold  # first listed = table value
+            got = pred.get((obj, f))
+            verdict = "missing" if got is None else "ok" if abs(got - table_value) < 1e-6 else f"wrong ({got:g})"
+            out.append((obj, f, table_value, verdict))
+    return out
 
 
 def text_scores(ex: Extraction, gt: dict) -> tuple[Counter, Counter, Counter, list[bool]]:
