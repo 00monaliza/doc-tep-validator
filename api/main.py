@@ -6,6 +6,8 @@ POST /api/checks                    multipart `files` (PDF/DOCX) -> {id, status}
 GET  /api/checks/{id}               status + report when done
 GET  /api/checks/{id}/files/{name}  uploaded file (for the in-browser PDF viewer)
 POST /api/demo/{lang}               run on the bundled synthetic sample (ru|kz)
+GET  /api/cron/cleanup              delete checks older than RETENTION_DAYS (Vercel Cron, CRON_SECRET)
+GET  /                              the React interface from frontend/dist (npm --prefix frontend run build)
 
 Checks are kept in data/uploads/, or in Supabase when SUPABASE_URL and SUPABASE_SECRET_KEY are set
 (see api/_store.py). On Vercel the analysis runs inside the POST request.
@@ -19,8 +21,9 @@ import traceback
 import uuid
 from pathlib import Path
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from api._store import LocalStore, SupabaseStore
 from src.ner.common.models import BACKBONES
@@ -29,12 +32,13 @@ from src.pipeline import analyze_package
 
 ROOT = Path(__file__).resolve().parents[1]
 UPLOADS = ROOT / "data" / "uploads"
-STATIC = Path(__file__).parent / "static"
+FRONTEND = ROOT / "frontend" / "dist"
 SAMPLES = ROOT / "data" / "synthetic" / "samples"
 ALLOWED = {".pdf", ".docx"}
 MAX_FILE_BYTES = 50 * 1024 * 1024
 MAX_FILES = 20
 ID_RE = re.compile(r"^[0-9a-f]{32}$")
+RETENTION_DAYS = float(os.environ.get("RETENTION_DAYS", "7"))
 SYNC_ANALYSIS = bool(os.environ.get("VERCEL") or os.environ.get("SYNC_ANALYSIS"))
 
 app = FastAPI(title="ТЭП-валидатор", version="0.1.0")
@@ -129,6 +133,24 @@ def health() -> dict:
             "backbones": {lang: b.hub_id for lang, b in BACKBONES.items()}}
 
 
+@app.get("/api/cron/cleanup")
+def cleanup(authorization: str | None = Header(default=None)) -> dict:
+    # Vercel Cron sends "Bearer $CRON_SECRET"; without the secret configured the endpoint stays closed
+    secret = os.environ.get("CRON_SECRET")
+    if not secret or authorization != f"Bearer {secret}":
+        raise HTTPException(401, "unauthorized")
+    return {"deleted": _store().cleanup(RETENTION_DAYS), "retention_days": RETENTION_DAYS}
+
+
+if (FRONTEND / "assets").is_dir():
+    app.mount("/assets", StaticFiles(directory=FRONTEND / "assets"), name="assets")
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
-    return (STATIC / "index.html").read_text(encoding="utf-8")
+    page = FRONTEND / "index.html"
+    if page.is_file():
+        return page.read_text(encoding="utf-8")
+    return ("<p>Интерфейс не собран: выполните <code>npm --prefix frontend ci</code> и "
+            "<code>npm --prefix frontend run build</code> или запустите <code>npm --prefix frontend run dev</code> "
+            "и откройте http://localhost:5173.</p>")

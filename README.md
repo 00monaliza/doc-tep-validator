@@ -17,14 +17,17 @@ uv run python scripts/generate_synthetic.py --lang ru kz --seeds 1-100   # ко�
 ## MVP: веб-сервис сверки ТЭП
 
 ```bash
-uv run uvicorn api.main:app --port 8000     # затем открыть http://127.0.0.1:8000
+npm --prefix frontend ci && npm --prefix frontend run build   # один раз: собрать интерфейс (frontend/, React + Vite)
+uv run uvicorn api.main:app --port 8000                       # затем открыть http://127.0.0.1:8000
 ```
 
-Фронт на React + Vite (`frontend/`, тот же API, проксирует `/api` на :8000):
+При разработке интерфейса удобнее `npm --prefix frontend run dev` (http://localhost:5173, `/api` проксируется
+на :8000). Клавиши в отчёте: `j`/`k` — замечания, `←`/`→` — места замечания, `s` — два места рядом.
 
-```bash
-npm --prefix frontend install && npm --prefix frontend run dev   # http://localhost:5173
-```
+Публичная тестовая версия: Vercel (сборка `frontend/`, функция `api/main.py`, см. `vercel.json`) + Supabase
+(таблица `checks`, приватный bucket `checks`), переменные `SUPABASE_URL`, `SUPABASE_SECRET_KEY`. Проверки
+старше `RETENTION_DAYS` (по умолчанию 7) раз в сутки удаляет Vercel Cron через `/api/cron/cleanup`
+(`CRON_SECRET`). Сканы там не распознаются: на Vercel нет Tesseract.
 
 Пользователь загружает пакет (ПЗ, АР, КР, смета; PDF или DOCX; RU или KZ) и получает отчёт с тремя вкладками:
 
@@ -93,7 +96,8 @@ data/synthetic/samples/  пробные наборы ru_00001, kz_00001 (в git,
 data/real/               реальные документы (в .gitignore, никогда не коммитятся)
 scripts/                 check_env.py, generate_synthetic.py, eval_ocr_units.py, eval_pipeline.py,
                          validate_annotations.py, inspect_real.py, evaluate_real.py, regex_baseline.py
-api/                     FastAPI + static/index.html (интерфейс)
+api/                     FastAPI: проверки, хранилище (папка или Supabase), отдаёт frontend/dist
+frontend/                интерфейс на React + Vite
 ```
 
 ## Реальные данные

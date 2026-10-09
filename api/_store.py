@@ -11,8 +11,10 @@ import json
 import os
 import shutil
 import tempfile
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
@@ -66,6 +68,18 @@ class LocalStore:
     def file_response(self, check_id: str, name: str) -> Response | None:
         path = self._dir(check_id) / "files" / name
         return FileResponse(path) if path.is_file() else None
+
+    def cleanup(self, days: float) -> int:
+        """Delete checks older than `days`; returns how many were removed."""
+        if not self.root.is_dir():
+            return 0
+        cutoff, n = time.time() - days * 86400, 0
+        for d in self.root.iterdir():
+            status = d / "status.json"
+            if d.is_dir() and status.is_file() and status.stat().st_mtime < cutoff:
+                shutil.rmtree(d, ignore_errors=True)
+                n += 1
+        return n
 
 
 class SupabaseStore:
@@ -138,3 +152,15 @@ class SupabaseStore:
         r = self.http.post(self._obj(check_id, name).replace("/object/", "/object/sign/", 1), json={"expiresIn": 600})
         r.raise_for_status()
         return RedirectResponse(f"{self.url}/storage/v1{r.json()['signedURL']}")
+
+    def cleanup(self, days: float) -> int:
+        """Delete checks (rows and files) older than `days`; returns how many were removed."""
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+        n = 0
+        while True:  # in batches, so a long backlog does not outgrow one request
+            rows = self._rows("GET", "?select=id", params={"created_at": f"lt.{cutoff}", "limit": "100"}).json()
+            for row in rows:
+                self.remove(row["id"])
+            n += len(rows)
+            if len(rows) < 100:
+                return n
