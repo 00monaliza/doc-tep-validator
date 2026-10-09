@@ -16,9 +16,10 @@ from __future__ import annotations
 import re
 
 from src.crossvalidation.objects import ObjectIndex, PageText, resolve
-from src.crossvalidation.rules import _finding, _quote
+from src.crossvalidation.rules import Mention, _finding, _quote
 from src.evaluation.schema import Finding, Ref
 from src.ingestion.common.numbers import NUMBER_RE, number_readings
+from src.ner.common.parameters import load_parameters
 from src.ner.common.taxonomy import DiscrepancyType
 
 ELEVATION_SLACK_M = 3.0  # a building rarely sits higher above (or below) the relief than this
@@ -79,3 +80,54 @@ def check_elevation(pts: list[PageText], index: ObjectIndex) -> list[Finding]:
     return [_finding(DiscrepancyType.VALUE_CROSS_SECTION_MISMATCH, "absolute_elevation_m", "site", outside + relief,
                      confidence="needs_expert",
                      note=f"elevation 0.000 outside the relief {lo:g}–{hi:g} m (± {ELEVATION_SLACK_M:g})")]
+
+
+VOLUME_METHOD_TOL = 0.005  # V vs S x clear height
+MIN_STOREY_M = 2.8  # average storey height by volume below this is implausible; tuned on v4 dev
+_NUM_M = re.compile(rf"(?P<num>{NUMBER_RE.pattern})\s*м(?![^\W\d_])", re.IGNORECASE)
+_SENTENCE_END = re.compile(r"\.\s+(?=[A-ZА-ЯЁӘҒҚҢӨҰҮҺІ][a-zа-яёәғқңөұүһі])")
+
+
+def _heights(pts: list[PageText], index: ObjectIndex, name: str) -> dict[str, list[Ref]]:
+    """object -> heights in metres stated right after a parameter mention ("в чистоте … 2,6м")."""
+    param = load_parameters()[name]
+    out: dict[str, list[Ref]] = {}
+    for pt in pts:
+        for m in param.mention_re.finditer(pt.text):
+            tail = pt.text[m.end(): m.end() + 80]
+            if end := _SENTENCE_END.search(tail):
+                tail = tail[: end.start()]
+            h = _NUM_M.search(tail)
+            obj = _object(pt, index, m.start(), m.end())
+            if h is None or obj is None or (value := _num(h.group("num"))) is None or not 1.5 <= value <= 20:
+                continue
+            quote = _quote(pt.text, pt.text[m.start(): m.end() + h.end()])
+            out.setdefault(obj, []).append(Ref(page=pt.page, quote=quote, object=obj, value=value, unit="m"))
+    return out
+
+
+def check_volume_method(pts: list[PageText], index: ObjectIndex, mentions: list[Mention],
+                        floors: dict[str, int]) -> list[Finding]:
+    by_obj: dict[str, dict[str, list[Mention]]] = {}
+    for m in mentions:
+        if m.object and m.field in ("construction_volume_m3", "building_area_m2"):
+            by_obj.setdefault(m.object, {}).setdefault(m.field, []).append(m)
+    clear = _heights(pts, index, "clear_height")
+    out = []
+    for obj, fields in by_obj.items():
+        volumes, areas = fields.get("construction_volume_m3", []), fields.get("building_area_m2", [])
+        hit = next(([Ref(page=v.page, quote=v.quote, object=obj, value=v.value, unit="m3",
+                         derived=f"{v.value:g} = {s.value:g} x {h.value:g}"),
+                     Ref(page=s.page, quote=s.quote, object=obj, value=s.value, unit="m2"), h]
+                    for v in volumes for s in areas for h in clear.get(obj, [])
+                    if abs(s.value * h.value - v.value) <= VOLUME_METHOD_TOL * v.value), None)
+        if hit is None and floors.get(obj) and volumes and areas:
+            v, s = min(volumes, key=lambda m: m.value), max(areas, key=lambda m: m.value)
+            if v.value / (s.value * floors[obj]) < MIN_STOREY_M:
+                hit = [Ref(page=v.page, quote=v.quote, object=obj, value=v.value, unit="m3",
+                           derived=f"{v.value:g} / ({s.value:g} x {floors[obj]}) < {MIN_STOREY_M:g} m"),
+                       Ref(page=s.page, quote=s.quote, object=obj, value=s.value, unit="m2")]
+        if hit:
+            out.append(_finding(DiscrepancyType.TEP_CALCULATION_METHOD, "construction_volume_m3", obj, hit,
+                                confidence="needs_expert", note=hit[0].derived or ""))
+    return out

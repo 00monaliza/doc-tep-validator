@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from src.crossvalidation.objects import page_texts
-from src.crossvalidation.rules_v1 import check_elevation
+from src.crossvalidation.rules import Mention
+from src.crossvalidation.rules_v1 import check_elevation, check_volume_method
 from src.ingestion.real import Page, PageTable, TextLine
 from src.ner.common.tep_baseline import object_index
 
@@ -52,3 +53,33 @@ def test_kazakh_elevation_and_relief():
                    ["5.1 Қазандық ғимараты", "Салыстырмалы 0,000 белгісі 512,40 м абсолюттік белгіге сәйкес келеді."])
     index, pts = _ctx(pages)
     assert len(check_elevation(pts, index)) == 1
+
+
+def _m(obj, fld, value, page=1, quote="q"):
+    return Mention(obj, fld, value, page, quote, "table", "test")
+
+
+def test_volume_is_area_times_clear_height():
+    pages = _pages(["5.2 Здание цеха", "Высота помещений в чистоте от пола до низа потолка 2,6м"])
+    index, pts = _ctx(pages)
+    ceh = index.objects[0].id
+    mentions = [_m(ceh, "construction_volume_m3", 518.7), _m(ceh, "building_area_m2", 199.5)]
+    found = check_volume_method(pts, index, mentions, {})
+    assert len(found) == 1 and found[0].object == ceh and found[0].type.value == "TEP_CALCULATION_METHOD"
+
+
+def test_outer_volume_is_fine():
+    pages = _pages(["5.2 Здание цеха",
+                    "Высота этажа — 3,3 м, высота помещений в чистоте от пола до низа потолка 2,9 м."])
+    index, pts = _ctx(pages)
+    ceh = index.objects[0].id
+    mentions = [_m(ceh, "construction_volume_m3", 760.0), _m(ceh, "building_area_m2", 199.5)]
+    assert check_volume_method(pts, index, mentions, {ceh: 1}) == []
+
+
+def test_low_average_storey_height():
+    pages = _pages(["5.2 Здание цеха", "Описание."])
+    index, pts = _ctx(pages)
+    ceh = index.objects[0].id
+    mentions = [_m(ceh, "construction_volume_m3", 1000.0), _m(ceh, "building_area_m2", 200.0)]
+    assert len(check_volume_method(pts, index, mentions, {ceh: 2})) == 1  # 1000 / (200 x 2) = 2,5 m
