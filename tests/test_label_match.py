@@ -121,3 +121,44 @@ def test_real_model_smoke():
     got = m.match("Площадь под зданием", "m2")
     assert got is None or got.field in {"building_area_m2", "total_area_m2", "useful_area_m2"}
     assert m.warnings == []
+
+
+class CountingEmbedder(FakeEmbedder):
+    """Says every text is the same as every prototype; counts how often the matcher asks it."""
+
+    def __init__(self):
+        super().__init__({"x": [1.0]})
+
+    def embed(self, texts):
+        self.calls += 1
+        return torch.ones(len(texts), 1)
+
+
+def test_near_miss_words_do_not_match():
+    assert not word_matches("застекления", False, "застройки")
+    assert not word_matches("пола", False, "полезная")
+    assert word_matches("общей", False, "общая")
+    assert word_matches("этажей", False, "этажность")
+    assert word_matches("ауданы", False, "аудан")
+
+
+NON_TEP = [("Площадь застекления фасадов", "m2"), ("Площадь мест общего пользования", "m2"),
+           ("Площадь общих коридоров", "m2"), ("Площадь пола", "m2"), ("Объём бетона", "m3"),
+           ("Объём засыпки", "m3"), ("Объём резервуара", "m3"), ("V степень огнестойкости", "m3"),
+           ("Количество квартир", None), ("Коэффициент застройки", None),
+           ("Продолжительность отопительного периода", "month"), ("Стоимость оборудования", "kKZT"),
+           ("Сметная стоимость проектных работ", "kKZT"), ("Пәтерлер саны", None)]
+
+
+@pytest.mark.parametrize(("text", "unit"), NON_TEP)
+def test_non_tep_rows_are_rejected_without_asking_the_model(text, unit):
+    emb = CountingEmbedder()
+    m = LabelMatcher(load_lexicon(), methods=ALL, embedder=emb)
+    assert m.match(text, unit) is None
+    assert emb.calls == 0
+
+
+def test_negative_in_text_window_blocks_one_word_label():
+    m = matcher(methods=FULL)
+    assert m.match("Объём земляных работ составляет", "m3", where="text") is None
+    assert m.match("Объём здания котельной равен —", "m3", where="text").field == "construction_volume_m3"

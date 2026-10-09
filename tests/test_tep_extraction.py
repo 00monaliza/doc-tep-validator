@@ -117,3 +117,21 @@ def test_page_frame_table_does_not_silence_sentences():
     frame = PageTable([["", ""], ["", "Лист"]], (0, 0, 600, 840), ["", ""])
     page = Page(1, line, [TextLine(line, 100.0)], [frame])
     assert _text_values([page], STAGES[:2]) == {"building_area_m2": 512.4}
+
+
+def test_residential_table_rows_are_not_tep():
+    table = [["Наименование", "Ед. изм.", "Значение"],
+             ["Количество квартир", "шт.", "48"],
+             ["Площадь квартир", "м²", "3 100,00"],
+             ["Площадь мест общего пользования", "м²", "610,00"],
+             ["Площадь застройки", "м²", "1 050,00"],
+             ["Строительный объём", "м³", "14 000,00"]]
+    ex = extract([_page(["Технико-экономические показатели"], [table])])
+    values = {f: c.value for (_, f), c in ex.slots.items()}
+    assert values.get("building_area_m2") == 1050.0 and values.get("construction_volume_m3") == 14000.0
+    assert "floors" not in values and values.get("total_area_m2") != 610.0
+
+
+def test_earthworks_volume_in_text_is_not_tep():
+    page = _page(["Объём земляных работ составляет 1 200 м³, объём бетона фундаментов 420 м³."])
+    assert _text_values([page]) == {}
