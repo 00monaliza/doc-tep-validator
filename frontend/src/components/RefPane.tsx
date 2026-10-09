@@ -1,0 +1,107 @@
+import * as pdfjs from "pdfjs-dist";
+import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { useEffect, useRef, useState } from "react";
+import { fileUrl } from "../api";
+import { SECTION, SECTION_FULL } from "../labels";
+import type { Finding, Ref, Report } from "../types";
+
+pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+const pdfCache: Record<string, Promise<pdfjs.PDFDocumentProxy>> = {};
+
+function Evidence({ r, finding }: { r: Ref; finding?: Finding }) {
+  if (r.value == null) return <>{finding?.message ?? ""} В документе этого значения нет.</>;
+  const txt = r.evidence ?? "";
+  const raw = r.raw ?? "";
+  const at = raw ? txt.lastIndexOf(raw) : -1; // mark the last occurrence: extractors read the last number of a row
+  return (
+    <>
+      {r.derived && `Вычислено: ${r.derived}. `}
+      {at >= 0 ? <>{txt.slice(0, at)}<mark>{raw}</mark>{txt.slice(at + raw.length)}</> : txt}
+    </>
+  );
+}
+
+interface Props {
+  checkId: string;
+  report: Report;
+  refs: Ref[];
+  idx: number;
+  onIdx: (i: number) => void;
+  finding?: Finding;
+  showSwitch: boolean;
+}
+
+/** One document page with the value circled, plus a switch between the finding's places. */
+export default function RefPane({ checkId, report, refs, idx, onIdx, finding, showSwitch }: Props) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const [note, setNote] = useState("");
+  const ref = refs[idx];
+  const doc = ref && report.documents.find(d => d.section === ref.section);
+
+  useEffect(() => {
+    const page = pageRef.current, wrap = wrapRef.current;
+    if (!page || !wrap || !ref) return;
+    page.replaceChildren();
+    setNote("");
+    if (!doc || !doc.file.toLowerCase().endsWith(".pdf")) {
+      if (doc) setNote("Для DOCX показываем только фрагмент текста выше.");
+      return;
+    }
+    let cancelled = false; // a newer selection cancels an unfinished page render
+    (async () => {
+      const url = fileUrl(checkId, doc.file);
+      pdfCache[url] ??= pdfjs.getDocument(url).promise;
+      const pdf = await pdfCache[url];
+      const p = await pdf.getPage(ref.page ?? 1);
+      if (cancelled) return;
+      const base = p.getViewport({ scale: 1 });
+      const scale = Math.min(2, (wrap.clientWidth - 32) / base.width);
+      const vp = p.getViewport({ scale });
+      const ratio = window.devicePixelRatio || 1;
+      const canvas = document.createElement("canvas");
+      canvas.width = vp.width * ratio; canvas.height = vp.height * ratio;
+      canvas.style.width = `${vp.width}px`; canvas.style.height = `${vp.height}px`;
+      await p.render({ canvasContext: canvas.getContext("2d")!, viewport: vp, transform: [ratio, 0, 0, ratio, 0, 0] }).promise;
+      if (cancelled) return;
+      page.replaceChildren(canvas);
+      if (ref.bbox) {
+        const [x0, top, x1, bottom] = ref.bbox, pad = 5;
+        const ring = document.createElement("div");
+        ring.className = "pencil-ring";
+        Object.assign(ring.style, {
+          left: `${x0 * scale - pad}px`, top: `${top * scale - pad}px`,
+          width: `${(x1 - x0) * scale + 2 * pad}px`, height: `${(bottom - top) * scale + 2 * pad}px`,
+        });
+        page.appendChild(ring);
+        wrap.scrollTop = Math.max(0, page.offsetTop + top * scale - wrap.clientHeight / 2);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [checkId, doc, ref]);
+
+  return (
+    <div className="pane">
+      <div className="viewer-head">
+        <span className="doc">
+          {!ref ? "Выберите замечание слева"
+            : doc ? `${SECTION[ref.section]} · ${doc.file}` : `${SECTION_FULL[ref.section]}: нет в пакете`}
+        </span>
+        {showSwitch && refs.length > 1 && (
+          <span className="refs">
+            {refs.map((r, i) => (
+              <button key={i} type="button" aria-pressed={i === idx} onClick={() => onIdx(i)}>
+                {r.label ?? SECTION[r.section]}{r.value == null ? " (нет)" : ""}
+              </button>
+            ))}
+          </span>
+        )}
+      </div>
+      {ref && <div className="evidence"><Evidence r={ref} finding={finding} /></div>}
+      <div className="canvas-wrap" ref={wrapRef}>
+        {note && <div className="empty">{note}</div>}
+        <div className="page" ref={pageRef} />
+      </div>
+    </div>
+  );
+}

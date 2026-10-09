@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LANG } from "../labels";
 import type { Finding, Ref, Report } from "../types";
 import Completeness from "./Completeness";
-import Findings from "./Findings";
+import Findings, { NO_FILTER, applyFilter, type Filter } from "./Findings";
 import TepTables from "./TepTables";
 import Viewer from "./Viewer";
 
@@ -11,17 +11,45 @@ type Tab = "findings" | "tep" | "compl";
 interface Props { checkId: string; report: Report; onReset: () => void }
 
 export default function ReportView({ checkId, report, onReset }: Props) {
-  const bad = useMemo(() => report.findings.filter(f => f.verdict !== "MATCH"), [report]);
-  const ok = useMemo(() => report.findings.filter(f => f.verdict === "MATCH"), [report]);
+  const [filter, setFilter] = useState<Filter>(NO_FILTER);
+  const bad = useMemo(() => applyFilter(report.findings.filter(f => f.verdict !== "MATCH"), filter), [report, filter]);
+  const ok = useMemo(() => applyFilter(report.findings.filter(f => f.verdict === "MATCH"), filter), [report, filter]);
   const [tab, setTab] = useState<Tab>("findings");
-  const [current, setCurrent] = useState<Finding | null>(bad[0] ?? ok[0] ?? null);
+  const [matchesOpen, setMatchesOpen] = useState(false);
+  const [current, setCurrent] = useState<Finding | null>(bad[0] ?? null);
   const [selection, setSelection] = useState<{ refs: Ref[]; finding?: Finding } | null>(
     current ? { refs: current.refs, finding: current } : null,
   );
   const c = report.completeness;
   const s = report.summary;
 
-  const pick = (f: Finding) => { setCurrent(f); setSelection({ refs: f.refs, finding: f }); };
+  const pick = (f: Finding) => {
+    setCurrent(f);
+    setSelection({ refs: f.refs, finding: f });
+    if (ok.includes(f)) setMatchesOpen(true);
+  };
+
+  // a filter that hides the open finding moves the selection to the first one still shown
+  useEffect(() => {
+    if (current && !bad.includes(current) && !ok.includes(current) && bad[0]) pick(bad[0]);
+  }, [filter]);
+
+  // j/k walk the findings that pass the filter (о/л on the Russian layout)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (tab !== "findings" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof HTMLElement && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+      const step = e.key === "j" || e.key === "о" ? 1 : e.key === "k" || e.key === "л" ? -1 : 0;
+      if (!step) return;
+      const list = matchesOpen ? [...bad, ...ok] : bad;
+      if (!list.length) return;
+      e.preventDefault();
+      const i = current ? list.indexOf(current) : -1;
+      pick(list[i < 0 ? 0 : Math.min(list.length - 1, Math.max(0, i + step))]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const tabs: { id: Tab; label: string; count?: string | number }[] = [
     { id: "findings", label: "Замечания", count: bad.length },
@@ -51,7 +79,12 @@ export default function ReportView({ checkId, report, onReset }: Props) {
             ))}
           </div>
           <div className="tabpanel" role="tabpanel">
-            {tab === "findings" && <Findings report={report} bad={bad} ok={ok} current={current} onPick={pick} />}
+            {tab === "findings" && (
+              <Findings
+                report={report} bad={bad} ok={ok} filter={filter} onFilter={setFilter}
+                matchesOpen={matchesOpen} onMatchesOpen={setMatchesOpen} current={current} onPick={pick}
+              />
+            )}
             {tab === "tep" && <TepTables report={report} onPick={refs => setSelection({ refs })} />}
             {tab === "compl" && <Completeness report={report} />}
           </div>

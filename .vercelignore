@@ -1,0 +1,15 @@
+.venv
+**/node_modules
+frontend/dist
+build
+data/real
+data/uploads
+data/synthetic/ru
+data/synthetic/kz
+notebooks
+annotations
+.claude-flow
+.superpowers
+.pytest_cache
+.ruff_cache
+**/__pycache__

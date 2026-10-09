@@ -1,107 +1,76 @@
-import * as pdfjs from "pdfjs-dist";
-import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { useEffect, useRef, useState } from "react";
-import { fileUrl } from "../api";
-import { SECTION, SECTION_FULL } from "../labels";
+import { useEffect, useState } from "react";
 import type { Finding, Ref, Report } from "../types";
+import RefPane from "./RefPane";
 
-pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-const pdfCache: Record<string, Promise<pdfjs.PDFDocumentProxy>> = {};
+const SPLIT_KEY = "tep.split";
+const readSplit = () => { try { return localStorage.getItem(SPLIT_KEY) !== "0"; } catch { return true; } };
 
-function Evidence({ r, finding }: { r: Ref; finding?: Finding }) {
-  if (r.value == null) return <>{finding?.message ?? ""} В документе этого значения нет.</>;
-  const txt = r.evidence ?? "";
-  const raw = r.raw ?? "";
-  const at = raw ? txt.lastIndexOf(raw) : -1; // mark the last occurrence: extractors read the last number of a row
-  return (
-    <>
-      {r.derived && `Вычислено: ${r.derived}. `}
-      {at >= 0 ? <>{txt.slice(0, at)}<mark>{raw}</mark>{txt.slice(at + raw.length)}</> : txt}
-    </>
-  );
-}
+const typing = (e: KeyboardEvent) =>
+  e.target instanceof HTMLElement && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName);
 
 interface Props { checkId: string; report: Report; selection: { refs: Ref[]; finding?: Finding } | null }
 
 export default function Viewer({ checkId, report, selection }: Props) {
-  const [idx, setIdx] = useState(0);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const pageRef = useRef<HTMLDivElement>(null);
-  const [pageNote, setPageNote] = useState("");
+  const refs = selection?.refs ?? [];
+  const [split, setSplit] = useState(readSplit);
+  const [left, setLeft] = useState(0);
+  const [right, setRight] = useState(1);
+  const sideBySide = split && refs.length > 1;
 
-  // start on the first ref that actually has a value
+  // start on places that actually hold a value; the right pane gets the next one
   useEffect(() => {
-    const refs = selection?.refs ?? [];
-    const first = refs.findIndex(r => r.value != null);
-    setIdx(refs[0]?.value == null && first >= 0 ? first : 0);
+    const valued = refs.map((r, i) => (r.value != null ? i : -1)).filter(i => i >= 0);
+    const l = valued[0] ?? 0;
+    setLeft(l);
+    setRight(refs.findIndex((_, i) => i !== l));
   }, [selection]);
 
-  const ref = selection?.refs[idx];
-  const doc = ref && report.documents.find(d => d.section === ref.section);
-
   useEffect(() => {
-    const page = pageRef.current, wrap = wrapRef.current;
-    if (!page || !wrap || !ref) return;
-    page.replaceChildren();
-    setPageNote("");
-    if (!doc || !doc.file.toLowerCase().endsWith(".pdf")) {
-      if (doc) setPageNote("Для DOCX показываем только фрагмент текста выше.");
-      return;
-    }
-    let cancelled = false; // a newer selection cancels an unfinished page render
-    (async () => {
-      const url = fileUrl(checkId, doc.file);
-      pdfCache[url] ??= pdfjs.getDocument(url).promise;
-      const pdf = await pdfCache[url];
-      const p = await pdf.getPage(ref.page ?? 1);
-      if (cancelled) return;
-      const base = p.getViewport({ scale: 1 });
-      const scale = Math.min(2, (wrap.clientWidth - 32) / base.width);
-      const vp = p.getViewport({ scale });
-      const ratio = window.devicePixelRatio || 1;
-      const canvas = document.createElement("canvas");
-      canvas.width = vp.width * ratio; canvas.height = vp.height * ratio;
-      canvas.style.width = `${vp.width}px`; canvas.style.height = `${vp.height}px`;
-      await p.render({ canvasContext: canvas.getContext("2d")!, viewport: vp, transform: [ratio, 0, 0, ratio, 0, 0] }).promise;
-      if (cancelled) return;
-      page.replaceChildren(canvas);
-      if (ref.bbox) {
-        const [x0, top, x1, bottom] = ref.bbox, pad = 5;
-        const ring = document.createElement("div");
-        ring.className = "pencil-ring";
-        Object.assign(ring.style, {
-          left: `${x0 * scale - pad}px`, top: `${top * scale - pad}px`,
-          width: `${(x1 - x0) * scale + 2 * pad}px`, height: `${(bottom - top) * scale + 2 * pad}px`,
-        });
-        page.appendChild(ring);
-        wrap.scrollTop = Math.max(0, page.offsetTop + top * scale - wrap.clientHeight / 2);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [checkId, doc, ref]);
+    try { localStorage.setItem(SPLIT_KEY, split ? "1" : "0"); } catch { /* storage may be blocked */ }
+  }, [split]);
 
-  const refs = selection?.refs ?? [];
+  // ←/→ walk the places: the only pane in single mode, the right (compared) pane side by side
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "s" || e.key === "ы") { setSplit(v => !v); return; }
+      if ((e.key !== "ArrowLeft" && e.key !== "ArrowRight") || refs.length < 2) return;
+      e.preventDefault();
+      const step = e.key === "ArrowRight" ? 1 : -1;
+      const n = refs.length;
+      if (!sideBySide) { setLeft(i => (i + step + n) % n); return; }
+      setRight(i => {
+        let j = (i + step + n) % n;
+        if (j === left) j = (j + step + n) % n;
+        return j;
+      });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [refs, sideBySide, left]);
+
+  const pane = (idx: number, onIdx: (i: number) => void) => (
+    <RefPane
+      checkId={checkId} report={report} refs={refs} idx={idx} onIdx={onIdx}
+      finding={selection?.finding} showSwitch={!sideBySide || refs.length > 2}
+    />
+  );
+
   return (
-    <section className="panel" aria-label="Документ">
-      <div className="viewer-head">
-        <span className="doc">
-          {!ref ? "Выберите замечание слева"
-            : doc ? `${SECTION[ref.section]} · ${doc.file}` : `${SECTION_FULL[ref.section]}: нет в пакете`}
-        </span>
-        {refs.length > 1 && (
-          <span className="refs">
-            {refs.map((r, i) => (
-              <button key={i} type="button" aria-pressed={i === idx} onClick={() => setIdx(i)}>
-                {r.label ?? SECTION[r.section]}{r.value == null ? " (нет)" : ""}
-              </button>
-            ))}
+    <section className="panel viewer" aria-label="Документ">
+      {refs.length > 1 && (
+        <div className="viewer-bar">
+          <button type="button" className="toggle" aria-pressed={split} onClick={() => setSplit(v => !v)}>
+            {split ? "Рядом" : "По одному"}
+          </button>
+          <span className="hint">
+            <kbd>j</kbd>/<kbd>k</kbd> замечания · <kbd>←</kbd>/<kbd>→</kbd> места · <kbd>s</kbd> рядом/по одному
           </span>
-        )}
-      </div>
-      {ref && <div className="evidence"><Evidence r={ref} finding={selection?.finding} /></div>}
-      <div className="canvas-wrap" ref={wrapRef}>
-        {pageNote && <div className="empty">{pageNote}</div>}
-        <div className="page" ref={pageRef} />
+        </div>
+      )}
+      <div className={sideBySide ? "panes split" : "panes"}>
+        {pane(left, setLeft)}
+        {sideBySide && right >= 0 && pane(right, setRight)}
       </div>
     </section>
   );

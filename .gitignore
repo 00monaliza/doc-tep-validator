@@ -21,3 +21,5 @@ data/uploads/
 # Real project documents: never commit (client data)
 data/real/*
 !data/real/.gitkeep
+.vercel
+.env*

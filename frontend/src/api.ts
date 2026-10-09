@@ -5,8 +5,8 @@ export const fileUrl = (checkId: string, name: string) =>
 
 async function startCheck(req: Promise<Response>): Promise<string> {
   const r = await req;
-  const body = await r.json();
-  if (!r.ok) throw new Error(body.detail ?? "Файлы не приняты.");
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.detail ?? `Сервер ответил ${r.status}. Файлы не приняты.`);
   return body.id;
 }
 
