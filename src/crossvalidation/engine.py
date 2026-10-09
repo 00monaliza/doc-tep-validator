@@ -18,6 +18,8 @@ REQUIRED_SECTIONS = (Section.PZ, Section.AR, Section.KR, Section.SMETA)
 FIELD_LABELS_RU = {
     "total_area_m2": "Общая площадь здания", "explication_total_area_m2": "Итого по экспликации",
     "building_area_m2": "Площадь застройки", "construction_volume_m3": "Строительный объём",
+    "absolute_elevation_m": "Абсолютная отметка 0,000", "object_label": "Подпись таблицы",
+    "blind_area": "Отмостка", "roof": "Кровля",
     "estimated_cost_ktg": "Сметная стоимость строительства", "ssr.total_ktg": "Всего по сводному сметному расчёту",
     "os.total_ktg": "Итого по объектной смете", "concrete_b25_foundation_m3": "Бетон B25 (фундаменты)",
     "concrete_b30_frame_m3": "Бетон B30 (каркас)", "rebar_a500c_t": "Арматура A500С",

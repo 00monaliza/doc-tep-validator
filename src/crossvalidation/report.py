@@ -24,6 +24,9 @@ from src.ner.common.tep_baseline import Extraction as PzExtraction
 
 UNIT_RU = {"m2": "м²", "m3": "м³", "t": "т", "floor": "эт.", "month": "мес.", "kKZT": "тыс. тенге"}
 SOURCE_RU = {"table_h": "таблица", "table_v": "таблица", "text": "текст", "table": "таблица"}
+# material ids of parameter_lexicon.json -> words for messages
+MATERIAL_RU = {"concrete": "бетонная", "asphalt": "асфальтобетонная", "membrane": "мембранная",
+               "bitumen": "из рулонных материалов", "profiled": "из профлиста"}
 SPECIAL_OBJECTS = {"site": "Площадка", "document": "Документ в целом", "all": "Все здания", PROJECT: "Проект в целом"}
 
 
@@ -93,6 +96,15 @@ def _ref(path: Path, loc: Locator, page: int, quote: str, value: float | None, r
             "label": ref_label, "object": obj, **({"derived": derived} if derived else {})}
 
 
+def _material_ru(value: str) -> str:
+    """'asphalt, 1500 мм' -> 'асфальтобетонная, 1500 мм'."""
+    head, _, tail = value.partition(", ")
+    word = MATERIAL_RU.get(head)
+    if word is None:
+        return value
+    return f"{word}, {tail}" if tail else word
+
+
 def pz_findings(v0: list[V0Finding], objects: dict[str, str], path: Path, loc: Locator) -> list[Finding]:
     out = []
     for f in v0:
@@ -112,12 +124,37 @@ def pz_findings(v0: list[V0Finding], objects: dict[str, str], path: Path, loc: L
         elif f.type == DiscrepancyType.PARAMETER_CONTRADICTION:
             refs = [_ref(path, loc, r.page, r.quote, r.value, f"стр. {r.page}", f.field, r.object)
                     for r in f.refs]
-            if f.field == "fire_resistance":
+            if f.field in ("blind_area", "roof"):
+                said = "; ".join(f"{_obj_name(r.object, objects)} — {_material_ru(str(r.value))}" for r in f.refs)
+                msg = f"{label(f.field)}{where} описана по-разному: {said}."
+            elif f.field == "fire_resistance":
                 values = ", ".join(sorted({str(r.value) for r in f.refs}))
                 msg = f"Степень огнестойкости{where}: в документе указаны разные значения: {values}."
             else:
                 values = ", ".join(sorted({str(int(r.value)) for r in f.refs}))
                 msg = f"Сейсмичность{where}: в документе указаны разные значения: {values} балл(а)."
+            delta = None
+        elif f.type == DiscrepancyType.VALUE_CROSS_SECTION_MISMATCH and f.field == "absolute_elevation_m":
+            relief = [r for r in f.refs if isinstance(r.value, list)]
+            zs = [r for r in f.refs if not isinstance(r.value, list)]
+            lo, hi = min(r.value[0] for r in relief), max(r.value[1] for r in relief)
+            refs = [_ref(path, loc, r.page, r.quote, r.value, f"Отметка, стр. {r.page}", f.field, r.object)
+                    for r in zs] + [_ref(path, loc, r.page, r.quote, None, f"Рельеф, стр. {r.page}", f.field, "site")
+                                    for r in relief]
+            said = ", ".join(f"{_obj_name(r.object, objects)} — {fmt(r.value)} м" for r in zs)
+            msg = f"Абсолютная отметка 0,000 ({said}) вне отметок рельефа площадки {fmt(lo)}–{fmt(hi)} м."
+            delta = None
+        elif f.type == DiscrepancyType.TEP_CALCULATION_METHOD:
+            refs = [_ref(path, loc, r.page, r.quote, r.value, f"стр. {r.page}", f.field, r.object, derived=r.derived)
+                    for r in f.refs]
+            how = (f.refs[0].derived or "").replace("x", "×").replace(".", ",")
+            msg = (f"Строительный объём{where} {fmt(f.refs[0].value)} м³, похоже, посчитан не по наружному обмеру: "
+                   f"{how}.")
+            delta = None
+        elif f.type == DiscrepancyType.COPY_PASTE_LABEL:
+            r = f.refs[0]
+            refs = [_ref(path, loc, r.page, r.quote, r.value, f"стр. {r.page}", f.field, r.object)]
+            msg = f"Таблица в разделе «{name}» подписана «{r.value}»."
             delta = None
         elif f.type == DiscrepancyType.GEOMETRY_INCONSISTENCY:
             axes, area = f.refs

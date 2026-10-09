@@ -25,6 +25,7 @@ from pathlib import Path
 from src.crossvalidation.engine import Finding, check
 from src.crossvalidation.report import doc_object_name, match_building, pz_findings, pz_tep
 from src.crossvalidation.rules import run_rules
+from src.crossvalidation.rules_v1 import run_rules_v1
 from src.ingestion.common.classify import detect_language, detect_section
 from src.ingestion.common.layout import Layout, Line, parse_docx, parse_pdf
 from src.ingestion.common.locate import Locator
@@ -87,8 +88,13 @@ def analyze_document(path: Path, loc: Locator, section_override: Section | None 
         doc["_objects"] = ex.objects
         doc["_by_object"] = pz_tep(ex, path, loc)
         v0 = run_rules(pages)
+        findings = list(v0.findings)
+        if detectors == "v1":
+            extra, warns = run_rules_v1(pages, v0)
+            findings += extra
+            doc["_warnings"] = ex.warnings + warns
         names = ex.objects | {k: v for k, v in v0.objects.items() if k not in ex.objects}
-        doc["_findings"] = pz_findings(v0.findings, names, path, loc)
+        doc["_findings"] = pz_findings(findings, names, path, loc)
     elif section is not None:
         doc["_extractions"] = extract_ocr_lines(section, layout) if ocr else extract(section, layout)
     doc["extractions"] = [e.to_json() for e in doc["_extractions"]] + [

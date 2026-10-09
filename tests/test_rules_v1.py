@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from src.crossvalidation import rules_v1
 from src.crossvalidation.objects import page_texts
-from src.crossvalidation.rules import Mention
+from src.crossvalidation.rules import Mention, run_rules
 from src.crossvalidation.rules_v1 import (
     check_elevation,
     check_parameters,
@@ -141,3 +142,47 @@ def test_roof_differs_in_kazakh():
                    ["7. Абаттандыру", "Ғимараттардың шатыры — профильденген табақтан жасалған еңісті."])
     index, pts = _ctx(pages)
     assert [(f.field, f.object) for f in check_parameters(pts, index)] == [("roof", "all")]
+
+
+def test_failing_detector_becomes_warning(monkeypatch):
+    pages = _pages(["5.1 Здание офиса", "Отмостка — бетонная шириной 1000 мм."])
+
+    def boom(*_):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(rules_v1, "DETECTORS", [("elevation", boom)] + rules_v1.DETECTORS[1:])
+    findings, warnings = rules_v1.run_rules_v1(pages, run_rules(pages))
+    assert len(warnings) == 1 and "elevation" in warnings[0]
+
+
+def test_ids_continue_after_v0():
+    pages = _pages(["Абсолютные отметки поверхности изменяются от 314,75 м до 315,04 м."],
+                   ["5.1 Здание офиса", "Относительная отметка 0,000 соответствует абсолютной отметке 489,79 м."])
+    v0 = run_rules(pages)
+    findings, _ = rules_v1.run_rules_v1(pages, v0)
+    assert [f.id for f in findings] == [f"P{len(v0.findings) + i}" for i in range(1, len(findings) + 1)]
+
+
+def test_name_row_above_unlabelled_data_row():
+    rows = [HEADER, ["Ед. изм", "м2", "м3"], ["Здание офиса", "", ""], ["", "199,50", "518,70"],
+            ["ИТОГО", "199,50", "518,70"]]
+    pages = _section_pages("5.2 Здание цеха", rows)
+    index, pts = _ctx(pages)
+    assert [f.field for f in check_table_labels(pages, pts, index)] == ["object_label"]
+
+
+def test_relief_with_words_between_from_and_number():
+    pages = _pages(["Высотные отметки разреза колеблются в пределах от высотных отметок 314,75 м до 315,04 м."],
+                   ["5.1 Здание офиса", "Условная отметка 0.000 соответствует абсолютной отметке - 489,79 по генплану."])
+    index, pts = _ctx(pages)
+    assert len(check_elevation(pts, index)) == 1
+
+
+def test_unknown_name_flagged_only_where_repeated():
+    office = PageTable([HEADER, ["Здание офиса", "312,91", "3116,37"]], (0, 40.0, 500, 80.0), HEADER)
+    shop = PageTable([HEADER, ["Здание офиса", "199,50", "518,70"]], (0, 40.0, 500, 80.0), HEADER)
+    pages = [_page(1, ["5.1 Административно-бытовой корпус", "Показатели", "Здание офиса 312,91 3116,37"], [office]),
+             _page(2, ["5.2 Здание цеха", "Показатели", "Здание офиса 199,50 518,70"], [shop])]
+    index, pts = _ctx(pages)
+    found = check_table_labels(pages, pts, index)
+    assert [index.by_id()[f.object].name for f in found] == ["Здание цеха"]

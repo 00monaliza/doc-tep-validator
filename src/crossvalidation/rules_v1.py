@@ -15,13 +15,14 @@ from __future__ import annotations
 
 import re
 
-from src.crossvalidation.objects import OBJECT_NOUN_RE, ObjectIndex, PageText, resolve
-from src.crossvalidation.rules import Mention, _finding, _quote
+from src.crossvalidation.objects import OBJECT_NOUN_RE, ObjectIndex, PageText, page_texts, resolve
+from src.crossvalidation.rules import Mention, RuleReport, _finding, _quote
 from src.evaluation.schema import Finding, Ref
 from src.ingestion.common.numbers import NUMBER_RE, number_readings
 from src.ingestion.real import Page
 from src.ner.common.parameters import load_parameters, width_mm
 from src.ner.common.taxonomy import DiscrepancyType
+from src.ner.common.tep_baseline import extract, load_lexicon, object_index
 
 ELEVATION_SLACK_M = 3.0  # a building rarely sits higher above (or below) the relief than this
 
@@ -35,7 +36,8 @@ Z_RE = [
     re.compile(rf"{_n('z')}\s*м?\s+абсолютт\w*\s+белгі", re.IGNORECASE),
 ]
 RELIEF_RE = [
-    re.compile(rf"отметк\w*[^.;]{{0,80}}?от\s+{_n('lo')}\s*м?\s*до\s+{_n('hi')}", re.IGNORECASE),
+    # "от 314,75 м до 315,04 м", "от высотных отметок 314,75 м до …" (the sentence must speak of "отметки")
+    re.compile(rf"(?<![^\W\d_])от\s+(?:[^\W\d_]+\s+){{0,3}}?{_n('lo')}\s*м?\s*до\s+{_n('hi')}", re.IGNORECASE),
     re.compile(rf"белгілер\w*[^.;]{{0,40}}?{_n('lo')}\s*м?-?(?:ден|дан|тен|тан)\s+{_n('hi')}",
                re.IGNORECASE),
 ]
@@ -59,6 +61,8 @@ def check_elevation(pts: list[PageText], index: ObjectIndex) -> list[Finding]:
         for rx in RELIEF_RE:
             for m in rx.finditer(pt.text):
                 lo, hi = _num(m.group("lo")), _num(m.group("hi"))
+                if not re.search(r"отметк|белгі", pt.sentence(m.start(), m.end()), re.IGNORECASE):
+                    continue
                 if lo is not None and hi is not None:
                     relief.append(Ref(page=pt.page, quote=_quote(pt.text, m.group()), object="site",
                                       value=[min(lo, hi), max(lo, hi)], unit="m"))
@@ -134,27 +138,46 @@ def check_volume_method(pts: list[PageText], index: ObjectIndex, mentions: list[
     return out
 
 
+def _row_label(row: list[str]) -> str:
+    return next((c for c in row if c and re.search(r"[^\W\d_]", c)), "")
+
+
 def check_table_labels(pages: list[Page], pts: list[PageText], index: ObjectIndex) -> list[Finding]:
-    """A one-row table inside the section of building X whose row names another building (or an unknown one)."""
-    out = []
-    carried = [None] + [pt.ctx_after for pt in pts[:-1]]
+    """A one-row table inside the section of building X labelled with another building's name; or labelled with
+    an unknown name that also labels the table of an earlier building (the name was copied from there)."""
     names = index.by_id()
+    lex = load_lexicon()
+    carried = [None] + [pt.ctx_after for pt in pts[:-1]]
+    candidates: list[tuple[str, str, Ref, bool]] = []  # (section, label, ref, names another known building)
     for page, pt, car in zip(pages, pts, carried, strict=True):
         for table in page.tables:
             section = pt.context_above(table.top, car)
             if section is None:
                 continue
-            rows = [r for r in table.rows[1:] if any(_num(c) is not None for c in r if c)]
-            labels = [next((c for c in r if c and re.search(r"[^\W\d_]", c)), "") for r in rows]
-            if len(rows) != 1 or not labels[0]:
-                continue  # summary tables (several objects) and unlabelled rows are not checked
-            named = index.mentioned(labels[0])
-            if section in named or not (named or OBJECT_NOUN_RE.search(labels[0])):
+            body = table.rows[1:]
+            data = [i for i, r in enumerate(body) if any(_num(c) is not None for c in r if c)
+                    and not lex.is_total(_row_label(r))]
+            if len(data) != 1:
+                continue  # summary tables (several objects) are not checked
+            row = body[data[0]]
+            if not _row_label(row) and data[0] > 0 and not lex.is_units_row(_row_label(body[data[0] - 1])):
+                row = body[data[0] - 1]  # the name in its own row right above the numbers
+            label = _row_label(row)
+            named = index.mentioned(label) if label else set()
+            if not label or section in named or not (named or OBJECT_NOUN_RE.search(label)):
                 continue
-            quote = _quote(pt.text, " ".join(c for c in rows[0] if c), labels[0])
-            out.append(_finding(DiscrepancyType.COPY_PASTE_LABEL, "object_label", section,
-                                [Ref(page=pt.page, quote=quote, object=section, value=labels[0])],
-                                note=f"table in the section of {names[section].name!r} is labelled {labels[0]!r}"))
+            quote = _quote(pt.text, " ".join(c for c in row if c), label)
+            candidates.append((section, label, Ref(page=pt.page, quote=quote, object=section, value=label),
+                               bool(named)))
+    first_section: dict[str, str] = {}
+    for section, label, _, _ in candidates:
+        first_section.setdefault(re.sub(r"\W+", "", label.lower()), section)
+    out = []
+    for section, label, ref, known in candidates:
+        if not known and first_section[re.sub(r"\W+", "", label.lower())] == section:
+            continue  # an unknown name, first used here: probably this building's other name
+        out.append(_finding(DiscrepancyType.COPY_PASTE_LABEL, "object_label", section, [ref],
+                            note=f"table in the section of {names[section].name!r} is labelled {label!r}"))
     return out
 
 
@@ -206,3 +229,33 @@ def check_parameters(pts: list[PageText], index: ObjectIndex) -> list[Finding]:
             out.append(_finding(DiscrepancyType.PARAMETER_CONTRADICTION, name, scope, [r for r, _, _ in group],
                                 note=f"{name}: " + "; ".join(str(r.value) for r, _, _ in group)))
     return out
+
+
+def _floors(pages: list[Page]) -> dict[str, int]:
+    """Floors per building from the ТЭП extractor (rules v0 mentions do not carry them)."""
+    return {obj: int(c.value) for (obj, fld), c in extract(pages).slots.items() if fld == "floors"}
+
+
+DETECTORS = [
+    ("elevation", lambda pages, pts, index, report: check_elevation(pts, index)),
+    ("volume_method", lambda pages, pts, index, report: check_volume_method(pts, index, report.mentions,
+                                                                             _floors(pages))),
+    ("table_labels", lambda pages, pts, index, report: check_table_labels(pages, pts, index)),
+    ("parameters", lambda pages, pts, index, report: check_parameters(pts, index)),
+]
+
+
+def run_rules_v1(pages: list[Page], report: RuleReport) -> tuple[list[Finding], list[str]]:
+    """Findings of the v1 checks (ids continue those of `report`) and warnings for checks that failed."""
+    index = object_index(pages)  # the same objects (ids) as run_rules
+    pts = page_texts(pages, index)
+    findings: list[Finding] = []
+    warnings: list[str] = []
+    for name, detect in DETECTORS:
+        try:
+            findings += detect(pages, pts, index, report)
+        except Exception as e:  # one broken check must not cost the whole report
+            warnings.append(f"Проверка «{name}» не выполнена: {type(e).__name__}.")
+    for i, f in enumerate(findings, start=len(report.findings) + 1):
+        f.id = f"P{i}"
+    return findings, warnings
