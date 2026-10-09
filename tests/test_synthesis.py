@@ -231,3 +231,41 @@ def test_deterministic(tmp_path):
     a = load(generate_set("kz", 7, tmp_path / "a", scans=False))
     b = load(generate_set("kz", 7, tmp_path / "b", scans=False))
     assert a["tep"] == b["tep"] and a["discrepancies"] == b["discrepancies"]
+
+
+@pytest.mark.parametrize("lang", ["ru", "kz"])
+def test_v3_changes_only_wording(tmp_path, lang):
+    """Same seed in v2 and v3: same buildings, values and discrepancies; only TEP wording differs."""
+    v2 = load(generate_set(lang, 11, tmp_path / "v2", scans=False, profile="v2"))
+    v3 = load(generate_set(lang, 11, tmp_path / "v3", scans=False, profile="v3-dev"))
+    assert v3["profile"] == "v3-dev"
+    assert v3["objects"] == v2["objects"]
+    assert v3["injected_types"] == v2["injected_types"]
+    core = lambda recs: [(r["type"], r.get("object"), [(x.get("field"), x.get("value")) for x in r["refs"]])  # noqa: E731
+                         for r in recs]
+    assert core(v3["discrepancies"]) == core(v2["discrepancies"])
+    values = lambda g: {f: e["value"] for f, e in g["tep"]["PZ"].items()}  # noqa: E731
+    assert values(v3) == values(v2)
+
+
+@pytest.mark.parametrize("lang", ["ru", "kz"])
+def test_v3_uses_heldout_labels(tmp_path, lang):
+    from src.ner.common.tep_baseline import squash
+    from src.synthesis.data.heldout import HELDOUT
+
+    v2 = squash(body_text(generate_set(lang, 11, tmp_path / "v2", scans=False, profile="v2") / "text" / "PZ.pdf"))
+    v3 = squash(body_text(generate_set(lang, 11, tmp_path / "v3", scans=False, profile="v3-dev") / "text" / "PZ.pdf"))
+    labels = {squash(x) for v in HELDOUT[lang]["dev"]["labels"].values() for x in v}
+    assert sum(lab in v3 for lab in labels) >= 3
+    assert sum(lab in v2 for lab in labels) <= 1  # a held-out label may contain a v2 one, not the reverse
+
+
+def test_ocr_noise_changes_one_spot():
+    import random
+
+    from src.synthesis.context import ocr_noise
+
+    rng = random.Random(0)
+    out = {ocr_noise("Площадь застройки здания", rng) for _ in range(50)}
+    assert "Площадь застройки здания" not in out or len(out) > 1
+    assert all(abs(len(x) - len("Площадь застройки здания")) <= 1 for x in out)

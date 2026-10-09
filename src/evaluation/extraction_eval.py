@@ -32,7 +32,7 @@ FIELDS = BUILDING_FIELDS + PROJECT_FIELDS
 def gold_slots(gt: dict) -> dict[tuple[str, str], float]:
     pz = gt["tep"]["PZ"]
     slots: dict[tuple[str, str], float] = {}
-    if gt.get("profile") == "v2":
+    if gt.get("profile", "v1") != "v1":
         for bid, o in gt["objects"].items():
             for f in BUILDING_FIELDS:
                 if o["tep"].get(f) is not None:

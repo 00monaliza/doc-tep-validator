@@ -17,6 +17,33 @@ NORM_CODES = {
     "brick_masonry_m3": "Е08-02-001-03",
     "steel_structures_t": "Е09-03-002-01",
 }
+OCR_NOISE_RATE = 0.2  # share of held-out labels with an OCR-like defect
+# unit text used by the templates -> canonical unit of the held-out vocabulary
+UNIT_CANON = {"м²": "m2", "м³": "m3", "этаж": "floor", "эт.": "floor", "қабат": "floor",
+              "тыс. тенге": "kKZT", "мың теңге": "kKZT", "мес.": "month", "ай": "month"}
+_OCR_SWAPS = {"щ": "ш", "ь": "ъ", "о": "o", "а": "a", "е": "e", "р": "p", "с": "c", "і": "i", "ы": "ьі"}
+
+
+def ocr_noise(text: str, rng: random.Random) -> str:
+    """One OCR-like defect: a look-alike letter (Cyrillic -> Latin), a lost space or a word split by a space."""
+    op = rng.choice(("swap", "glue", "split"))
+    if op == "swap":
+        spots = [i for i, ch in enumerate(text) if ch.lower() in _OCR_SWAPS]
+        if spots:
+            i = rng.choice(spots)
+            rep = _OCR_SWAPS[text[i].lower()]
+            return text[:i] + (rep.upper() if text[i].isupper() else rep) + text[i + 1:]
+    if op == "glue" and " " in text:
+        i = rng.choice([i for i, ch in enumerate(text) if ch == " "])
+        return text[:i] + text[i + 1:]
+    words = text.split(" ")
+    long = [i for i, w in enumerate(words) if len(w) >= 6]
+    if not long:
+        return text
+    k = rng.choice(long)
+    cut = rng.randint(2, len(words[k]) - 2)
+    words[k] = words[k][:cut] + " " + words[k][cut:]
+    return " ".join(words)
 
 
 @dataclass
@@ -39,6 +66,8 @@ class Ctx:
     rng: random.Random  # phrasing variants only; numbers are fixed in `v`
     plan: PzPlan | None = None  # profile v2: several buildings in the ПЗ
     vrng: random.Random | None = None  # profile v2 surface variation (labels, formats, column order)
+    heldout: dict | None = None  # profile v3: held-out wording (data/heldout.py), one half of one language
+    hrng: random.Random | None = None  # profile v3 choices; a separate stream keeps v2 draws as they are
 
     @property
     def v2(self) -> bool:
@@ -73,3 +102,20 @@ class Ctx:
 
     def pick(self, *variants: str) -> str:
         return self.rng.choice(variants)
+
+    def held_label(self, fld: str) -> str | None:
+        """A held-out label for a TEP field (sometimes with an OCR defect), or None outside profile v3."""
+        variants = self.heldout["labels"].get(fld) if self.heldout else None
+        if not variants:
+            return None
+        label = self.hrng.choice(variants)
+        return ocr_noise(label, self.hrng) if self.hrng.random() < OCR_NOISE_RATE else label
+
+    def held_unit(self, unit: str) -> str | None:
+        """A held-out spelling of a template unit ('м²', 'эт.', 'мес.' …), or None."""
+        variants = self.heldout["units"].get(UNIT_CANON.get(unit, "")) if self.heldout else None
+        return self.hrng.choice(variants) if variants else None
+
+    def held_template(self, name: str) -> str | None:
+        variants = self.heldout["templates"].get(name) if self.heldout else None
+        return self.hrng.choice(variants) if variants else None

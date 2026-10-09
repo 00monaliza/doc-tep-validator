@@ -32,7 +32,7 @@ def parse_inject(spec: str, profile: str) -> set[DiscrepancyType] | None:
     if spec == "random":
         return None
     if spec == "all":
-        return set(SYNTHETIC_TYPES if profile == "v2" else SYNTHETIC_TYPES_V1)
+        return set(SYNTHETIC_TYPES if profile != "v1" else SYNTHETIC_TYPES_V1)
     if spec == "none":
         return set()
     return {DiscrepancyType(s.strip()) for s in spec.split(",")}

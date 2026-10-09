@@ -12,6 +12,11 @@ column orders and broken header words, plus three more discrepancy types. All
 v2 variation comes from a separate RNG stream, so ``b1`` values of a seed are
 identical in both profiles.
 
+``v3-dev`` / ``v3-test`` are v2 with the TEP labels, unit spellings and some
+sentences of the ПЗ taken from ``data/heldout.py`` (about one label in five with
+an OCR-like defect). Their choices come from a third RNG stream, so values,
+buildings and discrepancies of a seed are those of v2: only the wording differs.
+
 Output layout for set `<lang>_<seed>`:
 
     <out>/<lang>/<set_id>/
@@ -41,6 +46,7 @@ from src.ner.common.taxonomy import (
 from src.synthesis import templates_kz, templates_ru
 from src.synthesis.context import Ctx, Meta
 from src.synthesis.data import kz_lexicon, ru_lexicon
+from src.synthesis.data.heldout import HELDOUT
 from src.synthesis.document import Document
 from src.synthesis.pz_objects import names
 from src.synthesis.render import render_docx, render_pdf
@@ -48,7 +54,7 @@ from src.synthesis.scan import make_scan
 from src.synthesis.values import PzPlan, generate_values, plan_objects
 
 SCHEMA_VERSION = "1.2"  # 1.1: documents[].tables, paragraph anchor context; 1.2: objects, profile v2
-PROFILES = ("v1", "v2")
+PROFILES = ("v1", "v2", "v3-dev", "v3-test")
 YEAR = 2026
 LANGS = ("ru", "kz")
 BUILDERS = {"ru": templates_ru.BUILDERS, "kz": templates_kz.BUILDERS}
@@ -157,7 +163,9 @@ def generate_set(lang: str, seed: int, out_root: Path, inject: set[DiscrepancyTy
                  scans: bool = True, profile: str = "v2") -> Path:
     assert lang in LANGS and profile in PROFILES
     rng = random.Random(f"{lang}:{seed}")
-    vrng = random.Random(f"{lang}:{seed}:v2") if profile == "v2" else None
+    vrng = random.Random(f"{lang}:{seed}:v2") if profile != "v1" else None  # v3 = v2 + held-out wording
+    heldout = HELDOUT[lang][profile.removeprefix("v3-")] if profile.startswith("v3-") else None
+    hrng = random.Random(f"{lang}:{seed}:v3") if heldout else None
     if inject is None:  # random subset; an empty set yields a fully consistent (negative) sample
         inject = {t for t in SYNTHETIC_TYPES_V1 if rng.random() < 0.5}
         if vrng is not None:
@@ -168,7 +176,7 @@ def generate_set(lang: str, seed: int, out_root: Path, inject: set[DiscrepancyTy
     values = generate_values(rng, inject)
     meta = _meta(lang, rng, values.building_type, values.capacity)
     plan = plan_objects(vrng, values, inject) if vrng is not None else None
-    ctx = Ctx(lang, values, meta, random.Random(rng.getrandbits(32)), plan, vrng)
+    ctx = Ctx(lang, values, meta, random.Random(rng.getrandbits(32)), plan, vrng, heldout, hrng)
     docs = {sec: build(ctx) for sec, build in BUILDERS[lang].items()}
 
     set_id = f"{lang}_{seed:05d}"

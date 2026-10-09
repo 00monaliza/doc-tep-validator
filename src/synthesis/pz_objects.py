@@ -72,6 +72,8 @@ def tep_table(ctx: Ctx, doc: Document, rows: list[tuple[str, str, str]], lex: Mo
         cell = {"no": t.next_no, "value": ctx.fmt(S, fld, style),
                 "unit": ctx.vrng.choice(lex.UNIT_VARIANTS.get(unit, (unit,))),
                 "label": synonyms[0] if ctx.vrng.random() < 0.4 else ctx.vrng.choice(synonyms)}
+        cell["label"] = ctx.held_label(fld) or cell["label"]
+        cell["unit"] = ctx.held_unit(unit) or cell["unit"]
         t.add([cell[r] for r in roles], {fld: roles.index("value")})
     widths = {"no": 0.09, "label": 0.55, "unit": 0.14, "value": 0.22}
     header = [text for _, text in layout]
@@ -86,6 +88,15 @@ def site_seismic(ctx: Ctx, doc: Document, lex: ModuleType) -> None:
     doc.para(text, mentions)
 
 
+def _summary_head(ctx: Ctx, fld: str, default: str) -> str:
+    """Summary-table header 'label, unit'; held-out wording in profile v3."""
+    label = ctx.held_label(fld)
+    if label is None:
+        return default
+    unit = "м³" if fld.endswith("_m3") else "м²"
+    return f"{label}, {ctx.held_unit(unit) or unit}"
+
+
 def summary_table(ctx: Ctx, doc: Document, lex: ModuleType) -> None:
     p, words = ctx.plan, lex.PZ_V2
     if not p.summary_fields:
@@ -94,7 +105,7 @@ def summary_table(ctx: Ctx, doc: Document, lex: ModuleType) -> None:
     ctx.vrng.shuffle(fields)
     style = ctx.style()
     h = words["summary_header"]
-    header = _header(ctx, [h["no"], h["name"]] + [h[f] for f in fields])
+    header = _header(ctx, [h["no"], h["name"]] + [_summary_head(ctx, f, h[f]) for f in fields])
     t = TableRows()
     for b in p.buildings:
         cells = [t.next_no, names(lex, b)[0]]
@@ -125,16 +136,17 @@ def object_sections(ctx: Ctx, doc: Document, lex: ModuleType, first_no: int) -> 
         doc.heading(f"{no}.{k} {nom}")
         if b.axes_m:
             a, bb = (fmt_num(x, 1) for x in b.axes_m)
-            doc.para(words["object_axes"].format(name=nom, floors=b.tep["floors"], a=a, b=bb))
+            axes = ctx.held_template("object_axes") or words["object_axes"]
+            doc.para(axes.format(name=nom, floors=b.tep["floors"], a=a, b=bb))
         else:
             doc.para(words["object_primary"].format(gen=gen, gen_cap=_cap(gen)))
         fields = [f for f in OBJECT_FIELDS if mention_key(b.id, "object_table", f) in p.values]
         rng.shuffle(fields)
         style = ctx.style()
         hdr, units = words["object_table_header"], words["object_table_units"]
-        header = _header(ctx, [hdr["name"]] + [hdr[f] for f in fields])
+        header = _header(ctx, [hdr["name"]] + [ctx.held_label(f) or hdr[f] for f in fields])
         t = TableRows()
-        t.add([units["name"]] + [units[f] for f in fields])
+        t.add([units["name"]] + [ctx.held_unit(units[f]) or units[f] for f in fields])
         cells, pos = [nom], {}
         for f in fields:
             key = mention_key(b.id, "object_table", f)
@@ -160,7 +172,9 @@ def object_sections(ctx: Ctx, doc: Document, lex: ModuleType, first_no: int) -> 
         key = mention_key(obj, "engineering_text", f)
         gen = names(lex, by_id[obj])[1]
         value = _num(float(p.values[key]), ctx.style(), p.decimals[key])
-        text, mentions = fill(rng.choice(words[f"eng_{f}"]), {"v": (value, key)}, gen=gen, gen_cap=_cap(gen))
+        template = rng.choice(words[f"eng_{f}"])
+        template = ctx.held_template(f"eng_{f}") or template
+        text, mentions = fill(template, {"v": (value, key)}, gen=gen, gen_cap=_cap(gen))
         doc.para(text, mentions)
 
     no += 1
