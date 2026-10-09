@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { Unauthorized, getCapabilities, startDemo, startUploaded, uploadFiles, waitForCheck } from "./api";
-import { authEnabled, currentEmail, initAuth, onSignedOut, signIn, signOut } from "./auth";
+import {
+  authEnabled, authRedirect, currentEmail, initAuth, onSignedOut, requestPasswordReset, setPassword, signIn, signOut,
+} from "./auth";
 import FileReview from "./components/FileReview";
 import Intake from "./components/Intake";
 import Login from "./components/Login";
 import ReportView from "./components/ReportView";
+import SetPassword from "./components/SetPassword";
 import type { Choice, Report, Reviews, UploadedFile } from "./types";
 
 const ID_RE = /^[0-9a-f]{32}$/;
@@ -13,6 +16,7 @@ type Status = { text: string; error?: boolean } | null;
 type Screen =
   | { kind: "loading" }
   | { kind: "login" }
+  | { kind: "password"; invited: boolean }
   | { kind: "intake" }
   | { kind: "review"; id: string; files: Record<string, UploadedFile> }
   | { kind: "report"; id: string; report: Report; reviews: Reviews };
@@ -78,7 +82,9 @@ export default function App() {
       unsubscribe = onSignedOut(() => { setEmail(null); setScreen({ kind: "login" }); });
       const who = await currentEmail();
       setEmail(who);
-      if (authEnabled() && !who) setScreen({ kind: "login" });
+      const link = authRedirect(); // an invitation or reset link signs the user in without a password yet
+      if (who && link.kind) setScreen({ kind: "password", invited: link.kind === "invite" });
+      else if (authEnabled() && !who) setScreen({ kind: "login" });
       else enter();
     })();
     return () => unsubscribe();
@@ -88,7 +94,19 @@ export default function App() {
 
   if (screen.kind === "loading") return <div className="intake"><p>Загрузка…</p></div>;
   if (screen.kind === "login") {
-    return <Login onSignIn={async (e, p) => { await signIn(e, p); setEmail(await currentEmail()); enter(); }} />;
+    return (
+      <Login
+        notice={authRedirect().error}
+        onSignIn={async (e, p) => { await signIn(e, p); setEmail(await currentEmail()); enter(); }}
+        onReset={requestPasswordReset}
+      />
+    );
+  }
+  if (screen.kind === "password") {
+    return (
+      <SetPassword email={email ?? ""} invited={screen.invited}
+        onSet={async p => { await setPassword(p); history.replaceState(null, "", location.pathname); enter(); }} />
+    );
   }
   if (screen.kind === "report") {
     return (
