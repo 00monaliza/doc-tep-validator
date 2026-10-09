@@ -24,13 +24,13 @@ from src.ner.common.lexicon import Lexicon, squash
 
 METHODS = ("exact", "fuzzy", "embedding")
 _LETTER_RE = re.compile(r"[^\W\d_]")
-FUZZY_MIN = 0.75  # share of a label's (weighted) words found in the text; tuned on v3-dev
-FUZZY_MARGIN = 0.2  # over the next field or a negative label
+FUZZY_MIN = 0.85  # share of a label's (weighted) words found in the text; tuned on v3-dev
+FUZZY_MARGIN = 0.3  # over the next field or a negative label
 NEGATIVE = "_negative"  # pseudo-field of lexicon "negatives" ("Площадь участка")
 HOMOGLYPHS = str.maketrans("aceopxyki", "асеорхукі")  # Latin letters OCR puts into Cyrillic words
 EMBED_MIN = 0.86  # cosine to the nearest lexicon label; tuned on v3-dev
 EMBED_MARGIN = 0.02  # over the best label of another field or a negative
-EMBED_EVIDENCE = 0.4  # fuzzy evidence needed before asking the model (keeps cell names like "Гараж" out)
+EMBED_EVIDENCE = 0.3  # fuzzy evidence needed before asking the model (keeps cell names like "Гараж" out)
 EMBED_MAX_LEN = 80
 EMBED_UNAVAILABLE = ("Модель для незнакомых названий показателей не найдена (scripts/fetch_models.py): "
                      "показатели распознаны по словарю и нечёткому сопоставлению.")
