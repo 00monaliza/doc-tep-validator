@@ -225,3 +225,20 @@ def test_storey_rule_uses_the_table_volume():
     mentions = [_m(b, "construction_volume_m3", 8250.0), _m(b, "building_area_m2", 687.5),
                 Mention(b, "construction_volume_m3", 4117.51, 2, "q", "text", "test")]  # wrong text repeat
     assert check_volume_method(pts, index, mentions, {b: 3}) == []
+
+
+def test_parapet_elevation_is_not_building_zero():
+    pages = _pages(["Абсолютные отметки поверхности изменяются от 314,75 м до 315,04 м."],
+                   ["5.1 Здание офиса", "Относительная отметка 0,000 соответствует абсолютной отметке 315,20 м.",
+                    "Отметка верха парапета +12,300 соответствует абсолютной отметке 327,50."])
+    index, pts = _ctx(pages)
+    assert check_elevation(pts, index) == []
+
+
+def test_sentence_naming_another_building_keeps_its_object():
+    pages = _pages(["5. Решения", "5.1 Здание котельной", "Текст."],
+                   ["5.2 Здание школы", "Рядом расположена котельная. Строительный объём здания котельной 512,00 м³."])
+    index, _ = _ctx(pages)
+    boiler = next(o.id for o in index.objects if "котельн" in o.name)
+    texts = [m for m in run_rules(pages, prefer_heading=True).mentions if m.source == "text"]
+    assert texts and {m.object for m in texts} == {boiler}

@@ -35,6 +35,7 @@ Z_RE = [
     re.compile(rf"абсолютн\w*\s+отметк\w*\s*[-–—:=]?\s*{_n('z')}", re.IGNORECASE),
     re.compile(rf"{_n('z')}\s*м?\s+абсолютт\w*\s+белгі", re.IGNORECASE),
 ]
+ZERO_RE = re.compile(r"0[.,]000|нулев", re.IGNORECASE)  # a building's elevation is that of its 0.000
 RELIEF_RE = [
     # "от 314,75 м до 315,04 м", "от высотных отметок 314,75 м до …" (the sentence must speak of "отметки")
     re.compile(rf"(?<![^\W\d_])от\s+(?:[^\W\d_]+\s+){{0,3}}?{_n('lo')}\s*м?\s*до\s+{_n('hi')}", re.IGNORECASE),
@@ -75,6 +76,8 @@ def check_elevation(pts: list[PageText], index: ObjectIndex) -> list[Finding]:
         for rx in Z_RE:
             for m in rx.finditer(pt.text):
                 z = _num(m.group("z"))
+                if not ZERO_RE.search(pt.sentence(m.start(), m.end())):
+                    continue  # the elevation of something else ("отметка верха парапета … абсолютной отметке")
                 obj = _object(pt, index, m.start(), m.end())
                 if z is None or obj is None:
                     continue
