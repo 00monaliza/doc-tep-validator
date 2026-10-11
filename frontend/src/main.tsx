@@ -1,11 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
-import "./styles.css"; // старый интерфейс, удаляется в Task 9
+import { createBrowserRouter, RouterProvider } from "react-router";
+import { Providers } from "./app/providers";
+import { routes } from "./app/router";
 import "./design/index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <Providers><RouterProvider router={createBrowserRouter(routes)} /></Providers>
   </StrictMode>,
 );

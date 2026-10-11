@@ -5,9 +5,9 @@ import {
 } from "./lib/auth";
 import FileReview from "./components/FileReview";
 import Intake from "./components/Intake";
-import Login from "./components/Login";
+import Login from "./platform/auth/Login";
 import ReportView from "./components/ReportView";
-import SetPassword from "./components/SetPassword";
+import SetPassword from "./platform/auth/SetPassword";
 import type { Choice, Report, Reviews, UploadedFile } from "./lib/types";
 
 const ID_RE = /^[0-9a-f]{32}$/;
