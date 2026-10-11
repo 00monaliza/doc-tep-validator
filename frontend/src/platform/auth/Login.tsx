@@ -1,4 +1,6 @@
 import { useState } from "react";
+import Button from "../../design/Button";
+import { t } from "../../lib/i18n";
 
 interface Props {
   notice: string | null; // e.g. an expired invitation link
@@ -29,36 +31,36 @@ export default function Login({ notice, onSignIn, onReset }: Props) {
   };
 
   return (
-    <section className="intake login" aria-labelledby="login-title">
-      <h1 id="login-title">Сверка ТЭП между разделами проекта</h1>
-      <p>
+    <section className="max-w-md mx-auto my-[10vh] px-4 flex flex-col gap-4" aria-labelledby="login-title">
+      <h1 id="login-title" className="text-2xl font-semibold">{t("login.title")}</h1>
+      <p className="text-ink-2">
         {mode === "signin"
-          ? "Войдите, чтобы загружать документы и видеть свои проверки. Доступ выдаёт администратор сервиса."
-          : "Пришлём на почту ссылку, по которой можно задать новый пароль."}
+          ? t("login.lead")
+          : t("login.reset.lead")}
       </p>
-      <form onSubmit={submit}>
-        <label>Почта
-          <input type="email" autoComplete="username" required value={email}
+      <form onSubmit={submit} className="flex flex-col gap-3">
+        <label className="flex flex-col gap-1 text-sm text-ink-2">{t("login.email")}
+          <input className="min-h-9 border border-control rounded px-2.5 bg-sheet text-ink text-base" type="email" autoComplete="username" required value={email}
             onChange={e => setEmail(e.target.value)} disabled={busy} />
         </label>
         {mode === "signin" && (
-          <label>Пароль
-            <input type="password" autoComplete="current-password" required value={password}
+          <label className="flex flex-col gap-1 text-sm text-ink-2">{t("login.password")}
+            <input className="min-h-9 border border-control rounded px-2.5 bg-sheet text-ink text-base" type="password" autoComplete="current-password" required value={password}
               onChange={e => setPassword(e.target.value)} disabled={busy} />
           </label>
         )}
-        <div className="demo">
-          <button type="submit" className="primary" disabled={busy || sent}>
-            {mode === "signin" ? (busy ? "Входим…" : "Войти") : busy ? "Отправляем…" : "Прислать ссылку"}
-          </button>
-          <button type="button" className="link" disabled={busy}
+        <div className="flex items-center gap-3">
+          <Button type="submit" variant="primary" disabled={busy || sent}>
+            {mode === "signin" ? (busy ? t("login.submitting") : t("login.submit")) : busy ? t("login.reset.submitting") : t("login.reset.submit")}
+          </Button>
+          <Button variant="ghost" disabled={busy}
             onClick={() => { setMode(m => (m === "signin" ? "reset" : "signin")); setError(""); setSent(false); }}>
-            {mode === "signin" ? "Забыли пароль?" : "Назад ко входу"}
-          </button>
+            {mode === "signin" ? t("login.forgot") : t("login.back")}
+          </Button>
         </div>
       </form>
-      {sent && <div className="status" role="status">Письмо отправлено, проверьте почту (и папку «Спам»).</div>}
-      <div className="status error" role="alert">{error}</div>
+      {sent && <div className="text-sm" role="status">{t("login.reset.sent")}</div>}
+      <div className="text-pencil text-sm" role="alert">{error}</div>
     </section>
   );
 }

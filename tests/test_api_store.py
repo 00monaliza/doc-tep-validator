@@ -333,3 +333,10 @@ def test_spa_routes_serve_the_interface(client):
         r = client.get(path)
         assert r.status_code == 200 and "<" in r.text
     assert client.get("/api/nope").status_code == 404
+
+
+def test_default_title_uses_the_object_heading_of_the_note_before_its_file_name():
+    from api.main import default_title
+    report = {"objects": {}, "pz_building": None,
+              "documents": [{"file": "PZ.pdf", "section": "PZ", "object_title": "Жилой дом по ул. Абая"}]}
+    assert default_title(report, ["PZ.pdf"]) == "Жилой дом по ул. Абая"

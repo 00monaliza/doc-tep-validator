@@ -25,7 +25,7 @@ export default function FindingDetail({ finding, review, onReview, saving }: Pro
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex flex-wrap gap-1"><Badge kind={KIND[finding.verdict]}>{VERDICT[finding.verdict]}</Badge>
-        {finding.needs_expert && <Badge kind="expert">эксперту</Badge>}{finding.low_confidence && <Badge kind="scan">скан</Badge>}</div>
+        {finding.needs_expert && <Badge kind="expert">{t("common.expert")}</Badge>}{finding.low_confidence && <Badge kind="scan">{t("common.scan")}</Badge>}</div>
       <h2 className="text-lg font-semibold leading-snug">{fieldName(finding.field)}</h2>
       <p className="text-sm text-ink-2">{finding.object_name ? `${finding.object_name} · ` : ""}{comparedLabel(finding)}</p>
       <table className="w-full text-sm border border-line">
@@ -34,7 +34,7 @@ export default function FindingDetail({ finding, review, onReview, saving }: Pro
             <tr key={i} className="border-t border-line first:border-t-0">
               <td className="p-1.5 font-cond">{r.label ?? SECTION[r.section]}</td>
               <td className={"p-1.5 num text-right " + (r.value == null ? "text-amber" : "")}>{fmt(r.value)}</td>
-              <td className="p-1.5 text-ink-2">{r.page ? `стр. ${r.page}` : "—"}</td>
+              <td className="p-1.5 text-ink-2">{r.page ? t("common.page", { page: r.page }) : "—"}</td>
             </tr>
           ))}
         </tbody>
@@ -45,7 +45,7 @@ export default function FindingDetail({ finding, review, onReview, saving }: Pro
           {t("verdict.confirm")} <Kbd>1</Kbd></Button>
         <Button variant={review.verdict === "false_positive" ? "primary" : "secondary"} onClick={() => toggle("false_positive")}>
           {t("verdict.false")} <Kbd>2</Kbd></Button>
-        {saving && <span role="status" className="text-xs text-ink-2 self-center">сохраняем…</span>}
+        {saving && <span role="status" className="text-xs text-ink-2 self-center">{t("common.saving")}</span>}
       </div>
       <textarea aria-label={t("verdict.comment")} placeholder={t("verdict.comment")} maxLength={2000} rows={3}
         value={comment} onChange={e => setComment(e.target.value)} onBlur={saveComment}

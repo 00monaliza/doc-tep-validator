@@ -46,18 +46,18 @@ export default function CommandMenu() {
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}
-        className="flex items-center gap-2 min-h-8 px-2.5 border border-control rounded bg-sheet text-ink-2 text-sm w-72">
+        className="flex items-center gap-2 min-h-8 px-2.5 border border-control rounded bg-sheet text-ink-2 text-sm w-full max-w-72">
         {t("search.hint")} <span className="flex-1" /><Kbd>⌘K</Kbd>
       </button>
       <Dialog open={open} onOpenChange={setOpen} title={t("search.hint")}>
         <Cmdk label={t("search.hint")} className="flex flex-col">
           <Cmdk.Input placeholder={t("search.placeholder")} className="m-3 min-h-9 border border-control rounded px-2.5 bg-sheet" />
           <Cmdk.List className="max-h-80 overflow-auto px-2 pb-2">
-            <Cmdk.Empty className="p-3 text-ink-2">Ничего не найдено</Cmdk.Empty>
+            <Cmdk.Empty className="p-3 text-ink-2">{t("common.nothingFound")}</Cmdk.Empty>
             {groups.map(g => {
               const items = cmds.filter(c => c.group === g);
               return items.length ? (
-                <Cmdk.Group key={g} heading={g} className="[&_[cmdk-group-heading]]:font-cond [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:text-ink-2 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2">
+                <Cmdk.Group key={g} heading={t(`cmd.group.${g}`)} className="[&_[cmdk-group-heading]]:font-cond [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:text-ink-2 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2">
                   {items.map(c => (
                     <Cmdk.Item key={c.id} value={`${c.label} ${c.id}`} onSelect={() => run(c)}
                       className="px-2 py-1.5 rounded cursor-pointer data-[selected=true]:bg-blue-wash">{c.label}</Cmdk.Item>

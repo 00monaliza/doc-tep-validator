@@ -5,18 +5,19 @@ import Button from "../../design/Button";
 import { fileLink } from "../../lib/api";
 import { SECTION, SECTION_FULL } from "../../lib/labels";
 import type { Finding, Ref, Report } from "../../lib/types";
+import { t } from "../../lib/i18n";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 const pdfCache: Record<string, Promise<pdfjs.PDFDocumentProxy>> = {};
 
 function Evidence({ r, finding }: { r: Ref; finding?: Finding }) {
-  if (r.value == null) return <>{finding?.message ?? ""} В документе этого значения нет.</>;
+  if (r.value == null) return <>{finding?.message ?? ""} {t("doc.noValue")}</>;
   const txt = r.evidence ?? "";
   const raw = r.raw ?? "";
   const at = raw ? txt.lastIndexOf(raw) : -1; // mark the last occurrence: extractors read the last number of a row
   return (
     <>
-      {r.derived && `Вычислено: ${r.derived}. `}
+      {r.derived && t("doc.computed", { how: r.derived })}
       {at >= 0 ? <>{txt.slice(0, at)}<mark className="bg-transparent text-pencil font-semibold">{raw}</mark>{txt.slice(at + raw.length)}</> : txt}
     </>
   );
@@ -51,7 +52,7 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
     page.replaceChildren();
     setNote("");
     if (!doc || !doc.file.toLowerCase().endsWith(".pdf")) {
-      if (doc) setNote("Для DOCX показываем только фрагмент текста выше.");
+      if (doc) setNote(t("doc.docxOnly"));
       return;
     }
     let cancelled = false; // a newer selection cancels an unfinished page render
@@ -96,14 +97,14 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
     <div className="flex flex-col min-h-0 min-w-0">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-line bg-sheet">
         <span className="flex-1 min-w-0 truncate font-cond font-semibold">
-          {!ref ? "Выберите замечание слева"
-            : doc ? `${SECTION[ref.section]} · ${doc.file}` : `${SECTION_FULL[ref.section]}: нет в пакете`}
+          {!ref ? t("doc.pick")
+            : doc ? `${SECTION[ref.section]} · ${doc.file}` : t("doc.notInPackage", { section: SECTION_FULL[ref.section] })}
         </span>
         {showSwitch && refs.length > 1 && (
           <span className="flex gap-1">
             {refs.map((r, i) => (
               <Button key={i} size="sm" variant={i === idx ? "primary" : "secondary"} aria-pressed={i === idx} onClick={() => onIdx(i)}>
-                {r.label ?? SECTION[r.section]}{r.value == null ? " (нет)" : ""}
+                {r.label ?? SECTION[r.section]}{r.value == null ? t("doc.none") : ""}
               </Button>
             ))}
           </span>
@@ -111,20 +112,20 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
       </div>
       {ref && <div className="px-3 py-2 text-sm text-ink-2 border-b border-line bg-sheet"><Evidence r={ref} finding={finding} /></div>}
       {isPdf && pages > 0 && (
-        <div className="flex items-center gap-1.5 px-3 py-1 border-b border-line text-sm text-ink-2 bg-sheet">
-          <Button size="sm" aria-label="Предыдущая страница" disabled={pageNo <= 1}
+        <div className="flex flex-wrap items-center gap-1.5 px-3 py-1 border-b border-line text-sm text-ink-2 bg-sheet">
+          <Button size="sm" aria-label={t("doc.prev")} disabled={pageNo <= 1}
             onClick={() => setPageNo(p => p - 1)}>‹</Button>
-          <span>стр. {pageNo} из {pages}</span>
-          <Button size="sm" aria-label="Следующая страница" disabled={pageNo >= pages}
+          <span className="whitespace-nowrap">{t("common.pageOf", { page: pageNo, pages })}</span>
+          <Button size="sm" aria-label={t("doc.next")} disabled={pageNo >= pages}
             onClick={() => setPageNo(p => p + 1)}>›</Button>
           {pageNo !== (ref?.page ?? 1) && (
-            <Button size="sm" variant="ghost" className="text-pencil" onClick={() => setPageNo(ref?.page ?? 1)}>к значению</Button>
+            <Button size="sm" variant="ghost" className="text-pencil" onClick={() => setPageNo(ref?.page ?? 1)}>{t("doc.toValue")}</Button>
           )}
           <span className="ml-auto flex gap-1">
-            <Button size="sm" aria-label="Уменьшить" disabled={zoom <= 0.5}
+            <Button size="sm" aria-label={t("doc.zoomOut")} disabled={zoom <= 0.5}
               onClick={() => setZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))}>−</Button>
-            <Button size="sm" onClick={() => setZoom(1)} aria-label="По ширине">{Math.round(zoom * 100)} %</Button>
-            <Button size="sm" aria-label="Увеличить" disabled={zoom >= 3}
+            <Button size="sm" onClick={() => setZoom(1)} aria-label={t("doc.fit")}>{Math.round(zoom * 100)} %</Button>
+            <Button size="sm" aria-label={t("doc.zoomIn")} disabled={zoom >= 3}
               onClick={() => setZoom(z => Math.min(3, +(z + 0.25).toFixed(2)))}>+</Button>
           </span>
         </div>

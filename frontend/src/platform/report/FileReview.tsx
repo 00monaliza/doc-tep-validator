@@ -2,11 +2,12 @@ import { useState } from "react";
 import Button from "../../design/Button";
 import { SECTION, SECTIONS, SECTION_FULL } from "../../lib/labels";
 import type { Choice, Section, UploadedFile } from "../../lib/types";
+import { t } from "../../lib/i18n";
 
 const HOW: Record<string, string> = {
-  title: "по заголовку", "document code": "по шифру документа", "table signature": "по таблице",
-  unknown: "не определён", scan: "скан: определится после распознавания", unreadable: "файл не читается",
-  user: "выбран вручную",
+  title: t("review.how.title"), "document code": t("review.how.code"), "table signature": t("review.how.table"),
+  unknown: t("review.how.unknown"), scan: t("review.how.scan"), unreadable: t("review.how.unreadable"),
+  user: t("review.how.user"),
 };
 
 interface Props {
@@ -37,10 +38,10 @@ export default function FileReview({ files, busy, status, onStart, onCancel }: P
 
   return (
     <section className="max-w-3xl flex flex-col gap-3" aria-labelledby="review-title">
-      <h1 id="review-title" className="text-xl font-semibold">Проверьте разделы перед запуском</h1>
-      <p className="text-ink-2">Раздел каждого файла определён по первой странице. Если он неверный, выберите нужный; лишний файл можно не учитывать.</p>
+      <h1 id="review-title" className="text-xl font-semibold">{t("review.title")}</h1>
+      <p className="text-ink-2">{t("review.lead")}</p>
       <table className="w-full bg-sheet border border-line text-sm">
-        <thead><tr className="text-left font-cond text-[11px] uppercase tracking-wide text-ink-2"><th className="p-2">Файл</th><th className="p-2">Определено</th><th className="p-2">Раздел</th></tr></thead>
+        <thead><tr className="text-left font-cond text-[11px] uppercase tracking-wide text-ink-2"><th className="p-2">{t("review.col.file")}</th><th className="p-2">{t("review.col.detected")}</th><th className="p-2">{t("review.col.section")}</th></tr></thead>
         <tbody>
           {names.map(n => {
             const f = files[n];
@@ -49,11 +50,11 @@ export default function FileReview({ files, busy, status, onStart, onCancel }: P
                 <td className="p-2 font-medium break-all">{n}</td>
                 <td className="p-2 text-ink-2">{f.section ? `${SECTION[f.section]}, ${HOW[f.how] ?? f.how}` : HOW[f.how] ?? f.how}</td>
                 <td className="p-2">
-                  <select className="min-h-[26px] border border-control rounded px-1.5 bg-sheet max-w-full" aria-label={`Раздел файла ${n}`} value={choice[n]} disabled={busy}
+                  <select className="min-h-[26px] border border-control rounded px-1.5 bg-sheet max-w-full" aria-label={t("review.fileSection", { name: n })} value={choice[n]} disabled={busy}
                     onChange={e => setChoice(c => ({ ...c, [n]: e.target.value as Choice }))}>
-                    <option value="auto">{f.section ? `как определено (${SECTION[f.section]})` : "определить при проверке"}</option>
+                    <option value="auto">{f.section ? t("review.asDetected", { section: SECTION[f.section] }) : t("review.detectLater")}</option>
                     {SECTIONS.map(s => <option key={s} value={s}>{SECTION_FULL[s]}</option>)}
-                    <option value="skip">не учитывать</option>
+                    <option value="skip">{t("review.skip")}</option>
                   </select>
                 </td>
               </tr>
@@ -62,19 +63,19 @@ export default function FileReview({ files, busy, status, onStart, onCancel }: P
         </tbody>
       </table>
       {missing.length > 0 && (
-        <div className="border-l-[3px] border-amber bg-amber-wash px-3 py-2 text-sm">Нет в пакете: {missing.map(s => SECTION_FULL[s]).join(", ")}. Сверка с ними будет пропущена.</div>
+        <div className="border-l-[3px] border-amber bg-amber-wash px-3 py-2 text-sm">{t("review.missing", { list: missing.map(s => SECTION_FULL[s]).join(", ") })}</div>
       )}
       {twice.map(([s, ns]) => (
-        <div key={s} className="border-l-[3px] border-amber bg-amber-wash px-3 py-2 text-sm">{SECTION_FULL[s]}: {ns.join(", ")}. Учтётся только первый файл раздела.</div>
+        <div key={s} className="border-l-[3px] border-amber bg-amber-wash px-3 py-2 text-sm">{t("review.twice", { section: SECTION_FULL[s], files: ns.join(", ") })}</div>
       ))}
       {unknown.length > 0 && (
-        <div className="border-l-[3px] border-amber bg-amber-wash px-3 py-2 text-sm">Раздел не определён: {unknown.join(", ")}. Выберите его, иначе файл не попадёт в сверку.</div>
+        <div className="border-l-[3px] border-amber bg-amber-wash px-3 py-2 text-sm">{t("review.unknown", { files: unknown.join(", ") })}</div>
       )}
       <div className="flex gap-2">
         <Button variant="primary" disabled={busy || !used.length} onClick={() => onStart(choice)}>
-          Проверить {used.length} файл(ов)
+          {t("review.start", { n: used.length })}
         </Button>
-        <Button variant="ghost" disabled={busy} onClick={onCancel}>Отмена</Button>
+        <Button variant="ghost" disabled={busy} onClick={onCancel}>{t("common.cancel")}</Button>
       </div>
       <div className={status?.error ? "text-pencil text-sm" : "text-ink-2 text-sm"} role="status" aria-live="polite">{status?.text}</div>
     </section>

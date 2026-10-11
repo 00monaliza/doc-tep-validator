@@ -12,12 +12,12 @@ const date = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "
 function Result({ r }: { r: CheckRow }) {
   if (r.status !== "done" || !r.summary) return <span className="text-ink-2">{t(`checks.status.${r.status}` as Key)}</span>;
   const { MISMATCH, MISSING } = r.summary;
-  if (!MISMATCH && !MISSING) return <span className="text-green">всё сходится</span>;
+  if (!MISMATCH && !MISSING) return <span className="text-green">{t("checks.allMatch")}</span>;
   return (
     <span className="num">
       {MISMATCH > 0 && <span className="text-pencil font-semibold">{MISMATCH} ≠</span>}
       {MISMATCH > 0 && MISSING > 0 && " · "}
-      {MISSING > 0 && <span className="text-amber">{MISSING} нет</span>}
+      {MISSING > 0 && <span className="text-amber">{t("checks.missing", { n: MISSING })}</span>}
     </span>
   );
 }
@@ -29,7 +29,16 @@ export default function ChecksTable({ rows, onRename }: { rows: CheckRow[]; onRe
 
   return (
     <>
-      <table className="w-full table-fixed border-collapse bg-sheet border border-line text-sm">
+      <ul className="md:hidden flex flex-col gap-2">
+        {rows.map(r => (
+          <li key={r.id} className="bg-sheet border border-line rounded p-3 flex flex-col gap-1.5">
+            <Link to={`/app/checks/${r.id}`} title={r.title} className="font-semibold text-ink break-words">{r.title}</Link>
+            <span className="flex gap-1">{SECTIONS.map(s => <SectionChip key={s} section={s} present={r.sections.includes(s)} />)}</span>
+            <span className="flex flex-wrap gap-x-3 text-sm"><Result r={r} /><span className="text-ink-2">{date(r.created_at)} → {date(r.expires_at)}</span></span>
+          </li>
+        ))}
+      </ul>
+      <table className="hidden md:table w-full table-fixed border-collapse bg-sheet border border-line text-sm">
         <thead>
           <tr className="text-left font-cond text-[11px] uppercase tracking-wide text-ink-2">
             <th className="p-2 w-[38%]">{t("checks.col.title")}</th><th className="p-2">{t("checks.col.sections")}</th>
@@ -61,7 +70,7 @@ export default function ChecksTable({ rows, onRename }: { rows: CheckRow[]; onRe
       </table>
       <Dialog open={editing !== null} onOpenChange={o => !o && setEditing(null)} title={t("checks.rename")}>
         <form className="p-4 flex flex-col gap-3" onSubmit={e => { e.preventDefault(); save(); }}>
-          <input aria-label="Название" maxLength={200} value={title} onChange={e => setTitle(e.target.value)} autoFocus
+          <input aria-label={t("checks.rename.field")} maxLength={200} value={title} onChange={e => setTitle(e.target.value)} autoFocus
             className="min-h-9 border border-control rounded px-2.5 bg-sheet" />
           <Button type="submit" variant="primary" className="self-start">{t("checks.rename.save")}</Button>
         </form>

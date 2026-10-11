@@ -92,13 +92,15 @@ def _owned(store: LocalStore | SupabaseStore, check_id: str, user: str | None) -
 
 
 def default_title(report: dict, files: list[str]) -> str:
-    """The object of the explanatory note, else the note's file name, else the first file."""
+    """The object of the explanatory note (its building, else its heading), else its file name, else the first file."""
     objects, building = report.get("objects") or {}, report.get("pz_building")
     if building and objects.get(building):
         return objects[building][:200]
-    pz = next((d["file"] for d in report.get("documents", []) if d.get("section") == "PZ"), None)
+    pz = next((d for d in report.get("documents", []) if d.get("section") == "PZ"), None)
+    if pz and pz.get("object_title"):
+        return pz["object_title"][:200]
     if pz:
-        return Path(pz).stem[:200]
+        return Path(pz["file"]).stem[:200]
     if not files:
         return "Проверка"
     return files[0] if len(files) == 1 else f"{files[0]} и ещё {len(files) - 1}"

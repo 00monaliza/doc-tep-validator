@@ -7,6 +7,7 @@ import CompletenessTab from "./CompletenessTab";
 import { comparedLabel, NO_FILTER, type Filter } from "./findings";
 import { EXPERT } from "./ReviewBar";
 import TepTab from "./TepTab";
+import { t } from "../../lib/i18n";
 
 const KIND = { MISMATCH: "mismatch", MISSING: "missing", MATCH: "match" } as const;
 const NE = ({ c }: { c: string }) => <span className="text-pencil px-1.5">{c}</span>;
@@ -37,14 +38,14 @@ function Remark({ f, no, active, onPick, review }: {
           <span className="flex flex-wrap items-center gap-1">
             <Badge kind={KIND[f.verdict]}>{VERDICT[f.verdict]}</Badge>
             <span className="font-medium">{fieldName(f.field)}</span>
-            {f.low_confidence && <Badge kind="scan">скан</Badge>}
-            {f.needs_expert && <Badge kind="expert">эксперту</Badge>}
+            {f.low_confidence && <Badge kind="scan">{t("common.scan")}</Badge>}
+            {f.needs_expert && <Badge kind="expert">{t("common.expert")}</Badge>}
             {review?.verdict && <Badge kind={review.verdict}>{EXPERT[review.verdict]}</Badge>}
           </span>
           {f.object_name && <span className="font-cond text-sm text-blue">{f.object_name}</span>}
           <span className="num font-semibold">{<Values f={f} />}</span>
           <span className="text-[13px] text-ink-2">{comparedLabel(f)}{rel}</span>
-          {review?.comment && <span className="text-[13px] text-ink-2 italic">Эксперт: {review.comment}</span>}
+          {review?.comment && <span className="text-[13px] text-ink-2 italic">{t("report.expertComment", { text: review.comment })}</span>}
         </span>
       </button>
     </li>
@@ -62,28 +63,28 @@ function FilterBar({ all, filter, onFilter, shown }: {
   return (
     <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-line">
       {buildings.length > 1 && (
-        <select aria-label="Здание" className={SELECT} value={filter.building} onChange={e => set({ building: e.target.value })}>
-          <option value="">Все здания</option>{buildings.map(b => <option key={b}>{b}</option>)}
+        <select aria-label={t("filter.building")} className={SELECT} value={filter.building} onChange={e => set({ building: e.target.value })}>
+          <option value="">{t("filter.allBuildings")}</option>{buildings.map(b => <option key={b}>{b}</option>)}
         </select>
       )}
       {compared.length > 1 && (
-        <select aria-label="Что сверяется" className={SELECT} value={filter.compared} onChange={e => set({ compared: e.target.value })}>
-          <option value="">Все проверки</option>{compared.map(c => <option key={c}>{c}</option>)}
+        <select aria-label={t("filter.compared")} className={SELECT} value={filter.compared} onChange={e => set({ compared: e.target.value })}>
+          <option value="">{t("filter.allCompared")}</option>{compared.map(c => <option key={c}>{c}</option>)}
         </select>
       )}
       {hasFlags && (
-        <select aria-label="Признак" className={SELECT} value={filter.flag} onChange={e => set({ flag: e.target.value as Filter["flag"] })}>
-          <option value="">Любые</option><option value="expert">Только «эксперту»</option><option value="noscan">Без сканов</option>
+        <select aria-label={t("filter.flag")} className={SELECT} value={filter.flag} onChange={e => set({ flag: e.target.value as Filter["flag"] })}>
+          <option value="">{t("filter.anyFlag")}</option><option value="expert">{t("filter.expertOnly")}</option><option value="noscan">{t("filter.noScans")}</option>
         </select>
       )}
-      <select aria-label="Вердикт эксперта" className={SELECT} value={filter.review} onChange={e => set({ review: e.target.value as Filter["review"] })}>
-        <option value="">Все вердикты</option><option value="none">Без вердикта</option>
-        <option value="confirmed">Подтверждённые</option><option value="false_positive">Ложные</option>
+      <select aria-label={t("filter.verdict")} className={SELECT} value={filter.review} onChange={e => set({ review: e.target.value as Filter["review"] })}>
+        <option value="">{t("filter.allVerdicts")}</option><option value="none">{t("filter.noVerdict")}</option>
+        <option value="confirmed">{t("filter.confirmed")}</option><option value="false_positive">{t("filter.false")}</option>
       </select>
       {active && (
         <>
-          <span className="text-xs text-ink-2">показано {shown} из {all.length}</span>
-          <Button size="sm" variant="ghost" onClick={() => onFilter(NO_FILTER)}>сбросить</Button>
+          <span className="text-xs text-ink-2">{t("filter.shown", { n: shown, total: all.length })}</span>
+          <Button size="sm" variant="ghost" onClick={() => onFilter(NO_FILTER)}>{t("filter.reset")}</Button>
         </>
       )}
     </div>
@@ -113,8 +114,8 @@ export default function FindingsColumn(
   }, [current, matchesOpen]);
   const c = report.completeness;
   const tabs: [Tab, string, string][] = [
-    ["findings", "Замечания", String(bad.length)], ["tep", "ТЭП", ""],
-    ["completeness", "Комплектность", c.missing.length ? `−${c.missing.length}` : ""],
+    ["findings", t("report.tab.findings"), String(bad.length)], ["tep", t("report.tab.tep"), ""],
+    ["completeness", t("report.tab.completeness"), c.missing.length ? `−${c.missing.length}` : ""],
   ];
 
   return (
@@ -137,12 +138,12 @@ export default function FindingsColumn(
             <ol>{bad.map((f, i) => <Remark key={i} f={f} no={i + 1} active={f === current} onPick={() => onPick(f)} review={reviewOf(f)} />)}</ol>
           ) : (
             <p className="p-4 text-ink-2">
-              {filter === NO_FILTER ? "Расхождений между разделами не найдено." : "Под фильтр не попало ни одного расхождения."}
+              {filter === NO_FILTER ? t("report.none") : t("report.filtered.none")}
             </p>
           )}
           {ok.length > 0 && (
             <details open={matchesOpen} onToggle={e => onMatchesOpen((e.target as HTMLDetailsElement).open)}>
-              <summary className="px-3 py-2.5 cursor-pointer font-cond text-sm text-ink-2">Совпавшие проверки: {ok.length}</summary>
+              <summary className="px-3 py-2.5 cursor-pointer font-cond text-sm text-ink-2">{t("report.matches", { n: ok.length })}</summary>
               <ol>{ok.map((f, i) => (
                 <Remark key={i} f={f} no={bad.length + i + 1} active={f === current} onPick={() => onPick(f)} review={reviewOf(f)} />
               ))}</ol>

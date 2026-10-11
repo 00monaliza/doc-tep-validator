@@ -40,7 +40,7 @@ export default function ReportPage() {
   const { id = "" } = useParams();
   const q = useCheck(id);
   const state = reportState(q.data, q.error);
-  if (state.kind === "loading") return <p className="p-6 text-ink-2">Загрузка…</p>;
+  if (state.kind === "loading") return <p className="p-6 text-ink-2">{t("common.loading")}</p>;
   if (state.kind === "redirect") return <Navigate to={state.to} replace />;
   if (state.kind === "message") return <EmptyState title={state.text} />;
   return <ReportBody checkId={id} report={state.data.report} title={state.data.title ?? ""} initial={state.data.reviews ?? {}} />;
@@ -89,28 +89,28 @@ function ReportBody({ checkId, report, title, initial }: { checkId: string; repo
   const s = report.summary, c = report.completeness;
   const reviewed = allBad.filter(f => reviewOf(f)?.verdict).length;
   return (
-    <div className="flex flex-col h-full">
-      <header className="flex flex-wrap items-center gap-3 px-4 py-2 bg-sheet border-b border-line">
-        <h1 className="text-lg font-semibold truncate max-w-[40%]" title={title}>{title}</h1>
+    <div className="flex flex-col lg:h-full">
+      <header className="flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2 bg-sheet border-b border-line">
+        <h1 className="text-lg font-semibold truncate max-w-full lg:max-w-[40%]" title={title}>{title}</h1>
         <span className="flex gap-1">{SECTIONS.map(x => <SectionChip key={x} section={x} present={c.present.includes(x)} />)}</span>
         <span className="flex-1" />
         <Button size="sm" onClick={() => exportXlsx(report, reviews, checkId).catch(e => toast((e as Error).message, "error"))}>{t("report.export")}</Button>
       </header>
-      <div className="px-4 py-2"><StampSummary items={[
-        { label: "Разделы", value: `${c.present.length}/${c.required.length}`, tone: c.missing.length ? "bad" : "ok" },
-        { label: "Расхождения", value: String(s.MISMATCH), tone: s.MISMATCH ? "bad" : "ok" },
-        { label: "Нет значения", value: String(s.MISSING), tone: s.MISSING ? "warn" : "ok" },
-        { label: "Совпало", value: String(s.MATCH) },
-        { label: "Эксперт", value: `${reviewed}/${allBad.length}`, tone: allBad.length && reviewed === allBad.length ? "ok" : undefined },
+      <div className="px-3 md:px-4 py-2"><StampSummary items={[
+        { label: t("stamp.sections"), value: `${c.present.length}/${c.required.length}`, tone: c.missing.length ? "bad" : "ok" },
+        { label: t("stamp.mismatch"), value: String(s.MISMATCH), tone: s.MISMATCH ? "bad" : "ok" },
+        { label: t("stamp.missing"), value: String(s.MISSING), tone: s.MISSING ? "warn" : "ok" },
+        { label: t("stamp.match"), value: String(s.MATCH) },
+        { label: t("stamp.expert"), value: `${reviewed}/${allBad.length}`, tone: allBad.length && reviewed === allBad.length ? "ok" : undefined },
       ]} /></div>
-      <div className="flex-1 min-h-0 grid grid-cols-[minmax(280px,30%)_1fr_minmax(260px,24%)] border-t border-line">
-        <aside className="min-h-0 overflow-auto bg-sheet border-r border-line">
+      <div className="lg:flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(280px,30%)_1fr_minmax(260px,24%)] border-t border-line">
+        <aside className="max-h-[50vh] lg:max-h-none min-h-0 overflow-auto bg-sheet lg:border-r border-b lg:border-b-0 border-line">
           <FindingsColumn report={report} bad={bad} ok={ok} filter={filter} onFilter={setFilter} matchesOpen={matchesOpen}
             onMatchesOpen={setMatchesOpen} current={current} onPick={pick} reviewOf={reviewOf}
             onPickRefs={refs => setSelection({ refs })} />
         </aside>
         <DocumentPane checkId={checkId} report={report} selection={selection} />
-        <aside className="min-h-0 overflow-auto bg-sheet border-l border-line">
+        <aside className="min-h-0 overflow-auto bg-sheet lg:border-l border-t lg:border-t-0 border-line">
           <FindingDetail finding={current} review={(current && reviewOf(current)) ?? EMPTY} saving={saving}
             onReview={r => current && review(current, r)} />
         </aside>

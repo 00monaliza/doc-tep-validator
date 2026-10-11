@@ -3,6 +3,7 @@ import Button from "../../design/Button";
 import Kbd from "../../design/Kbd";
 import type { Finding, Ref, Report } from "../../lib/types";
 import RefPane from "./RefPane";
+import { t } from "../../lib/i18n";
 
 const SPLIT_KEY = "tep.split";
 const readSplit = () => { try { return localStorage.getItem(SPLIT_KEY) !== "0"; } catch { return true; } };
@@ -60,24 +61,24 @@ export default function DocumentPane({ checkId, report, selection }: Props) {
   );
 
   return (
-    <section className="flex flex-col min-h-0 min-w-0" aria-label="Документ">
+    <section className="flex flex-col min-h-[70vh] lg:min-h-0 min-w-0" aria-label={t("doc.region")}>
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-line bg-sheet">
         {refs.length > 1 && (
-          <Button size="sm" variant={split ? "primary" : "secondary"} aria-pressed={split} title="Клавиша s"
-            onClick={() => setSplit(v => !v)}>{split ? "Рядом" : "По одному"}</Button>
+          <Button size="sm" variant={split ? "primary" : "secondary"} aria-pressed={split} title={t("doc.keyS")}
+            onClick={() => setSplit(v => !v)}>{split ? t("report.split") : t("report.single")}</Button>
         )}
         <span className="flex-1" />
         <details className="relative">
-          <summary aria-label="Клавиши" className="list-none cursor-pointer w-[26px] h-[26px] grid place-items-center border border-control rounded-full font-cond font-semibold text-ink-2">?</summary>
+          <summary aria-label={t("doc.keys")} className="list-none cursor-pointer w-[26px] h-[26px] grid place-items-center border border-control rounded-full font-cond font-semibold text-ink-2">?</summary>
           <ul className="absolute right-0 top-8 z-20 w-max bg-sheet border border-ink shadow-lg px-3 py-2 text-sm flex flex-col gap-1">
-            <li><Kbd>j</Kbd> / <Kbd>k</Kbd> — следующее / предыдущее замечание</li>
-            <li><Kbd>←</Kbd> / <Kbd>→</Kbd> — места замечания</li>
-            <li><Kbd>s</Kbd> — рядом / по одному</li>
-            <li><Kbd>1</Kbd> / <Kbd>2</Kbd> — подтверждаю / ложное</li>
+            <li><Kbd>j</Kbd> / <Kbd>k</Kbd>{t("doc.keys.findings")}</li>
+            <li><Kbd>←</Kbd> / <Kbd>→</Kbd>{t("doc.keys.places")}</li>
+            <li><Kbd>s</Kbd>{t("doc.keys.split")}</li>
+            <li><Kbd>1</Kbd> / <Kbd>2</Kbd>{t("doc.keys.verdict")}</li>
           </ul>
         </details>
       </div>
-      <div className={sideBySide ? "flex-1 grid grid-cols-2 min-h-0 [&>*+*]:border-l [&>*+*]:border-line" : "flex-1 grid min-h-0"}>
+      <div className={sideBySide ? "flex-1 grid grid-cols-1 md:grid-cols-2 min-h-0 [&>*+*]:border-t md:[&>*+*]:border-t-0 md:[&>*+*]:border-l [&>*+*]:border-line" : "flex-1 grid min-h-0"}>
         {pane(left, setLeft)}
         {sideBySide && right >= 0 && pane(right, setRight)}
       </div>

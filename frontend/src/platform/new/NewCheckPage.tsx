@@ -84,7 +84,7 @@ export default function NewCheckPage() {
           }} />
       )}
       {s.step === "running" && <p role="status">{t("new.running")}</p>}
-      {s.step === "failed" && <Button onClick={() => dispatch({ type: "reset" })}>Начать заново</Button>}
+      {s.step === "failed" && <Button onClick={() => dispatch({ type: "reset" })}>{t("new.restart")}</Button>}
     </section>
   );
 }

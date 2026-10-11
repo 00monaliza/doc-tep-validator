@@ -26,14 +26,15 @@ describe("checks table", () => {
 
   it("shows status instead of a result while running or failed", () => {
     show([row({ id: "b".repeat(32), title: "Школа", status: "pending", summary: null }), row({ id: "c".repeat(32), title: "Котельная", status: "error", summary: null })]);
-    expect(screen.getByText("идёт проверка…")).toBeInTheDocument();
-    expect(screen.getByText("ошибка")).toBeInTheDocument();
+    const table = within(screen.getByRole("table")); // the phone card list repeats the rows (hidden by CSS)
+    expect(table.getByText("идёт проверка…")).toBeInTheDocument();
+    expect(table.getByText("ошибка")).toBeInTheDocument();
   });
 
   it("long titles are cut with the full text in the tooltip", () => {  // Review Focus 3
     const long = "Көпқабатты тұрғын үй кешені ".repeat(8).trim();
     show([row({ title: long })]);
-    const link = screen.getByRole("link", { name: long });
+    const link = within(screen.getByRole("table")).getByRole("link", { name: long });
     expect(link).toHaveAttribute("title", long);
     expect(link.className).toMatch(/truncate/);
   });
