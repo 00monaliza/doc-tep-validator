@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useParams } from "react-router";
+import { Navigate, useParams, useSearchParams } from "react-router";
 import Button from "../../design/Button";
 import EmptyState from "../../design/EmptyState";
 import SectionChip from "../../design/SectionChip";
@@ -78,6 +78,12 @@ function ReportBody({ checkId, report, title, initial }: { checkId: string; repo
     const r = reviewOf(f) ?? EMPTY;
     review(f, { ...r, verdict: r.verdict === v ? null : v });
   };
+  // ⌘K → «Замечание»: /app/checks/:id?f=<index in report.findings>
+  const [params] = useSearchParams();
+  useEffect(() => {
+    const f = Number(params.get("f"));
+    if (params.has("f") && report.findings[f]) pick(report.findings[f]);
+  }, [params]);
   useReportKeys({ list: matchesOpen ? [...bad, ...ok] : bad, current, pick, toggleVerdict, enabled: true });
 
   const s = report.summary, c = report.completeness;

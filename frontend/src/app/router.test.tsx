@@ -1,6 +1,7 @@
 import { Unauthorized } from "../lib/api";
 import { toLogin } from "../lib/queries";
 import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { legacyRedirect, routes } from "./router";
@@ -12,7 +13,13 @@ const session = (over: Partial<Session> = {}): Session => ({
 
 function at(path: string, s: Session) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
-  render(<SessionContext.Provider value={s}><RouterProvider router={router} /></SessionContext.Provider>);
+  // the app gets a QueryClient from Providers; the shell's ⌘K needs one
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={qc}>
+      <SessionContext.Provider value={s}><RouterProvider router={router} /></SessionContext.Provider>
+    </QueryClientProvider>,
+  );
   return router;
 }
 
