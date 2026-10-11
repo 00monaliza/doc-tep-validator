@@ -1,9 +1,10 @@
 import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useEffect, useRef, useState } from "react";
-import { fileLink } from "../lib/api";
-import { SECTION, SECTION_FULL } from "../lib/labels";
-import type { Finding, Ref, Report } from "../lib/types";
+import Button from "../../design/Button";
+import { fileLink } from "../../lib/api";
+import { SECTION, SECTION_FULL } from "../../lib/labels";
+import type { Finding, Ref, Report } from "../../lib/types";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 const pdfCache: Record<string, Promise<pdfjs.PDFDocumentProxy>> = {};
@@ -16,7 +17,7 @@ function Evidence({ r, finding }: { r: Ref; finding?: Finding }) {
   return (
     <>
       {r.derived && `Вычислено: ${r.derived}. `}
-      {at >= 0 ? <>{txt.slice(0, at)}<mark>{raw}</mark>{txt.slice(at + raw.length)}</> : txt}
+      {at >= 0 ? <>{txt.slice(0, at)}<mark className="bg-transparent text-pencil font-semibold">{raw}</mark>{txt.slice(at + raw.length)}</> : txt}
     </>
   );
 }
@@ -92,45 +93,45 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
   }, [checkId, doc, ref, pageNo, zoom]);
 
   return (
-    <div className="pane">
-      <div className="viewer-head">
-        <span className="doc">
+    <div className="flex flex-col min-h-0 min-w-0">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-line bg-sheet">
+        <span className="flex-1 min-w-0 truncate font-cond font-semibold">
           {!ref ? "Выберите замечание слева"
             : doc ? `${SECTION[ref.section]} · ${doc.file}` : `${SECTION_FULL[ref.section]}: нет в пакете`}
         </span>
         {showSwitch && refs.length > 1 && (
-          <span className="refs">
+          <span className="flex gap-1">
             {refs.map((r, i) => (
-              <button key={i} type="button" aria-pressed={i === idx} onClick={() => onIdx(i)}>
+              <Button key={i} size="sm" variant={i === idx ? "primary" : "secondary"} aria-pressed={i === idx} onClick={() => onIdx(i)}>
                 {r.label ?? SECTION[r.section]}{r.value == null ? " (нет)" : ""}
-              </button>
+              </Button>
             ))}
           </span>
         )}
       </div>
-      {ref && <div className="evidence"><Evidence r={ref} finding={finding} /></div>}
+      {ref && <div className="px-3 py-2 text-sm text-ink-2 border-b border-line bg-sheet"><Evidence r={ref} finding={finding} /></div>}
       {isPdf && pages > 0 && (
-        <div className="page-bar">
-          <button type="button" aria-label="Предыдущая страница" disabled={pageNo <= 1}
-            onClick={() => setPageNo(p => p - 1)}>‹</button>
+        <div className="flex items-center gap-1.5 px-3 py-1 border-b border-line text-sm text-ink-2 bg-sheet">
+          <Button size="sm" aria-label="Предыдущая страница" disabled={pageNo <= 1}
+            onClick={() => setPageNo(p => p - 1)}>‹</Button>
           <span>стр. {pageNo} из {pages}</span>
-          <button type="button" aria-label="Следующая страница" disabled={pageNo >= pages}
-            onClick={() => setPageNo(p => p + 1)}>›</button>
+          <Button size="sm" aria-label="Следующая страница" disabled={pageNo >= pages}
+            onClick={() => setPageNo(p => p + 1)}>›</Button>
           {pageNo !== (ref?.page ?? 1) && (
-            <button type="button" className="back" onClick={() => setPageNo(ref?.page ?? 1)}>к значению</button>
+            <Button size="sm" variant="ghost" className="text-pencil" onClick={() => setPageNo(ref?.page ?? 1)}>к значению</Button>
           )}
-          <span className="zoom">
-            <button type="button" aria-label="Уменьшить" disabled={zoom <= 0.5}
-              onClick={() => setZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))}>−</button>
-            <button type="button" onClick={() => setZoom(1)} aria-label="По ширине">{Math.round(zoom * 100)} %</button>
-            <button type="button" aria-label="Увеличить" disabled={zoom >= 3}
-              onClick={() => setZoom(z => Math.min(3, +(z + 0.25).toFixed(2)))}>+</button>
+          <span className="ml-auto flex gap-1">
+            <Button size="sm" aria-label="Уменьшить" disabled={zoom <= 0.5}
+              onClick={() => setZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))}>−</Button>
+            <Button size="sm" onClick={() => setZoom(1)} aria-label="По ширине">{Math.round(zoom * 100)} %</Button>
+            <Button size="sm" aria-label="Увеличить" disabled={zoom >= 3}
+              onClick={() => setZoom(z => Math.min(3, +(z + 0.25).toFixed(2)))}>+</Button>
           </span>
         </div>
       )}
-      <div className="canvas-wrap" ref={wrapRef}>
-        {note && <div className="empty">{note}</div>}
-        <div className="page" ref={pageRef} />
+      <div className="relative flex-1 overflow-auto p-4 bg-doc" ref={wrapRef}>
+        {note && <p className="p-4 text-ink-2">{note}</p>}
+        <div className="relative mx-auto w-fit bg-white shadow-[0_0_0_1px_var(--line)]" ref={pageRef} />
       </div>
     </div>
   );
