@@ -14,6 +14,10 @@
     {
       "source": "/api/:path*",
       "destination": "/api/main"
+    },
+    {
+      "source": "/((?!api/|assets/|demo/).*)",
+      "destination": "/index.html"
     }
   ],
   "crons": [

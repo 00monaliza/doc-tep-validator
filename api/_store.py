@@ -34,7 +34,8 @@ class LocalStore:
 
     def create(self, check_id: str, source: str, status: str = "pending", owner: str | None = None) -> None:
         (self._dir(check_id) / "files").mkdir(parents=True)
-        (self._dir(check_id) / "meta.json").write_text(json.dumps({"source": source, "owner": owner}), encoding="utf-8")
+        meta = {"source": source, "owner": owner, "title": None, "created_at": datetime.now(UTC).isoformat()}
+        (self._dir(check_id) / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
         self._status(check_id, status)
 
     def transition(self, check_id: str, old: str, new: str) -> bool:
@@ -111,6 +112,7 @@ class LocalStore:
         status["age"] = time.time() - path.stat().st_mtime  # seconds since the status last changed
         meta = self._dir(check_id) / "meta.json"
         status["owner"] = json.loads(meta.read_text(encoding="utf-8"))["owner"] if meta.is_file() else None
+        status["title"] = json.loads(meta.read_text(encoding="utf-8")).get("title") if meta.is_file() else None
         if status["status"] == "done":
             status["report"] = json.loads((self._dir(check_id) / "report.json").read_text(encoding="utf-8"))
         return status
@@ -118,6 +120,33 @@ class LocalStore:
     def file_response(self, check_id: str, name: str) -> Response | None:
         path = self._dir(check_id) / "files" / name
         return FileResponse(path) if path.is_file() else None
+
+    def set_title(self, check_id: str, title: str) -> None:
+        meta_path = self._dir(check_id) / "meta.json"
+        meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.is_file() else {}
+        meta["title"] = title
+        meta_path.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+
+    def list_checks(self, owner: str | None) -> list[dict]:
+        rows = []
+        if not self.root.is_dir():
+            return rows
+        for d in self.root.iterdir():
+            status = self.get(d.name) if (d / "status.json").is_file() else None
+            if status is None or (owner is not None and status.get("owner") != owner):
+                continue
+            meta_path = d / "meta.json"
+            meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.is_file() else {}
+            created = meta.get("created_at") or datetime.fromtimestamp(d.stat().st_mtime, UTC).isoformat()
+            report = status.get("report") or {}
+            rows.append({
+                "id": d.name, "title": status.get("title"), "status": status["status"], "created_at": created,
+                "sections": (report.get("completeness") or {}).get("present", []),
+                "summary": report.get("summary"),
+                "reviewed": sum(1 for r in self.reviews(d.name).values() if r["verdict"]),
+                "files": self.names(d.name),
+            })
+        return sorted(rows, key=lambda r: r["created_at"], reverse=True)
 
     def file_link(self, check_id: str, name: str) -> str | None:
         """A URL the browser can open without our auth header (local runs have no auth)."""
@@ -254,12 +283,13 @@ class SupabaseStore:
         self._set(check_id, status=status, error=error, report=report)
 
     def get(self, check_id: str) -> dict | None:
-        rows = self._rows("GET", f"?id=eq.{check_id}&select=status,error,report,status_changed_at,owner").json()
+        rows = self._rows("GET", f"?id=eq.{check_id}&select=status,error,report,status_changed_at,owner,title").json()
         if not rows:
             return None
         row = rows[0]
         changed = datetime.fromisoformat(row["status_changed_at"])
-        out = {"status": row["status"], "age": (datetime.now(UTC) - changed).total_seconds(), "owner": row["owner"]}
+        out = {"status": row["status"], "age": (datetime.now(UTC) - changed).total_seconds(), "owner": row["owner"],
+               "title": row["title"]}
         if row["status"] == "error":
             out["error"] = row["error"]
         if row["status"] == "done":
@@ -277,6 +307,25 @@ class SupabaseStore:
     def file_response(self, check_id: str, name: str) -> Response | None:
         link = self.file_link(check_id, name)
         return RedirectResponse(link) if link else None
+
+    def set_title(self, check_id: str, title: str) -> None:
+        self._set(check_id, title=title)
+
+    def list_checks(self, owner: str | None) -> list[dict]:
+        query = ("?select=id,title,status,created_at,files,summary:report->summary,"
+                 "present:report->completeness->present&order=created_at.desc&limit=200")
+        if owner is not None:
+            query += f"&owner=eq.{owner}"
+        rows = self._rows("GET", query).json()
+        reviewed: dict[str, int] = {}
+        if rows:
+            ids = ",".join(r["id"] for r in rows)
+            query = f"?check_id=in.({ids})&verdict=not.is.null&select=check_id"
+            for rv in self._rows("GET", query, table="reviews").json():
+                reviewed[rv["check_id"]] = reviewed.get(rv["check_id"], 0) + 1
+        return [{"id": r["id"], "title": r["title"], "status": r["status"], "created_at": r["created_at"],
+                 "sections": r["present"] or [], "summary": r["summary"], "reviewed": reviewed.get(r["id"], 0),
+                 "files": r["files"]} for r in rows]
 
     def reviews(self, check_id: str) -> dict[int, dict]:
         rows = self._rows("GET", f"?check_id=eq.{check_id}&select=finding,verdict,comment", table="reviews").json()
