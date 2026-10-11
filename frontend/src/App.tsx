@@ -3,7 +3,7 @@ import { Unauthorized, getCapabilities, startDemo, startUploaded, uploadFiles, w
 import {
   authEnabled, authRedirect, currentEmail, initAuth, onSignedOut, requestPasswordReset, setPassword, signIn, signOut,
 } from "./lib/auth";
-import FileReview from "./components/FileReview";
+import FileReview from "./platform/report/FileReview";
 import Intake from "./components/Intake";
 import Login from "./platform/auth/Login";
 import ReportView from "./components/ReportView";
