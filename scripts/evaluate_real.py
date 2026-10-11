@@ -11,6 +11,7 @@ not a quality metric.
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -19,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.crossvalidation.rules import run_rules  # noqa: E402
+from src.crossvalidation.rules_v1 import run_rules_v1  # noqa: E402
 from src.evaluation.annotations import ANNOTATIONS_DIR, load_annotation, source_path  # noqa: E402
 from src.evaluation.match import map_objects, match  # noqa: E402
 from src.ingestion.real import load_pages  # noqa: E402
@@ -29,13 +31,20 @@ def pct(x: float | None) -> str:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--detectors", choices=("v0", "v1"), default="v1", help="v0 = rules v0 only (S1)")
+    args = ap.parse_args()
     anns = [load_annotation(p) for p in sorted(ANNOTATIONS_DIR.glob("*.json"))]
     anns = [a for a in anns if source_path(a).exists()]
     if not anns:
         print("no annotated real documents present locally")
         return 1
     for ann in anns:
-        report = run_rules(load_pages(source_path(ann)))
+        pages = load_pages(source_path(ann))
+        report = run_rules(pages, prefer_heading=args.detectors == "v1")
+        if args.detectors == "v1":
+            extra, _ = run_rules_v1(pages, report)
+            report.findings += extra
         omap = map_objects(report.objects, ann.objects)
         res = match(ann.findings, report.findings, omap)
         print(f"== {ann.document_id}  (1 document: a sanity check, NOT a quality metric)")

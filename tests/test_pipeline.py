@@ -171,3 +171,16 @@ def test_real_document_report():
     assert {"TABLE_TOTAL_MISMATCH", "TEP_CROSS_SECTION_MISMATCH", "PARAMETER_CONTRADICTION"} <= types
     assert all(r["bbox"] for f in report["findings"] for r in f["refs"])
     assert all(e["bbox"] for e in report["tep"]["PZ"].values())
+
+
+def test_v4_findings_reach_the_report(tmp_path):
+    from src.ner.common.taxonomy import SYNTHETIC_TYPES_V4_EXTRA
+
+    d = generate_set("ru", 21, tmp_path, scans=False, profile="v4", inject_v4=set(SYNTHETIC_TYPES_V4_EXTRA))
+    paths = sorted((d / "text").glob("*.pdf"))
+    new = {"TEP_CALCULATION_METHOD", "VALUE_CROSS_SECTION_MISMATCH", "COPY_PASTE_LABEL"}
+    v1 = analyze_package(paths)
+    got = [f for f in v1["findings"] if f["type"] in new or f["field"] in ("blind_area", "roof")]
+    assert got and all(f["message"] for f in got)
+    v0 = analyze_package(paths, detectors="v0")
+    assert not [f for f in v0["findings"] if f["type"] in new or f["field"] in ("blind_area", "roof")]

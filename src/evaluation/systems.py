@@ -17,13 +17,21 @@ class System(Protocol):
 
 
 class RulesSystem:
-    """S1: the rule-based pipeline (extraction + checks v0 + cross-section engine)."""
+    """S1: the rule-based pipeline as frozen at protocol-v1 (exact extraction + checks v0 + cross-section engine)."""
 
     name = "S1"
+    detectors = "v0"
 
     def detect(self, paths: list[Path], lang: str) -> set[Slot]:
-        report = analyze_package(paths)
+        report = analyze_package(paths, detectors=self.detectors)
         return {slot(f["type"], f["field"]) for f in report["findings"] if f["verdict"] != "MATCH"}
+
+
+class RulesSystemV1(RulesSystem):
+    """S2: the service pipeline (robust TEP extraction + checks v0 + detectors v1)."""
+
+    name = "S2"
+    detectors = "v1"
 
 
 class HybridSystem:

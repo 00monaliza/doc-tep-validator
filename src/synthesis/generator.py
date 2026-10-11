@@ -17,6 +17,11 @@ sentences of the ПЗ taken from ``data/heldout.py`` (about one label in five wi
 an OCR-like defect). Their choices come from a third RNG stream, so values,
 buildings and discrepancies of a seed are those of v2: only the wording differs.
 
+``v4`` is v2 plus what real notes state and v2 does not: the site relief, the
+elevation 0.000, storey and clear heights, blind area and roof of every
+building, and the name in each building's ТЭП table, with four more error
+types (``SYNTHETIC_TYPES_V4_EXTRA``, ``inject_v4``) from a fourth RNG stream.
+
 Output layout for set `<lang>_<seed>`:
 
     <out>/<lang>/<set_id>/
@@ -39,6 +44,7 @@ from faker import Faker
 from src.ner.common.taxonomy import (
     SYNTHETIC_TYPES_V1,
     SYNTHETIC_TYPES_V2_EXTRA,
+    SYNTHETIC_TYPES_V4_EXTRA,
     TYPE_LEVEL,
     DiscrepancyType,
     Section,
@@ -52,9 +58,10 @@ from src.synthesis.pz_objects import names
 from src.synthesis.render import render_docx, render_pdf
 from src.synthesis.scan import make_scan
 from src.synthesis.values import PzPlan, generate_values, plan_objects
+from src.synthesis.values_v4 import plan_v4
 
 SCHEMA_VERSION = "1.2"  # 1.1: documents[].tables, paragraph anchor context; 1.2: objects, profile v2
-PROFILES = ("v1", "v2", "v3-dev", "v3-test")
+PROFILES = ("v1", "v2", "v3-dev", "v3-test", "v4")
 YEAR = 2026
 LANGS = ("ru", "kz")
 BUILDERS = {"ru": templates_ru.BUILDERS, "kz": templates_kz.BUILDERS}
@@ -133,10 +140,14 @@ def _enrich_plan(records: list[dict], pz: Document) -> list[dict]:
     return records
 
 
-def _check_plan_anchored(plan: PzPlan, pz: Document) -> None:
-    for key in plan.values:
+def _check_anchored(values: dict, pz: Document) -> None:
+    for key in values:
         if not pz.anchors.get(key):
             raise AssertionError(f"PZ mention {key} is not anchored in the document")
+
+
+def _check_plan_anchored(plan: PzPlan, pz: Document) -> None:
+    _check_anchored(plan.values, pz)
 
 
 def _objects_json(lang: str, plan: PzPlan | None, meta: Meta) -> dict:
@@ -160,7 +171,7 @@ def _number(records: list[dict], prefix: str) -> list[dict]:
 
 
 def generate_set(lang: str, seed: int, out_root: Path, inject: set[DiscrepancyType] | None = None,
-                 scans: bool = True, profile: str = "v2") -> Path:
+                 scans: bool = True, profile: str = "v2", inject_v4: set[DiscrepancyType] | None = None) -> Path:
     assert lang in LANGS and profile in PROFILES
     rng = random.Random(f"{lang}:{seed}")
     vrng = random.Random(f"{lang}:{seed}:v2") if profile != "v1" else None  # v3 = v2 + held-out wording
@@ -176,7 +187,13 @@ def generate_set(lang: str, seed: int, out_root: Path, inject: set[DiscrepancyTy
     values = generate_values(rng, inject)
     meta = _meta(lang, rng, values.building_type, values.capacity)
     plan = plan_objects(vrng, values, inject) if vrng is not None else None
-    ctx = Ctx(lang, values, meta, random.Random(rng.getrandbits(32)), plan, vrng, heldout, hrng)
+    v4, v4rng = None, None
+    if profile == "v4":
+        v4rng = random.Random(f"{lang}:{seed}:v4")
+        if inject_v4 is None:
+            inject_v4 = {t for t in SYNTHETIC_TYPES_V4_EXTRA if v4rng.random() < 0.5}
+        v4 = plan_v4(v4rng, plan, values.floor_height_m, inject_v4)
+    ctx = Ctx(lang, values, meta, random.Random(rng.getrandbits(32)), plan, vrng, heldout, hrng, v4, v4rng)
     docs = {sec: build(ctx) for sec, build in BUILDERS[lang].items()}
 
     set_id = f"{lang}_{seed:05d}"
@@ -207,13 +224,18 @@ def generate_set(lang: str, seed: int, out_root: Path, inject: set[DiscrepancyTy
         _check_plan_anchored(plan, docs["PZ"])
         discrepancies += _enrich_plan(plan.discrepancies, docs["PZ"])
         checks += _enrich_plan(plan.consistent_checks, docs["PZ"])
+    if v4 is not None:
+        _check_anchored(v4.values, docs["PZ"])
+        v4.refresh()
+        discrepancies += _enrich_plan(v4.discrepancies, docs["PZ"])
+        checks += _enrich_plan(v4.consistent_checks, docs["PZ"])
     gt = {
         "schema_version": SCHEMA_VERSION,
         "profile": profile,
         "set_id": set_id,
         "lang": lang,
         "seed": seed,
-        "injected_types": sorted(t.value for t in inject),
+        "injected_types": sorted({t.value for t in inject} | {t.value for t in (inject_v4 or set())}),
         "object": asdict(meta) | {
             "building_type": values.building_type, "capacity": values.capacity, "floors": values.floors,
             "fire_class": values.fire_class, "floor_height_m": values.floor_height_m,

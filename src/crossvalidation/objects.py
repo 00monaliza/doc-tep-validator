@@ -120,6 +120,19 @@ class PageText:
     line_tops: list[float]
     line_ctx: list[str | None]
     ctx_after: str | None  # context carried to the next page
+    line_in_table: list[bool] = field(default_factory=list)  # the line lies inside a detected table
+
+    def sentence_outside_tables(self, start: int, end: int) -> str:
+        """The sentence around a span, cut after the last table line before it (table text has no full stops
+        and would otherwise run into the next sentence)."""
+        s = max(self.text.rfind(". ", 0, start) + 2, 0)
+        i = bisect.bisect_right(self.line_starts, start) - 1
+        for j in range(i - 1, -1, -1):
+            if self.line_in_table[j] if j < len(self.line_in_table) else False:
+                s = max(s, self.line_starts[j + 1])
+                break
+        e = self.text.find(". ", end)
+        return self.text[s: e if e >= 0 else len(self.text)]
 
     def context_at(self, pos: int) -> str | None:
         i = bisect.bisect_right(self.line_starts, pos) - 1
@@ -144,7 +157,7 @@ def page_texts(pages: list[Page], index: ObjectIndex) -> list[PageText]:
     ctx: str | None = None
     ctx_level = 0
     for page in pages:
-        text, starts, tops, ctxs = "", [], [], []
+        text, starts, tops, ctxs, in_table = "", [], [], [], []
         for line in page.lines:
             h = _heading(page, line)
             if h:
@@ -157,16 +170,22 @@ def page_texts(pages: list[Page], index: ObjectIndex) -> list[PageText]:
                 text += " "
             starts.append(len(text))
             tops.append(line.top)
+            in_table.append(_in_table(page, line))
             ctxs.append(ctx)
             text += line.text
         carried = out[-1].ctx_after if out else None
-        out.append(PageText(page.number, text, starts, tops, ctxs, ctx if page.lines else carried))
+        out.append(PageText(page.number, text, starts, tops, ctxs, ctx if page.lines else carried, in_table))
     return out
 
 
-def resolve(pt: PageText, index: ObjectIndex, start: int, end: int) -> tuple[str | None, str]:
-    """(object id or None, how it was resolved) for a span of ``pt.text``."""
-    mentioned = index.mentioned(pt.sentence(start, end))
+def resolve(pt: PageText, index: ObjectIndex, start: int, end: int,
+            prefer_heading: bool = False) -> tuple[str | None, str]:
+    """(object id or None, how it was resolved) for a span of ``pt.text``.
+
+    With `prefer_heading`, the sentence is cut after the last table line before the span, so a building named
+    in a table (e.g. a mislabelled one) does not decide the object of the text that follows it."""
+    sentence = pt.sentence_outside_tables(start, end) if prefer_heading else pt.sentence(start, end)
+    mentioned = index.mentioned(sentence)
     if len(mentioned) == 1:
         return next(iter(mentioned)), "mention"
     ctx = pt.context_at(start)

@@ -14,7 +14,14 @@ import re
 import pytest
 
 from src.ingestion.common import docx_reader, pdf
-from src.ner.common.taxonomy import SYNTHETIC_TYPES, SYNTHETIC_TYPES_V1, TOLERANCES, DiscrepancyType, Verdict
+from src.ner.common.taxonomy import (
+    SYNTHETIC_TYPES,
+    SYNTHETIC_TYPES_V1,
+    SYNTHETIC_TYPES_V4_EXTRA,
+    TOLERANCES,
+    DiscrepancyType,
+    Verdict,
+)
 from src.synthesis.formatting import fmt_num, parse_num
 from src.synthesis.generator import generate_set
 
@@ -269,3 +276,44 @@ def test_ocr_noise_changes_one_spot():
     out = {ocr_noise("Площадь застройки здания", rng) for _ in range(50)}
     assert "Площадь застройки здания" not in out or len(out) > 1
     assert all(abs(len(x) - len("Площадь застройки здания")) <= 1 for x in out)
+
+
+@pytest.mark.parametrize("lang", ["ru", "kz"])
+def test_v4_keeps_v2_values(tmp_path, lang):
+    v2 = load(generate_set(lang, 12, tmp_path / "v2", scans=False, profile="v2"))
+    v4 = load(generate_set(lang, 12, tmp_path / "v4", scans=False, profile="v4", inject_v4=set()))
+    assert v4["objects"] == v2["objects"]
+    assert {f: e["value"] for f, e in v4["tep"]["PZ"].items()} == {f: e["value"] for f, e in v2["tep"]["PZ"].items()}
+    assert [d["type"] for d in v4["discrepancies"]] == [d["type"] for d in v2["discrepancies"]]
+
+
+@pytest.mark.parametrize("lang", ["ru", "kz"])
+def test_v4_injects_new_types_with_anchors(tmp_path, lang):
+    # seed with at least two buildings so that a table label can name another building
+    for seed in range(1, 40):
+        set_dir = generate_set(lang, seed, tmp_path / str(seed), scans=False, profile="v4",
+                               inject_v4=set(SYNTHETIC_TYPES_V4_EXTRA))
+        gt = load(set_dir)
+        if len(gt["objects"]) >= 2:
+            break
+    got = {(d["type"], d["field"]) for d in gt["discrepancies"]}
+    assert ("TEP_CALCULATION_METHOD", "construction_volume_m3") in got or \
+        not any(o["tep"]["floors"] == 1 for o in gt["objects"].values())
+    assert ("VALUE_CROSS_SECTION_MISMATCH", "absolute_elevation_m") in got
+    assert ("COPY_PASTE_LABEL", "object_label") in got
+    assert got & {("PARAMETER_CONTRADICTION", "blind_area"), ("PARAMETER_CONTRADICTION", "roof")}
+    text = norm(body_text(set_dir / "text" / "PZ.pdf"))
+    v4_fields = {"absolute_elevation_m", "construction_volume_m3", "object_label", "blind_area", "roof"}
+    for d in gt["discrepancies"]:
+        if d["field"] not in v4_fields or d["type"] == "TEP_CROSS_SECTION_MISMATCH":
+            continue  # v1/v2 records point at other sections too
+        for r in d["refs"]:
+            assert r["anchors"], (d["type"], r["mention"])
+            for a in r["anchors"]:
+                assert norm(a["text"]) in text, (d["type"], a["text"])
+
+
+def test_v2_and_v3_untouched_by_v4(tmp_path):
+    for profile in ("v2", "v3-dev"):
+        a = load(generate_set("ru", 13, tmp_path / f"a{profile}", scans=False, profile=profile))
+        assert "absolute_elevation_m" not in json.dumps(a)

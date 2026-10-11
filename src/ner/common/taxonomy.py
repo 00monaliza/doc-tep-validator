@@ -85,6 +85,12 @@ SYNTHETIC_TYPES_V2_EXTRA: tuple[DiscrepancyType, ...] = (
     DiscrepancyType.TABLE_TOTAL_MISMATCH,
     DiscrepancyType.PARAMETER_CONTRADICTION,
 )
+SYNTHETIC_TYPES_V4_EXTRA: tuple[DiscrepancyType, ...] = (
+    DiscrepancyType.TEP_CALCULATION_METHOD,
+    DiscrepancyType.VALUE_CROSS_SECTION_MISMATCH,
+    DiscrepancyType.COPY_PASTE_LABEL,
+    DiscrepancyType.PARAMETER_CONTRADICTION,  # blind area, roof (profile v4); v2 uses it for seismicity/fire
+)
 SYNTHETIC_TYPES: tuple[DiscrepancyType, ...] = SYNTHETIC_TYPES_V1 + SYNTHETIC_TYPES_V2_EXTRA
 
 

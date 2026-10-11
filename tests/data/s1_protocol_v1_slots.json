@@ -1,0 +1,90 @@
+{
+ "ru_8000": [
+  [
+   "AREA_PZ_VS_AR_EXPLICATION",
+   ""
+  ],
+  [
+   "COST_OBJECT_ESTIMATE_VS_SUMMARY",
+   ""
+  ],
+  [
+   "MISSING_MANDATORY_TEP",
+   "building_area_m2"
+  ],
+  [
+   "PARAMETER_CONTRADICTION",
+   "fire_resistance"
+  ],
+  [
+   "TEP_CROSS_SECTION_MISMATCH",
+   "total_area_m2"
+  ]
+ ],
+ "ru_8001": [
+  [
+   "PARAMETER_CONTRADICTION",
+   "seismicity_points"
+  ]
+ ],
+ "ru_8002": [
+  [
+   "AREA_PZ_VS_AR_EXPLICATION",
+   ""
+  ],
+  [
+   "TEP_CROSS_SECTION_MISMATCH",
+   "total_area_m2"
+  ]
+ ],
+ "kz_8000": [
+  [
+   "AREA_PZ_VS_AR_EXPLICATION",
+   ""
+  ],
+  [
+   "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+   "concrete_b25_foundation_m3"
+  ],
+  [
+   "TABLE_TOTAL_MISMATCH",
+   "building_area_m2"
+  ],
+  [
+   "TEP_CROSS_SECTION_MISMATCH",
+   "construction_volume_m3"
+  ]
+ ],
+ "kz_8001": [
+  [
+   "AREA_PZ_VS_AR_EXPLICATION",
+   ""
+  ],
+  [
+   "COST_OBJECT_ESTIMATE_VS_SUMMARY",
+   ""
+  ],
+  [
+   "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+   "concrete_b30_frame_m3"
+  ],
+  [
+   "MISSING_MANDATORY_TEP",
+   "building_area_m2"
+  ]
+ ],
+ "kz_8002": [
+  [
+   "AREA_PZ_VS_AR_EXPLICATION",
+   ""
+  ],
+  [
+   "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+   "rebar_a500c_t"
+  ],
+  [
+   "MISSING_MANDATORY_TEP",
+   "building_area_m2"
+  ]
+ ]
+}
