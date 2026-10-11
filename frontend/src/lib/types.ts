@@ -72,4 +72,10 @@ export type CheckStatus =
   | { id: string; status: "uploaded"; files: Record<string, UploadedFile> }
   | { id: string; status: "pending" }
   | { id: string; status: "error"; error: string }
-  | { id: string; status: "done"; report: Report; reviews?: Reviews };
+  | { id: string; status: "done"; report: Report; reviews?: Reviews; title?: string };
+
+/** A row of «Мои проверки» (GET /api/checks). */
+export interface CheckRow {
+  id: string; title: string; status: "receiving" | "uploaded" | "pending" | "done" | "error";
+  created_at: string; sections: Section[]; summary: Record<Verdict, number> | null; reviewed: number; expires_at: string;
+}

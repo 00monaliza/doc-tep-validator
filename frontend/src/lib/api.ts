@@ -1,5 +1,5 @@
 import { accessToken } from "./auth";
-import type { CheckStatus, Choice, Report, Review, Reviews, UploadedFile } from "./types";
+import type { CheckRow, CheckStatus, Choice, Report, Review, Reviews, UploadedFile } from "./types";
 
 /** Raised by any API call the server refused for a missing or expired login. */
 export class Unauthorized extends Error {}
@@ -107,4 +107,21 @@ export async function saveReview(checkId: string, finding: number, review: Revie
     method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(review),
   });
   if (!r.ok) throw new Error(`Вердикт не сохранён: сервер ответил ${r.status}`);
+}
+
+export async function listChecks(): Promise<CheckRow[]> {
+  return (await json<{ checks: CheckRow[] }>(apiFetch("/api/checks"), "Список проверок не загрузился.")).checks;
+}
+
+export async function renameCheck(id: string, title: string): Promise<string> {
+  return (await json<{ title: string }>(apiFetch(`/api/checks/${id}`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title }),
+  }), "Название не сохранено.")).title;
+}
+
+export async function getCheck(id: string): Promise<CheckStatus> {
+  const r = await apiFetch(`/api/checks/${id}`);
+  if (r.status === 404) throw new Error("Проверка не найдена");
+  if (!r.ok) throw new Error(`Сервер ответил ${r.status}`);
+  return r.json();
 }
