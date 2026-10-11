@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { Unauthorized, getCapabilities, startDemo, startUploaded, uploadFiles, waitForCheck } from "./api";
+import { Unauthorized, getCapabilities, startDemo, startUploaded, uploadFiles, waitForCheck } from "./lib/api";
 import {
   authEnabled, authRedirect, currentEmail, initAuth, onSignedOut, requestPasswordReset, setPassword, signIn, signOut,
-} from "./auth";
+} from "./lib/auth";
 import FileReview from "./components/FileReview";
 import Intake from "./components/Intake";
 import Login from "./components/Login";
 import ReportView from "./components/ReportView";
 import SetPassword from "./components/SetPassword";
-import type { Choice, Report, Reviews, UploadedFile } from "./types";
+import type { Choice, Report, Reviews, UploadedFile } from "./lib/types";
 
 const ID_RE = /^[0-9a-f]{32}$/;
 

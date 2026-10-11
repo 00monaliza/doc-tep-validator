@@ -1,6 +1,6 @@
 import { Fragment } from "react";
-import { SECTIONS, SECTION_FULL, fieldName } from "../labels";
-import type { Ref, Report, TepEntry } from "../types";
+import { SECTIONS, SECTION_FULL, fieldName } from "../lib/labels";
+import type { Ref, Report, TepEntry } from "../lib/types";
 
 export default function TepTables({ report, onPick }: { report: Report; onPick: (refs: Ref[]) => void }) {
   const objects = report.objects ?? {};

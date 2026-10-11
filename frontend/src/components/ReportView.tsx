@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Account } from "../App";
-import { Unauthorized, saveReview } from "../api";
-import { exportXlsx } from "../export";
-import { LANG } from "../labels";
-import type { ExpertVerdict, Finding, Ref, Report, Review, Reviews } from "../types";
+import { Unauthorized, saveReview } from "../lib/api";
+import { exportXlsx } from "../lib/export";
+import { LANG } from "../lib/labels";
+import type { ExpertVerdict, Finding, Ref, Report, Review, Reviews } from "../lib/types";
 import Completeness from "./Completeness";
 import Findings, { NO_FILTER, applyFilter, type Filter } from "./Findings";
 import ReviewBar from "./ReviewBar";

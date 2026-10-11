@@ -1,9 +1,9 @@
 import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useEffect, useRef, useState } from "react";
-import { fileLink } from "../api";
-import { SECTION, SECTION_FULL } from "../labels";
-import type { Finding, Ref, Report } from "../types";
+import { fileLink } from "../lib/api";
+import { SECTION, SECTION_FULL } from "../lib/labels";
+import type { Finding, Ref, Report } from "../lib/types";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 const pdfCache: Record<string, Promise<pdfjs.PDFDocumentProxy>> = {};

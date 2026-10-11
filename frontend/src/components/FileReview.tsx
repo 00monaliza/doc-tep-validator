@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { SECTION, SECTIONS, SECTION_FULL } from "../labels";
-import type { Choice, Section, UploadedFile } from "../types";
+import { SECTION, SECTIONS, SECTION_FULL } from "../lib/labels";
+import type { Choice, Section, UploadedFile } from "../lib/types";
 
 const HOW: Record<string, string> = {
   title: "по заголовку", "document code": "по шифру документа", "table signature": "по таблице",

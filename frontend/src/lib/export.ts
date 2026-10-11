@@ -1,7 +1,7 @@
 import type { Cell, Row } from "write-excel-file/browser";
 import { SECTION, SECTIONS, SECTION_FULL, VERDICT, fieldName } from "./labels";
-import { comparedLabel } from "./components/Findings";
-import { EXPERT } from "./components/ReviewBar";
+import { comparedLabel } from "../components/Findings";
+import { EXPERT } from "../components/ReviewBar";
 import type { Report, Reviews } from "./types";
 
 const head = (titles: string[]): Row => titles.map(t => ({ value: t, fontWeight: "bold", wrap: true }) as Cell);

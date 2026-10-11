@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { SECTION, TYPE, VERDICT, fieldName, fmt } from "../labels";
-import type { Finding, Report, Review } from "../types";
+import { SECTION, TYPE, VERDICT, fieldName, fmt } from "../lib/labels";
+import type { Finding, Report, Review } from "../lib/types";
 import { EXPERT } from "./ReviewBar";
 
 /** What a finding compares: a section pair, or the check type when both places are in one section. */

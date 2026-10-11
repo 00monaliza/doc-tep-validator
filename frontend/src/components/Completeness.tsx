@@ -1,5 +1,5 @@
-import { SECTION, SECTION_FULL } from "../labels";
-import type { DocumentInfo, Report } from "../types";
+import { SECTION, SECTION_FULL } from "../lib/labels";
+import type { DocumentInfo, Report } from "../lib/types";
 
 export default function Completeness({ report }: { report: Report }) {
   const c = report.completeness;

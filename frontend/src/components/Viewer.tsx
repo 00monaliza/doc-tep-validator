@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useState } from "react";
-import type { Finding, Ref, Report } from "../types";
+import type { Finding, Ref, Report } from "../lib/types";
 import RefPane from "./RefPane";
 
 const SPLIT_KEY = "tep.split";

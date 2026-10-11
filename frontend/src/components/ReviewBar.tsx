@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ExpertVerdict, Review } from "../types";
+import type { ExpertVerdict, Review } from "../lib/types";
 
 export const EXPERT: Record<ExpertVerdict, string> = { confirmed: "Подтверждаю", false_positive: "Ложное" };
 
