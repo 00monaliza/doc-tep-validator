@@ -14,3 +14,9 @@ globalThis.Request = class extends NodeRequest {
     super(input, rest);
   }
 } as typeof Request;
+
+// jsdom has no IntersectionObserver (Motion's whileInView uses it); browsers do. Never intersecting is enough here.
+globalThis.IntersectionObserver ??= class {
+  observe() {} unobserve() {} disconnect() {} takeRecords() { return []; }
+  root = null; rootMargin = ""; thresholds = [];
+} as unknown as typeof IntersectionObserver;

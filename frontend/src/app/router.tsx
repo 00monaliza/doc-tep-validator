@@ -10,6 +10,8 @@ import { t } from "../lib/i18n";
 const ChecksPage = lazy(() => import("../platform/checks/ChecksPage"));
 const NewCheckPage = lazy(() => import("../platform/new/NewCheckPage"));
 const ReportPage = lazy(() => import("../platform/report/ReportPage"));
+const DemoPage = lazy(() => import("../demo/DemoPage"));
+const LandingPage = lazy(() => import("../landing/LandingPage"));
 const page = (el: JSX.Element) => <Suspense fallback={<p className="p-6 text-ink-2">{t("common.loading")}</p>}>{el}</Suspense>;
 
 const ID_RE = /^[0-9a-f]{32}$/;
@@ -26,7 +28,9 @@ function Root() {
   const loc = useLocation();
   // keep the fragment: /login reads it to show «Задайте пароль» or why the link failed
   if (AUTH_FRAGMENT.test(loc.hash)) return <Navigate to={{ pathname: "/login", hash: loc.hash }} replace />;
-  return <Navigate to={legacyRedirect(loc.search) ?? "/app"} replace />;
+  const legacy = legacyRedirect(loc.search);
+  if (legacy) return <Navigate to={legacy} replace />;
+  return page(<LandingPage />);
 }
 
 const CHUNK_RELOAD_KEY = "tep.chunkReload";
@@ -52,6 +56,7 @@ const RouteErrorElement = () => <RouteError error={useRouteError()} />;
 export const routes: RouteObject[] = [
   { path: "/", element: <Root /> },
   { path: "/login", element: <LoginPage /> },
+  { path: "/demo", element: page(<DemoPage />), errorElement: <RouteErrorElement /> },
   {
     path: "/app",
     element: <RequireAuth><AppShell /></RequireAuth>,

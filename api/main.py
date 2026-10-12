@@ -7,6 +7,7 @@ POST /api/checks                    multipart `files` (PDF/DOCX) -> {id, status}
 POST /api/checks/init               {files: [{name, size}]} -> {id, uploads: {name: url}}; the browser PUTs each
                                     file to its url (Supabase signed URL, or /upload locally), then calls
 POST /api/checks/{id}/uploaded      -> status "uploaded" with each file's detected section
+POST /api/access-requests          public: {email, organization, comment, website (bot trap)}; 5 per email a day
 POST /api/checks/{id}/start         {files: {name: "PZ"|"AR"|"KR"|"SMETA"|"auto"|"skip"}} -> run the check
 GET  /api/checks/{id}               status + report when done
 GET  /api/checks/{id}/files/{name}  uploaded file (for the in-browser PDF viewer)
@@ -33,7 +34,7 @@ import shutil
 import tempfile
 import traceback
 import uuid
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
@@ -393,14 +394,44 @@ def cleanup(authorization: str | None = Header(default=None)) -> dict:
     return {"deleted": _store().cleanup(RETENTION_DAYS), "retention_days": RETENTION_DAYS}
 
 
+if (FRONTEND / "demo-data").is_dir():
+    app.mount("/demo-data", StaticFiles(directory=FRONTEND / "demo-data"), name="demo-data")
+
 if (FRONTEND / "assets").is_dir():
     app.mount("/assets", StaticFiles(directory=FRONTEND / "assets"), name="assets")
+
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+REQUESTS_PER_DAY = 5
+
+
+class AccessRequest(BaseModel):
+    email: str = Field(max_length=320)
+    organization: str = Field(max_length=200)
+    comment: str = Field(default="", max_length=1000)
+    website: str = Field(default="", max_length=500)  # hidden field: people leave it empty, bots fill it
+
+
+@app.post("/api/access-requests")
+def access_request(body: AccessRequest) -> dict:
+    if body.website:
+        return {"ok": True}  # a bot: answer as usual, store nothing
+    email, organization = body.email.strip().lower(), body.organization.strip()
+    if not EMAIL_RE.match(email):
+        raise HTTPException(422, "почта указана неверно")
+    if not organization:
+        raise HTTPException(422, "укажите организацию")
+    store = _store()
+    if store.count_access_requests(email, datetime.now(UTC) - timedelta(days=1)) >= REQUESTS_PER_DAY:
+        raise HTTPException(429, "Слишком много заявок с этой почты, попробуйте завтра")
+    store.add_access_request(email, organization, body.comment.strip())
+    return {"ok": True}
 
 
 @app.get("/{path:path}", response_class=HTMLResponse, include_in_schema=False)
 def spa(path: str) -> str:
     """The interface for every route that is not the API or a built asset (/app/…, /login, …)."""
-    if path.startswith(("api/", "assets/")):
+    if path.startswith(("api/", "assets/", "demo-data/")):
         raise HTTPException(404, "not found")
     page = FRONTEND / "index.html"
     if page.is_file():

@@ -1,0 +1,2835 @@
+{
+ "lang": "ru",
+ "warnings": [],
+ "documents": [
+  {
+   "file": "AR.pdf",
+   "lang": "ru",
+   "section": "AR",
+   "section_detected_by": "title",
+   "pages": 2,
+   "ocr": false,
+   "object_title": "Административное здание на 70 рабочих мест",
+   "extractions": [
+    {
+     "section": "AR",
+     "field": "floors",
+     "value": 3,
+     "raw": "3",
+     "page": 1,
+     "bbox": [
+      438.91999999999996,
+      291.68999999999994,
+      549.93,
+      304.15999999999997
+     ],
+     "source": "table",
+     "evidence": "1 | Этажность | этаж | 3",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "building_area_m2",
+     "value": 596.85,
+     "raw": "596,85",
+     "page": 1,
+     "bbox": [
+      438.91999999999996,
+      304.15999999999997,
+      549.93,
+      316.63
+     ],
+     "source": "table",
+     "evidence": "2 | Площадь застройки | м² | 596,85",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "construction_volume_m3",
+     "value": 8833.38,
+     "raw": "8 833,38",
+     "page": 1,
+     "bbox": [
+      438.91999999999996,
+      316.63,
+      549.93,
+      329.1
+     ],
+     "source": "table",
+     "evidence": "3 | Строительный объём | м³ | 8 833,38",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.101.area_m2",
+     "value": 80.95,
+     "raw": "80,95",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      388.06499999999994,
+      489.375,
+      400.53999999999996
+     ],
+     "source": "table",
+     "evidence": "101 | Вестибюль | 80,95 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.102.area_m2",
+     "value": 23.05,
+     "raw": "23,05",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      400.53999999999996,
+      489.375,
+      413.01
+     ],
+     "source": "table",
+     "evidence": "102 | Приёмная | 23,05 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.103.area_m2",
+     "value": 50.87,
+     "raw": "50,87",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      413.01,
+      489.375,
+      425.47999999999996
+     ],
+     "source": "table",
+     "evidence": "103 | Зал совещаний | 50,87 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.104.area_m2",
+     "value": 36.04,
+     "raw": "36,04",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      425.47999999999996,
+      489.375,
+      437.955
+     ],
+     "source": "table",
+     "evidence": "104 | Архив | 36,04 | В3",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.105.area_m2",
+     "value": 12.22,
+     "raw": "12,22",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      437.955,
+      489.375,
+      450.42999999999995
+     ],
+     "source": "table",
+     "evidence": "105 | Техническое помещение | 12,22 | Д",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.106.area_m2",
+     "value": 29.45,
+     "raw": "29,45",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      450.42999999999995,
+      489.375,
+      462.9
+     ],
+     "source": "table",
+     "evidence": "106 | Рабочий кабинет | 29,45 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.107.area_m2",
+     "value": 25.39,
+     "raw": "25,39",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      462.9,
+      489.375,
+      475.37
+     ],
+     "source": "table",
+     "evidence": "107 | Рабочий кабинет | 25,39 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.108.area_m2",
+     "value": 15.59,
+     "raw": "15,59",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      475.37,
+      489.375,
+      487.84
+     ],
+     "source": "table",
+     "evidence": "108 | Рабочий кабинет | 15,59 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.109.area_m2",
+     "value": 23.46,
+     "raw": "23,46",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      487.84,
+      489.375,
+      500.31499999999994
+     ],
+     "source": "table",
+     "evidence": "109 | Рабочий кабинет | 23,46 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.110.area_m2",
+     "value": 24.75,
+     "raw": "24,75",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      500.31499999999994,
+      489.375,
+      512.79
+     ],
+     "source": "table",
+     "evidence": "110 | Рабочий кабинет | 24,75 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.111.area_m2",
+     "value": 28.56,
+     "raw": "28,56",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      512.79,
+      489.375,
+      525.26
+     ],
+     "source": "table",
+     "evidence": "111 | Рабочий кабинет | 28,56 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.112.area_m2",
+     "value": 21.31,
+     "raw": "21,31",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      525.26,
+      489.375,
+      537.73
+     ],
+     "source": "table",
+     "evidence": "112 | Рабочий кабинет | 21,31 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.113.area_m2",
+     "value": 16.01,
+     "raw": "16,01",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      537.73,
+      489.375,
+      550.205
+     ],
+     "source": "table",
+     "evidence": "113 | Рабочий кабинет | 16,01 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.114.area_m2",
+     "value": 88.29,
+     "raw": "88,29",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      550.205,
+      489.375,
+      562.6800000000001
+     ],
+     "source": "table",
+     "evidence": "114 | Коридор | 88,29 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.115.area_m2",
+     "value": 25.52,
+     "raw": "25,52",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      562.6800000000001,
+      489.375,
+      575.15
+     ],
+     "source": "table",
+     "evidence": "115 | Лестничная клетка | 25,52 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.116.area_m2",
+     "value": 20.53,
+     "raw": "20,53",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      575.15,
+      489.375,
+      587.62
+     ],
+     "source": "table",
+     "evidence": "116 | Лестничная клетка | 20,53 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.117.area_m2",
+     "value": 10.48,
+     "raw": "10,48",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      587.62,
+      489.375,
+      600.095
+     ],
+     "source": "table",
+     "evidence": "117 | Санузел | 10,48 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.118.area_m2",
+     "value": 9.8,
+     "raw": "9,80",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      600.095,
+      489.375,
+      612.5699999999999
+     ],
+     "source": "table",
+     "evidence": "118 | Санузел | 9,80 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.201.area_m2",
+     "value": 83.6,
+     "raw": "83,60",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      637.51,
+      489.375,
+      649.985
+     ],
+     "source": "table",
+     "evidence": "201 | Зал совещаний | 83,60 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.202.area_m2",
+     "value": 23.83,
+     "raw": "23,83",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      649.985,
+      489.375,
+      662.46
+     ],
+     "source": "table",
+     "evidence": "202 | Серверная | 23,83 | В4",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.203.area_m2",
+     "value": 6.24,
+     "raw": "6,24",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      662.46,
+      489.375,
+      674.9300000000001
+     ],
+     "source": "table",
+     "evidence": "203 | Кладовая | 6,24 | В4",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.204.area_m2",
+     "value": 25.02,
+     "raw": "25,02",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      674.9300000000001,
+      489.375,
+      687.4
+     ],
+     "source": "table",
+     "evidence": "204 | Рабочий кабинет | 25,02 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.205.area_m2",
+     "value": 25.21,
+     "raw": "25,21",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      687.4,
+      489.375,
+      699.875
+     ],
+     "source": "table",
+     "evidence": "205 | Рабочий кабинет | 25,21 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.206.area_m2",
+     "value": 22.01,
+     "raw": "22,01",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      699.875,
+      489.375,
+      712.35
+     ],
+     "source": "table",
+     "evidence": "206 | Рабочий кабинет | 22,01 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.207.area_m2",
+     "value": 20.23,
+     "raw": "20,23",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      712.35,
+      489.375,
+      724.8199999999999
+     ],
+     "source": "table",
+     "evidence": "207 | Рабочий кабинет | 20,23 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.208.area_m2",
+     "value": 29.56,
+     "raw": "29,56",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      724.8199999999999,
+      489.375,
+      737.29
+     ],
+     "source": "table",
+     "evidence": "208 | Рабочий кабинет | 29,56 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.209.area_m2",
+     "value": 29.51,
+     "raw": "29,51",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      737.29,
+      489.375,
+      749.765
+     ],
+     "source": "table",
+     "evidence": "209 | Рабочий кабинет | 29,51 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.210.area_m2",
+     "value": 28.36,
+     "raw": "28,36",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      749.765,
+      489.375,
+      762.24
+     ],
+     "source": "table",
+     "evidence": "210 | Рабочий кабинет | 28,36 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.211.area_m2",
+     "value": 58.21,
+     "raw": "58,21",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      762.24,
+      489.375,
+      774.71
+     ],
+     "source": "table",
+     "evidence": "211 | Коридор | 58,21 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.212.area_m2",
+     "value": 22.27,
+     "raw": "22,27",
+     "page": 1,
+     "bbox": [
+      398.54999999999995,
+      774.71,
+      489.375,
+      787.1800000000001
+     ],
+     "source": "table",
+     "evidence": "212 | Лестничная клетка | 22,27 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.213.area_m2",
+     "value": 22.93,
+     "raw": "22,93",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      83.33999999999997,
+      489.375,
+      95.80999999999995
+     ],
+     "source": "table",
+     "evidence": "213 | Лестничная клетка | 22,93 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.214.area_m2",
+     "value": 13.15,
+     "raw": "13,15",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      95.80999999999995,
+      489.375,
+      108.28499999999997
+     ],
+     "source": "table",
+     "evidence": "214 | Санузел | 13,15 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.215.area_m2",
+     "value": 12.53,
+     "raw": "12,53",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      108.28499999999997,
+      489.375,
+      120.75999999999999
+     ],
+     "source": "table",
+     "evidence": "215 | Санузел | 12,53 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.301.area_m2",
+     "value": 56.1,
+     "raw": "56,10",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      145.69999999999993,
+      489.375,
+      158.17499999999995
+     ],
+     "source": "table",
+     "evidence": "301 | Зал совещаний | 56,10 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.302.area_m2",
+     "value": 13.56,
+     "raw": "13,56",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      158.17499999999995,
+      489.375,
+      170.64999999999998
+     ],
+     "source": "table",
+     "evidence": "302 | Серверная | 13,56 | В4",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.303.area_m2",
+     "value": 9.06,
+     "raw": "9,06",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      170.64999999999998,
+      489.375,
+      183.12
+     ],
+     "source": "table",
+     "evidence": "303 | Кладовая | 9,06 | В4",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.304.area_m2",
+     "value": 30.09,
+     "raw": "30,09",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      183.12,
+      489.375,
+      195.58999999999997
+     ],
+     "source": "table",
+     "evidence": "304 | Рабочий кабинет | 30,09 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.305.area_m2",
+     "value": 25.92,
+     "raw": "25,92",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      195.58999999999997,
+      489.375,
+      208.06499999999994
+     ],
+     "source": "table",
+     "evidence": "305 | Рабочий кабинет | 25,92 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.306.area_m2",
+     "value": 24.11,
+     "raw": "24,11",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      208.06499999999994,
+      489.375,
+      220.53999999999996
+     ],
+     "source": "table",
+     "evidence": "306 | Рабочий кабинет | 24,11 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.307.area_m2",
+     "value": 27.69,
+     "raw": "27,69",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      220.53999999999996,
+      489.375,
+      233.01
+     ],
+     "source": "table",
+     "evidence": "307 | Рабочий кабинет | 27,69 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.308.area_m2",
+     "value": 22.65,
+     "raw": "22,65",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      233.01,
+      489.375,
+      245.47999999999996
+     ],
+     "source": "table",
+     "evidence": "308 | Рабочий кабинет | 22,65 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.309.area_m2",
+     "value": 19.71,
+     "raw": "19,71",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      245.47999999999996,
+      489.375,
+      257.9549999999999
+     ],
+     "source": "table",
+     "evidence": "309 | Рабочий кабинет | 19,71 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.310.area_m2",
+     "value": 26.6,
+     "raw": "26,60",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      257.9549999999999,
+      489.375,
+      270.42999999999995
+     ],
+     "source": "table",
+     "evidence": "310 | Рабочий кабинет | 26,60 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.311.area_m2",
+     "value": 21.07,
+     "raw": "21,07",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      270.42999999999995,
+      489.375,
+      282.9
+     ],
+     "source": "table",
+     "evidence": "311 | Рабочий кабинет | 21,07 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.312.area_m2",
+     "value": 70.57,
+     "raw": "70,57",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      282.9,
+      489.375,
+      295.37
+     ],
+     "source": "table",
+     "evidence": "312 | Коридор | 70,57 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.313.area_m2",
+     "value": 22.31,
+     "raw": "22,31",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      295.37,
+      489.375,
+      307.84
+     ],
+     "source": "table",
+     "evidence": "313 | Лестничная клетка | 22,31 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.314.area_m2",
+     "value": 25.5,
+     "raw": "25,50",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      307.84,
+      489.375,
+      320.31499999999994
+     ],
+     "source": "table",
+     "evidence": "314 | Лестничная клетка | 25,50 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.315.area_m2",
+     "value": 7.47,
+     "raw": "7,47",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      320.31499999999994,
+      489.375,
+      332.78999999999996
+     ],
+     "source": "table",
+     "evidence": "315 | Санузел | 7,47 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "room.316.area_m2",
+     "value": 14.66,
+     "raw": "14,66",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      332.78999999999996,
+      489.375,
+      345.26
+     ],
+     "source": "table",
+     "evidence": "316 | Санузел | 14,66 | —",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "explication_total_area_m2",
+     "value": 1382.0,
+     "raw": "1 382,00",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      357.72999999999996,
+      489.375,
+      370.2
+     ],
+     "source": "table",
+     "evidence": "Итого общая площадь здания | 1 382,00",
+     "method": "exact"
+    },
+    {
+     "section": "AR",
+     "field": "floors",
+     "value": 3,
+     "raw": "3",
+     "page": 1,
+     "bbox": [
+      59.53,
+      216.46000000000004,
+      558.4320000000001,
+      226.46000000000004
+     ],
+     "source": "text",
+     "evidence": "чные решения Здание 3-этажное, с техническим по",
+     "method": "exact"
+    }
+   ]
+  },
+  {
+   "file": "KR.pdf",
+   "lang": "ru",
+   "section": "KR",
+   "section_detected_by": "title",
+   "pages": 1,
+   "ocr": false,
+   "object_title": "Административное здание на 70 рабочих мест",
+   "extractions": [
+    {
+     "section": "KR",
+     "field": "concrete_b25_foundation_m3",
+     "value": 501.35,
+     "raw": "501,35",
+     "page": 1,
+     "bbox": [
+      449.01,
+      244.91499999999996,
+      549.92,
+      257.39
+     ],
+     "source": "table",
+     "evidence": "1 | Бетон B25 фундаментной плиты | м³ | 501,35",
+     "method": "exact"
+    },
+    {
+     "section": "KR",
+     "field": "concrete_b30_frame_m3",
+     "value": 343.96,
+     "raw": "343,96",
+     "page": 1,
+     "bbox": [
+      449.01,
+      257.39,
+      549.92,
+      269.86
+     ],
+     "source": "table",
+     "evidence": "2 | Бетон B30 колонн, стен и перекрытий | м³ | 343,96",
+     "method": "exact"
+    },
+    {
+     "section": "KR",
+     "field": "rebar_a500c_t",
+     "value": 99.108,
+     "raw": "99,108",
+     "page": 1,
+     "bbox": [
+      449.01,
+      269.86,
+      549.92,
+      282.33
+     ],
+     "source": "table",
+     "evidence": "3 | Арматура класса A500С | т | 99,108",
+     "method": "exact"
+    },
+    {
+     "section": "KR",
+     "field": "brick_masonry_m3",
+     "value": 170.52,
+     "raw": "170,52",
+     "page": 1,
+     "bbox": [
+      449.01,
+      282.33,
+      549.92,
+      294.80499999999995
+     ],
+     "source": "table",
+     "evidence": "4 | Кладка из керамического кирпича | м³ | 170,52",
+     "method": "exact"
+    },
+    {
+     "section": "KR",
+     "field": "steel_structures_t",
+     "value": 14.542,
+     "raw": "14,542",
+     "page": 1,
+     "bbox": [
+      449.01,
+      294.80499999999995,
+      549.92,
+      307.28
+     ],
+     "source": "table",
+     "evidence": "5 | Стальные конструкции (С255) | т | 14,542",
+     "method": "exact"
+    },
+    {
+     "section": "KR",
+     "field": "concrete_total_m3",
+     "value": 845.31,
+     "raw": "845,31",
+     "page": 1,
+     "bbox": [
+      59.53,
+      318.23,
+      367.0800000000002,
+      328.23
+     ],
+     "source": "text",
+     "evidence": "ых материалов Общий расход монолитного бетона составляет 845,31 м³. Лист",
+     "method": "exact"
+    }
+   ]
+  },
+  {
+   "file": "PZ.pdf",
+   "lang": "ru",
+   "section": "PZ",
+   "section_detected_by": "title",
+   "pages": 1,
+   "ocr": false,
+   "object_title": "Административное здание на 70 рабочих мест",
+   "extractions": [
+    {
+     "section": "PZ",
+     "field": "floors",
+     "value": 3.0,
+     "raw": "3",
+     "page": 1,
+     "bbox": [
+      541.69,
+      323.746,
+      547.096,
+      332.246
+     ],
+     "source": "table",
+     "evidence": "1 Этажность этаж 3",
+     "method": "exact",
+     "object": "project"
+    },
+    {
+     "section": "PZ",
+     "field": "building_area_m2",
+     "value": 596.85,
+     "raw": "596,85",
+     "page": 1,
+     "bbox": [
+      517.36,
+      336.216,
+      547.093,
+      344.716
+     ],
+     "source": "table",
+     "evidence": "2 Площадь застройки м² 596,85",
+     "method": "exact",
+     "object": "project"
+    },
+    {
+     "section": "PZ",
+     "field": "total_area_m2",
+     "value": 1247.79,
+     "raw": "1 247,79",
+     "page": 1,
+     "bbox": [
+      509.25,
+      348.68600000000004,
+      547.092,
+      357.18600000000004
+     ],
+     "source": "table",
+     "evidence": "3 Общая площадь здания м² 1 247,79",
+     "method": "exact",
+     "object": "project"
+    },
+    {
+     "section": "PZ",
+     "field": "construction_volume_m3",
+     "value": 8833.38,
+     "raw": "8 833,38",
+     "page": 1,
+     "bbox": [
+      509.25,
+      361.15599999999995,
+      547.092,
+      369.65599999999995
+     ],
+     "source": "table",
+     "evidence": "4 Строительный объём м³ 8 833,38",
+     "method": "exact",
+     "object": "project"
+    },
+    {
+     "section": "PZ",
+     "field": "underground_volume_m3",
+     "value": 1671.18,
+     "raw": "1 671,18",
+     "page": 1,
+     "bbox": [
+      509.25,
+      373.626,
+      547.092,
+      382.126
+     ],
+     "source": "table",
+     "evidence": "5 в том числе подземной части м³ 1 671,18",
+     "method": "exact",
+     "object": "project"
+    },
+    {
+     "section": "PZ",
+     "field": "construction_duration_months",
+     "value": 24.0,
+     "raw": "24",
+     "page": 1,
+     "bbox": [
+      536.28,
+      386.106,
+      547.0919999999999,
+      394.606
+     ],
+     "source": "table",
+     "evidence": "6 Продолжительность строительства мес. 24",
+     "method": "exact",
+     "object": "project"
+    }
+   ]
+  },
+  {
+   "file": "SMETA.pdf",
+   "lang": "ru",
+   "section": "SMETA",
+   "section_detected_by": "title",
+   "pages": 2,
+   "ocr": false,
+   "object_title": "Административное здание на 70 рабочих мест",
+   "extractions": [
+    {
+     "section": "SMETA",
+     "field": "local_qty.concrete_b25_foundation_m3",
+     "value": 501.35,
+     "raw": "501,35",
+     "page": 1,
+     "bbox": [
+      343.05,
+      213.44999999999996,
+      398.55,
+      238.39499999999998
+     ],
+     "source": "table",
+     "evidence": "1 | Е06-01-001-01 | Устройство монолитной фундаментной плиты, бетон B25 | м³ | 501,35 | 97 212,76 | 48 737 617,23",
+     "method": "exact"
+    },
+    {
+     "section": "SMETA",
+     "field": "local_qty.concrete_b30_frame_m3",
+     "value": 343.96,
+     "raw": "343,96",
+     "page": 1,
+     "bbox": [
+      343.05,
+      238.39499999999998,
+      398.55,
+      263.34
+     ],
+     "source": "table",
+     "evidence": "2 | Е06-01-026-02 | Устройство монолитных колонн, стен и перекрытий, бетон B30 | м³ | 343,96 | 112 063,22 | 38 545 265,15",
+     "method": "exact"
+    },
+    {
+     "section": "SMETA",
+     "field": "local_qty.rebar_a500c_t",
+     "value": 99.108,
+     "raw": "99,108",
+     "page": 1,
+     "bbox": [
+      343.05,
+      263.34,
+      398.55,
+      288.28499999999997
+     ],
+     "source": "table",
+     "evidence": "3 | Е06-01-015-05 | Армирование монолитных конструкций, арматура A500С | т | 99,108 | 556 266,79 | 55 130 489,02",
+     "method": "exact"
+    },
+    {
+     "section": "SMETA",
+     "field": "local_qty.brick_masonry_m3",
+     "value": 170.52,
+     "raw": "170,52",
+     "page": 1,
+     "bbox": [
+      343.05,
+      288.28499999999997,
+      398.55,
+      313.22999999999996
+     ],
+     "source": "table",
+     "evidence": "4 | Е08-02-001-03 | Кладка наружных стен из керамического кирпича | м³ | 170,52 | 59 258,08 | 10 104 687,80",
+     "method": "exact"
+    },
+    {
+     "section": "SMETA",
+     "field": "local_qty.steel_structures_t",
+     "value": 10.979,
+     "raw": "10,979",
+     "page": 1,
+     "bbox": [
+      343.05,
+      313.22999999999996,
+      398.55,
+      338.1749999999999
+     ],
+     "source": "table",
+     "evidence": "5 | Е09-03-002-01 | Монтаж стальных конструкций С255 | т | 10,979 | 769 830,38 | 8 451 967,74",
+     "method": "exact"
+    },
+    {
+     "section": "SMETA",
+     "field": "local.total_tg",
+     "value": 188624677.57,
+     "raw": "188 624 677,57",
+     "page": 1,
+     "bbox": [
+      469.18999999999994,
+      375.59,
+      549.92,
+      388.06
+     ],
+     "source": "table",
+     "evidence": "Всего по локальной смете | 188 624 677,57",
+     "method": "exact"
+    },
+    {
+     "section": "SMETA",
+     "field": "os.total_ktg",
+     "value": 502198.264,
+     "raw": "502 198,264",
+     "page": 1,
+     "bbox": [
+      423.78222222222223,
+      554.46,
+      549.92,
+      566.9300000000001
+     ],
+     "source": "table",
+     "evidence": "Итого по объектной смете | 502 198,264",
+     "method": "exact"
+    },
+    {
+     "section": "SMETA",
+     "field": "ssr.ch2.os_02-01_ktg",
+     "value": 541333.232,
+     "raw": "541 333,232",
+     "page": 1,
+     "bbox": [
+      423.78222222222223,
+      683.4350000000001,
+      549.92,
+      695.9100000000001
+     ],
+     "source": "table",
+     "evidence": "2 | ОС 02-01 | Административное здание на 70 рабочих мест | 541 333,232",
+     "method": "exact"
+    },
+    {
+     "section": "SMETA",
+     "field": "ssr.total_ktg",
+     "value": 741922.828,
+     "raw": "741 922,828",
+     "page": 2,
+     "bbox": [
+      423.78,
+      120.75999999999999,
+      549.92,
+      133.23000000000002
+     ],
+     "source": "table",
+     "evidence": "Всего по сводному сметному расчёту | 741 922,828",
+     "method": "exact"
+    }
+   ]
+  }
+ ],
+ "objects": {
+  "project": "Проект в целом"
+ },
+ "pz_building": null,
+ "completeness": {
+  "required": [
+   "PZ",
+   "AR",
+   "KR",
+   "SMETA"
+  ],
+  "present": [
+   "PZ",
+   "AR",
+   "KR",
+   "SMETA"
+  ],
+  "missing": [],
+  "unrecognised": [],
+  "duplicates": []
+ },
+ "tep": {
+  "AR": {
+   "floors": {
+    "section": "AR",
+    "field": "floors",
+    "value": 3,
+    "raw": "3",
+    "page": 1,
+    "bbox": [
+     438.91999999999996,
+     291.68999999999994,
+     549.93,
+     304.15999999999997
+    ],
+    "source": "table",
+    "evidence": "1 | Этажность | этаж | 3",
+    "method": "exact"
+   },
+   "building_area_m2": {
+    "section": "AR",
+    "field": "building_area_m2",
+    "value": 596.85,
+    "raw": "596,85",
+    "page": 1,
+    "bbox": [
+     438.91999999999996,
+     304.15999999999997,
+     549.93,
+     316.63
+    ],
+    "source": "table",
+    "evidence": "2 | Площадь застройки | м² | 596,85",
+    "method": "exact"
+   },
+   "construction_volume_m3": {
+    "section": "AR",
+    "field": "construction_volume_m3",
+    "value": 8833.38,
+    "raw": "8 833,38",
+    "page": 1,
+    "bbox": [
+     438.91999999999996,
+     316.63,
+     549.93,
+     329.1
+    ],
+    "source": "table",
+    "evidence": "3 | Строительный объём | м³ | 8 833,38",
+    "method": "exact"
+   },
+   "room.101.area_m2": {
+    "section": "AR",
+    "field": "room.101.area_m2",
+    "value": 80.95,
+    "raw": "80,95",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     388.06499999999994,
+     489.375,
+     400.53999999999996
+    ],
+    "source": "table",
+    "evidence": "101 | Вестибюль | 80,95 | —",
+    "method": "exact"
+   },
+   "room.102.area_m2": {
+    "section": "AR",
+    "field": "room.102.area_m2",
+    "value": 23.05,
+    "raw": "23,05",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     400.53999999999996,
+     489.375,
+     413.01
+    ],
+    "source": "table",
+    "evidence": "102 | Приёмная | 23,05 | —",
+    "method": "exact"
+   },
+   "room.103.area_m2": {
+    "section": "AR",
+    "field": "room.103.area_m2",
+    "value": 50.87,
+    "raw": "50,87",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     413.01,
+     489.375,
+     425.47999999999996
+    ],
+    "source": "table",
+    "evidence": "103 | Зал совещаний | 50,87 | —",
+    "method": "exact"
+   },
+   "room.104.area_m2": {
+    "section": "AR",
+    "field": "room.104.area_m2",
+    "value": 36.04,
+    "raw": "36,04",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     425.47999999999996,
+     489.375,
+     437.955
+    ],
+    "source": "table",
+    "evidence": "104 | Архив | 36,04 | В3",
+    "method": "exact"
+   },
+   "room.105.area_m2": {
+    "section": "AR",
+    "field": "room.105.area_m2",
+    "value": 12.22,
+    "raw": "12,22",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     437.955,
+     489.375,
+     450.42999999999995
+    ],
+    "source": "table",
+    "evidence": "105 | Техническое помещение | 12,22 | Д",
+    "method": "exact"
+   },
+   "room.106.area_m2": {
+    "section": "AR",
+    "field": "room.106.area_m2",
+    "value": 29.45,
+    "raw": "29,45",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     450.42999999999995,
+     489.375,
+     462.9
+    ],
+    "source": "table",
+    "evidence": "106 | Рабочий кабинет | 29,45 | —",
+    "method": "exact"
+   },
+   "room.107.area_m2": {
+    "section": "AR",
+    "field": "room.107.area_m2",
+    "value": 25.39,
+    "raw": "25,39",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     462.9,
+     489.375,
+     475.37
+    ],
+    "source": "table",
+    "evidence": "107 | Рабочий кабинет | 25,39 | —",
+    "method": "exact"
+   },
+   "room.108.area_m2": {
+    "section": "AR",
+    "field": "room.108.area_m2",
+    "value": 15.59,
+    "raw": "15,59",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     475.37,
+     489.375,
+     487.84
+    ],
+    "source": "table",
+    "evidence": "108 | Рабочий кабинет | 15,59 | —",
+    "method": "exact"
+   },
+   "room.109.area_m2": {
+    "section": "AR",
+    "field": "room.109.area_m2",
+    "value": 23.46,
+    "raw": "23,46",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     487.84,
+     489.375,
+     500.31499999999994
+    ],
+    "source": "table",
+    "evidence": "109 | Рабочий кабинет | 23,46 | —",
+    "method": "exact"
+   },
+   "room.110.area_m2": {
+    "section": "AR",
+    "field": "room.110.area_m2",
+    "value": 24.75,
+    "raw": "24,75",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     500.31499999999994,
+     489.375,
+     512.79
+    ],
+    "source": "table",
+    "evidence": "110 | Рабочий кабинет | 24,75 | —",
+    "method": "exact"
+   },
+   "room.111.area_m2": {
+    "section": "AR",
+    "field": "room.111.area_m2",
+    "value": 28.56,
+    "raw": "28,56",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     512.79,
+     489.375,
+     525.26
+    ],
+    "source": "table",
+    "evidence": "111 | Рабочий кабинет | 28,56 | —",
+    "method": "exact"
+   },
+   "room.112.area_m2": {
+    "section": "AR",
+    "field": "room.112.area_m2",
+    "value": 21.31,
+    "raw": "21,31",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     525.26,
+     489.375,
+     537.73
+    ],
+    "source": "table",
+    "evidence": "112 | Рабочий кабинет | 21,31 | —",
+    "method": "exact"
+   },
+   "room.113.area_m2": {
+    "section": "AR",
+    "field": "room.113.area_m2",
+    "value": 16.01,
+    "raw": "16,01",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     537.73,
+     489.375,
+     550.205
+    ],
+    "source": "table",
+    "evidence": "113 | Рабочий кабинет | 16,01 | —",
+    "method": "exact"
+   },
+   "room.114.area_m2": {
+    "section": "AR",
+    "field": "room.114.area_m2",
+    "value": 88.29,
+    "raw": "88,29",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     550.205,
+     489.375,
+     562.6800000000001
+    ],
+    "source": "table",
+    "evidence": "114 | Коридор | 88,29 | —",
+    "method": "exact"
+   },
+   "room.115.area_m2": {
+    "section": "AR",
+    "field": "room.115.area_m2",
+    "value": 25.52,
+    "raw": "25,52",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     562.6800000000001,
+     489.375,
+     575.15
+    ],
+    "source": "table",
+    "evidence": "115 | Лестничная клетка | 25,52 | —",
+    "method": "exact"
+   },
+   "room.116.area_m2": {
+    "section": "AR",
+    "field": "room.116.area_m2",
+    "value": 20.53,
+    "raw": "20,53",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     575.15,
+     489.375,
+     587.62
+    ],
+    "source": "table",
+    "evidence": "116 | Лестничная клетка | 20,53 | —",
+    "method": "exact"
+   },
+   "room.117.area_m2": {
+    "section": "AR",
+    "field": "room.117.area_m2",
+    "value": 10.48,
+    "raw": "10,48",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     587.62,
+     489.375,
+     600.095
+    ],
+    "source": "table",
+    "evidence": "117 | Санузел | 10,48 | —",
+    "method": "exact"
+   },
+   "room.118.area_m2": {
+    "section": "AR",
+    "field": "room.118.area_m2",
+    "value": 9.8,
+    "raw": "9,80",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     600.095,
+     489.375,
+     612.5699999999999
+    ],
+    "source": "table",
+    "evidence": "118 | Санузел | 9,80 | —",
+    "method": "exact"
+   },
+   "room.201.area_m2": {
+    "section": "AR",
+    "field": "room.201.area_m2",
+    "value": 83.6,
+    "raw": "83,60",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     637.51,
+     489.375,
+     649.985
+    ],
+    "source": "table",
+    "evidence": "201 | Зал совещаний | 83,60 | —",
+    "method": "exact"
+   },
+   "room.202.area_m2": {
+    "section": "AR",
+    "field": "room.202.area_m2",
+    "value": 23.83,
+    "raw": "23,83",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     649.985,
+     489.375,
+     662.46
+    ],
+    "source": "table",
+    "evidence": "202 | Серверная | 23,83 | В4",
+    "method": "exact"
+   },
+   "room.203.area_m2": {
+    "section": "AR",
+    "field": "room.203.area_m2",
+    "value": 6.24,
+    "raw": "6,24",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     662.46,
+     489.375,
+     674.9300000000001
+    ],
+    "source": "table",
+    "evidence": "203 | Кладовая | 6,24 | В4",
+    "method": "exact"
+   },
+   "room.204.area_m2": {
+    "section": "AR",
+    "field": "room.204.area_m2",
+    "value": 25.02,
+    "raw": "25,02",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     674.9300000000001,
+     489.375,
+     687.4
+    ],
+    "source": "table",
+    "evidence": "204 | Рабочий кабинет | 25,02 | —",
+    "method": "exact"
+   },
+   "room.205.area_m2": {
+    "section": "AR",
+    "field": "room.205.area_m2",
+    "value": 25.21,
+    "raw": "25,21",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     687.4,
+     489.375,
+     699.875
+    ],
+    "source": "table",
+    "evidence": "205 | Рабочий кабинет | 25,21 | —",
+    "method": "exact"
+   },
+   "room.206.area_m2": {
+    "section": "AR",
+    "field": "room.206.area_m2",
+    "value": 22.01,
+    "raw": "22,01",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     699.875,
+     489.375,
+     712.35
+    ],
+    "source": "table",
+    "evidence": "206 | Рабочий кабинет | 22,01 | —",
+    "method": "exact"
+   },
+   "room.207.area_m2": {
+    "section": "AR",
+    "field": "room.207.area_m2",
+    "value": 20.23,
+    "raw": "20,23",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     712.35,
+     489.375,
+     724.8199999999999
+    ],
+    "source": "table",
+    "evidence": "207 | Рабочий кабинет | 20,23 | —",
+    "method": "exact"
+   },
+   "room.208.area_m2": {
+    "section": "AR",
+    "field": "room.208.area_m2",
+    "value": 29.56,
+    "raw": "29,56",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     724.8199999999999,
+     489.375,
+     737.29
+    ],
+    "source": "table",
+    "evidence": "208 | Рабочий кабинет | 29,56 | —",
+    "method": "exact"
+   },
+   "room.209.area_m2": {
+    "section": "AR",
+    "field": "room.209.area_m2",
+    "value": 29.51,
+    "raw": "29,51",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     737.29,
+     489.375,
+     749.765
+    ],
+    "source": "table",
+    "evidence": "209 | Рабочий кабинет | 29,51 | —",
+    "method": "exact"
+   },
+   "room.210.area_m2": {
+    "section": "AR",
+    "field": "room.210.area_m2",
+    "value": 28.36,
+    "raw": "28,36",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     749.765,
+     489.375,
+     762.24
+    ],
+    "source": "table",
+    "evidence": "210 | Рабочий кабинет | 28,36 | —",
+    "method": "exact"
+   },
+   "room.211.area_m2": {
+    "section": "AR",
+    "field": "room.211.area_m2",
+    "value": 58.21,
+    "raw": "58,21",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     762.24,
+     489.375,
+     774.71
+    ],
+    "source": "table",
+    "evidence": "211 | Коридор | 58,21 | —",
+    "method": "exact"
+   },
+   "room.212.area_m2": {
+    "section": "AR",
+    "field": "room.212.area_m2",
+    "value": 22.27,
+    "raw": "22,27",
+    "page": 1,
+    "bbox": [
+     398.54999999999995,
+     774.71,
+     489.375,
+     787.1800000000001
+    ],
+    "source": "table",
+    "evidence": "212 | Лестничная клетка | 22,27 | —",
+    "method": "exact"
+   },
+   "room.213.area_m2": {
+    "section": "AR",
+    "field": "room.213.area_m2",
+    "value": 22.93,
+    "raw": "22,93",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     83.33999999999997,
+     489.375,
+     95.80999999999995
+    ],
+    "source": "table",
+    "evidence": "213 | Лестничная клетка | 22,93 | —",
+    "method": "exact"
+   },
+   "room.214.area_m2": {
+    "section": "AR",
+    "field": "room.214.area_m2",
+    "value": 13.15,
+    "raw": "13,15",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     95.80999999999995,
+     489.375,
+     108.28499999999997
+    ],
+    "source": "table",
+    "evidence": "214 | Санузел | 13,15 | —",
+    "method": "exact"
+   },
+   "room.215.area_m2": {
+    "section": "AR",
+    "field": "room.215.area_m2",
+    "value": 12.53,
+    "raw": "12,53",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     108.28499999999997,
+     489.375,
+     120.75999999999999
+    ],
+    "source": "table",
+    "evidence": "215 | Санузел | 12,53 | —",
+    "method": "exact"
+   },
+   "room.301.area_m2": {
+    "section": "AR",
+    "field": "room.301.area_m2",
+    "value": 56.1,
+    "raw": "56,10",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     145.69999999999993,
+     489.375,
+     158.17499999999995
+    ],
+    "source": "table",
+    "evidence": "301 | Зал совещаний | 56,10 | —",
+    "method": "exact"
+   },
+   "room.302.area_m2": {
+    "section": "AR",
+    "field": "room.302.area_m2",
+    "value": 13.56,
+    "raw": "13,56",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     158.17499999999995,
+     489.375,
+     170.64999999999998
+    ],
+    "source": "table",
+    "evidence": "302 | Серверная | 13,56 | В4",
+    "method": "exact"
+   },
+   "room.303.area_m2": {
+    "section": "AR",
+    "field": "room.303.area_m2",
+    "value": 9.06,
+    "raw": "9,06",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     170.64999999999998,
+     489.375,
+     183.12
+    ],
+    "source": "table",
+    "evidence": "303 | Кладовая | 9,06 | В4",
+    "method": "exact"
+   },
+   "room.304.area_m2": {
+    "section": "AR",
+    "field": "room.304.area_m2",
+    "value": 30.09,
+    "raw": "30,09",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     183.12,
+     489.375,
+     195.58999999999997
+    ],
+    "source": "table",
+    "evidence": "304 | Рабочий кабинет | 30,09 | —",
+    "method": "exact"
+   },
+   "room.305.area_m2": {
+    "section": "AR",
+    "field": "room.305.area_m2",
+    "value": 25.92,
+    "raw": "25,92",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     195.58999999999997,
+     489.375,
+     208.06499999999994
+    ],
+    "source": "table",
+    "evidence": "305 | Рабочий кабинет | 25,92 | —",
+    "method": "exact"
+   },
+   "room.306.area_m2": {
+    "section": "AR",
+    "field": "room.306.area_m2",
+    "value": 24.11,
+    "raw": "24,11",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     208.06499999999994,
+     489.375,
+     220.53999999999996
+    ],
+    "source": "table",
+    "evidence": "306 | Рабочий кабинет | 24,11 | —",
+    "method": "exact"
+   },
+   "room.307.area_m2": {
+    "section": "AR",
+    "field": "room.307.area_m2",
+    "value": 27.69,
+    "raw": "27,69",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     220.53999999999996,
+     489.375,
+     233.01
+    ],
+    "source": "table",
+    "evidence": "307 | Рабочий кабинет | 27,69 | —",
+    "method": "exact"
+   },
+   "room.308.area_m2": {
+    "section": "AR",
+    "field": "room.308.area_m2",
+    "value": 22.65,
+    "raw": "22,65",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     233.01,
+     489.375,
+     245.47999999999996
+    ],
+    "source": "table",
+    "evidence": "308 | Рабочий кабинет | 22,65 | —",
+    "method": "exact"
+   },
+   "room.309.area_m2": {
+    "section": "AR",
+    "field": "room.309.area_m2",
+    "value": 19.71,
+    "raw": "19,71",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     245.47999999999996,
+     489.375,
+     257.9549999999999
+    ],
+    "source": "table",
+    "evidence": "309 | Рабочий кабинет | 19,71 | —",
+    "method": "exact"
+   },
+   "room.310.area_m2": {
+    "section": "AR",
+    "field": "room.310.area_m2",
+    "value": 26.6,
+    "raw": "26,60",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     257.9549999999999,
+     489.375,
+     270.42999999999995
+    ],
+    "source": "table",
+    "evidence": "310 | Рабочий кабинет | 26,60 | —",
+    "method": "exact"
+   },
+   "room.311.area_m2": {
+    "section": "AR",
+    "field": "room.311.area_m2",
+    "value": 21.07,
+    "raw": "21,07",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     270.42999999999995,
+     489.375,
+     282.9
+    ],
+    "source": "table",
+    "evidence": "311 | Рабочий кабинет | 21,07 | —",
+    "method": "exact"
+   },
+   "room.312.area_m2": {
+    "section": "AR",
+    "field": "room.312.area_m2",
+    "value": 70.57,
+    "raw": "70,57",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     282.9,
+     489.375,
+     295.37
+    ],
+    "source": "table",
+    "evidence": "312 | Коридор | 70,57 | —",
+    "method": "exact"
+   },
+   "room.313.area_m2": {
+    "section": "AR",
+    "field": "room.313.area_m2",
+    "value": 22.31,
+    "raw": "22,31",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     295.37,
+     489.375,
+     307.84
+    ],
+    "source": "table",
+    "evidence": "313 | Лестничная клетка | 22,31 | —",
+    "method": "exact"
+   },
+   "room.314.area_m2": {
+    "section": "AR",
+    "field": "room.314.area_m2",
+    "value": 25.5,
+    "raw": "25,50",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     307.84,
+     489.375,
+     320.31499999999994
+    ],
+    "source": "table",
+    "evidence": "314 | Лестничная клетка | 25,50 | —",
+    "method": "exact"
+   },
+   "room.315.area_m2": {
+    "section": "AR",
+    "field": "room.315.area_m2",
+    "value": 7.47,
+    "raw": "7,47",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     320.31499999999994,
+     489.375,
+     332.78999999999996
+    ],
+    "source": "table",
+    "evidence": "315 | Санузел | 7,47 | —",
+    "method": "exact"
+   },
+   "room.316.area_m2": {
+    "section": "AR",
+    "field": "room.316.area_m2",
+    "value": 14.66,
+    "raw": "14,66",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     332.78999999999996,
+     489.375,
+     345.26
+    ],
+    "source": "table",
+    "evidence": "316 | Санузел | 14,66 | —",
+    "method": "exact"
+   },
+   "explication_total_area_m2": {
+    "section": "AR",
+    "field": "explication_total_area_m2",
+    "value": 1382.0,
+    "raw": "1 382,00",
+    "page": 2,
+    "bbox": [
+     398.54999999999995,
+     357.72999999999996,
+     489.375,
+     370.2
+    ],
+    "source": "table",
+    "evidence": "Итого общая площадь здания | 1 382,00",
+    "method": "exact"
+   }
+  },
+  "KR": {
+   "concrete_b25_foundation_m3": {
+    "section": "KR",
+    "field": "concrete_b25_foundation_m3",
+    "value": 501.35,
+    "raw": "501,35",
+    "page": 1,
+    "bbox": [
+     449.01,
+     244.91499999999996,
+     549.92,
+     257.39
+    ],
+    "source": "table",
+    "evidence": "1 | Бетон B25 фундаментной плиты | м³ | 501,35",
+    "method": "exact"
+   },
+   "concrete_b30_frame_m3": {
+    "section": "KR",
+    "field": "concrete_b30_frame_m3",
+    "value": 343.96,
+    "raw": "343,96",
+    "page": 1,
+    "bbox": [
+     449.01,
+     257.39,
+     549.92,
+     269.86
+    ],
+    "source": "table",
+    "evidence": "2 | Бетон B30 колонн, стен и перекрытий | м³ | 343,96",
+    "method": "exact"
+   },
+   "rebar_a500c_t": {
+    "section": "KR",
+    "field": "rebar_a500c_t",
+    "value": 99.108,
+    "raw": "99,108",
+    "page": 1,
+    "bbox": [
+     449.01,
+     269.86,
+     549.92,
+     282.33
+    ],
+    "source": "table",
+    "evidence": "3 | Арматура класса A500С | т | 99,108",
+    "method": "exact"
+   },
+   "brick_masonry_m3": {
+    "section": "KR",
+    "field": "brick_masonry_m3",
+    "value": 170.52,
+    "raw": "170,52",
+    "page": 1,
+    "bbox": [
+     449.01,
+     282.33,
+     549.92,
+     294.80499999999995
+    ],
+    "source": "table",
+    "evidence": "4 | Кладка из керамического кирпича | м³ | 170,52",
+    "method": "exact"
+   },
+   "steel_structures_t": {
+    "section": "KR",
+    "field": "steel_structures_t",
+    "value": 14.542,
+    "raw": "14,542",
+    "page": 1,
+    "bbox": [
+     449.01,
+     294.80499999999995,
+     549.92,
+     307.28
+    ],
+    "source": "table",
+    "evidence": "5 | Стальные конструкции (С255) | т | 14,542",
+    "method": "exact"
+   },
+   "concrete_total_m3": {
+    "section": "KR",
+    "field": "concrete_total_m3",
+    "value": 845.31,
+    "raw": "845,31",
+    "page": 1,
+    "bbox": [
+     59.53,
+     318.23,
+     367.0800000000002,
+     328.23
+    ],
+    "source": "text",
+    "evidence": "ых материалов Общий расход монолитного бетона составляет 845,31 м³. Лист",
+    "method": "exact"
+   }
+  },
+  "SMETA": {
+   "local_qty.concrete_b25_foundation_m3": {
+    "section": "SMETA",
+    "field": "local_qty.concrete_b25_foundation_m3",
+    "value": 501.35,
+    "raw": "501,35",
+    "page": 1,
+    "bbox": [
+     343.05,
+     213.44999999999996,
+     398.55,
+     238.39499999999998
+    ],
+    "source": "table",
+    "evidence": "1 | Е06-01-001-01 | Устройство монолитной фундаментной плиты, бетон B25 | м³ | 501,35 | 97 212,76 | 48 737 617,23",
+    "method": "exact"
+   },
+   "local_qty.concrete_b30_frame_m3": {
+    "section": "SMETA",
+    "field": "local_qty.concrete_b30_frame_m3",
+    "value": 343.96,
+    "raw": "343,96",
+    "page": 1,
+    "bbox": [
+     343.05,
+     238.39499999999998,
+     398.55,
+     263.34
+    ],
+    "source": "table",
+    "evidence": "2 | Е06-01-026-02 | Устройство монолитных колонн, стен и перекрытий, бетон B30 | м³ | 343,96 | 112 063,22 | 38 545 265,15",
+    "method": "exact"
+   },
+   "local_qty.rebar_a500c_t": {
+    "section": "SMETA",
+    "field": "local_qty.rebar_a500c_t",
+    "value": 99.108,
+    "raw": "99,108",
+    "page": 1,
+    "bbox": [
+     343.05,
+     263.34,
+     398.55,
+     288.28499999999997
+    ],
+    "source": "table",
+    "evidence": "3 | Е06-01-015-05 | Армирование монолитных конструкций, арматура A500С | т | 99,108 | 556 266,79 | 55 130 489,02",
+    "method": "exact"
+   },
+   "local_qty.brick_masonry_m3": {
+    "section": "SMETA",
+    "field": "local_qty.brick_masonry_m3",
+    "value": 170.52,
+    "raw": "170,52",
+    "page": 1,
+    "bbox": [
+     343.05,
+     288.28499999999997,
+     398.55,
+     313.22999999999996
+    ],
+    "source": "table",
+    "evidence": "4 | Е08-02-001-03 | Кладка наружных стен из керамического кирпича | м³ | 170,52 | 59 258,08 | 10 104 687,80",
+    "method": "exact"
+   },
+   "local_qty.steel_structures_t": {
+    "section": "SMETA",
+    "field": "local_qty.steel_structures_t",
+    "value": 10.979,
+    "raw": "10,979",
+    "page": 1,
+    "bbox": [
+     343.05,
+     313.22999999999996,
+     398.55,
+     338.1749999999999
+    ],
+    "source": "table",
+    "evidence": "5 | Е09-03-002-01 | Монтаж стальных конструкций С255 | т | 10,979 | 769 830,38 | 8 451 967,74",
+    "method": "exact"
+   },
+   "local.total_tg": {
+    "section": "SMETA",
+    "field": "local.total_tg",
+    "value": 188624677.57,
+    "raw": "188 624 677,57",
+    "page": 1,
+    "bbox": [
+     469.18999999999994,
+     375.59,
+     549.92,
+     388.06
+    ],
+    "source": "table",
+    "evidence": "Всего по локальной смете | 188 624 677,57",
+    "method": "exact"
+   },
+   "os.total_ktg": {
+    "section": "SMETA",
+    "field": "os.total_ktg",
+    "value": 502198.264,
+    "raw": "502 198,264",
+    "page": 1,
+    "bbox": [
+     423.78222222222223,
+     554.46,
+     549.92,
+     566.9300000000001
+    ],
+    "source": "table",
+    "evidence": "Итого по объектной смете | 502 198,264",
+    "method": "exact"
+   },
+   "ssr.ch2.os_02-01_ktg": {
+    "section": "SMETA",
+    "field": "ssr.ch2.os_02-01_ktg",
+    "value": 541333.232,
+    "raw": "541 333,232",
+    "page": 1,
+    "bbox": [
+     423.78222222222223,
+     683.4350000000001,
+     549.92,
+     695.9100000000001
+    ],
+    "source": "table",
+    "evidence": "2 | ОС 02-01 | Административное здание на 70 рабочих мест | 541 333,232",
+    "method": "exact"
+   },
+   "ssr.total_ktg": {
+    "section": "SMETA",
+    "field": "ssr.total_ktg",
+    "value": 741922.828,
+    "raw": "741 922,828",
+    "page": 2,
+    "bbox": [
+     423.78,
+     120.75999999999999,
+     549.92,
+     133.23000000000002
+    ],
+    "source": "table",
+    "evidence": "Всего по сводному сметному расчёту | 741 922,828",
+    "method": "exact"
+   }
+  },
+  "PZ": {
+   "project/floors": {
+    "section": "PZ",
+    "field": "floors",
+    "value": 3.0,
+    "raw": "3",
+    "page": 1,
+    "bbox": [
+     541.69,
+     323.746,
+     547.096,
+     332.246
+    ],
+    "source": "table",
+    "evidence": "1 Этажность этаж 3",
+    "method": "exact",
+    "object": "project"
+   },
+   "project/building_area_m2": {
+    "section": "PZ",
+    "field": "building_area_m2",
+    "value": 596.85,
+    "raw": "596,85",
+    "page": 1,
+    "bbox": [
+     517.36,
+     336.216,
+     547.093,
+     344.716
+    ],
+    "source": "table",
+    "evidence": "2 Площадь застройки м² 596,85",
+    "method": "exact",
+    "object": "project"
+   },
+   "project/total_area_m2": {
+    "section": "PZ",
+    "field": "total_area_m2",
+    "value": 1247.79,
+    "raw": "1 247,79",
+    "page": 1,
+    "bbox": [
+     509.25,
+     348.68600000000004,
+     547.092,
+     357.18600000000004
+    ],
+    "source": "table",
+    "evidence": "3 Общая площадь здания м² 1 247,79",
+    "method": "exact",
+    "object": "project"
+   },
+   "project/construction_volume_m3": {
+    "section": "PZ",
+    "field": "construction_volume_m3",
+    "value": 8833.38,
+    "raw": "8 833,38",
+    "page": 1,
+    "bbox": [
+     509.25,
+     361.15599999999995,
+     547.092,
+     369.65599999999995
+    ],
+    "source": "table",
+    "evidence": "4 Строительный объём м³ 8 833,38",
+    "method": "exact",
+    "object": "project"
+   },
+   "project/underground_volume_m3": {
+    "section": "PZ",
+    "field": "underground_volume_m3",
+    "value": 1671.18,
+    "raw": "1 671,18",
+    "page": 1,
+    "bbox": [
+     509.25,
+     373.626,
+     547.092,
+     382.126
+    ],
+    "source": "table",
+    "evidence": "5 в том числе подземной части м³ 1 671,18",
+    "method": "exact",
+    "object": "project"
+   },
+   "project/construction_duration_months": {
+    "section": "PZ",
+    "field": "construction_duration_months",
+    "value": 24.0,
+    "raw": "24",
+    "page": 1,
+    "bbox": [
+     536.28,
+     386.106,
+     547.0919999999999,
+     394.606
+    ],
+    "source": "table",
+    "evidence": "6 Продолжительность строительства мес. 24",
+    "method": "exact",
+    "object": "project"
+   }
+  }
+ },
+ "findings": [
+  {
+   "type": "AREA_PZ_VS_AR_EXPLICATION",
+   "field": "total_area_m2",
+   "verdict": "MISMATCH",
+   "refs": [
+    {
+     "section": "PZ",
+     "field": "total_area_m2",
+     "value": 1247.79,
+     "raw": "1 247,79",
+     "page": 1,
+     "bbox": [
+      509.25,
+      348.68600000000004,
+      547.092,
+      357.18600000000004
+     ],
+     "evidence": "3 Общая площадь здания м² 1 247,79",
+     "source": "table"
+    },
+    {
+     "section": "AR",
+     "field": "explication_total_area_m2",
+     "value": 1382.0,
+     "raw": "1 382,00",
+     "page": 2,
+     "bbox": [
+      398.54999999999995,
+      357.72999999999996,
+      489.375,
+      370.2
+     ],
+     "evidence": "Итого общая площадь здания | 1 382,00",
+     "source": "table"
+    }
+   ],
+   "message": "Общая площадь здания: в ПЗ 1247.79 м², в АР 1382 м², расхождение -134.21 (-9.7%).",
+   "delta_abs": -134.21,
+   "delta_rel": -0.09711,
+   "notes": [],
+   "low_confidence": false,
+   "object": null,
+   "object_name": null,
+   "needs_expert": false
+  },
+  {
+   "type": "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+   "field": "concrete_b25_foundation_m3",
+   "verdict": "MATCH",
+   "refs": [
+    {
+     "section": "KR",
+     "field": "concrete_b25_foundation_m3",
+     "value": 501.35,
+     "raw": "501,35",
+     "page": 1,
+     "bbox": [
+      449.01,
+      244.91499999999996,
+      549.92,
+      257.39
+     ],
+     "evidence": "1 | Бетон B25 фундаментной плиты | м³ | 501,35",
+     "source": "table"
+    },
+    {
+     "section": "SMETA",
+     "field": "local_qty.concrete_b25_foundation_m3",
+     "value": 501.35,
+     "raw": "501,35",
+     "page": 1,
+     "bbox": [
+      343.05,
+      213.44999999999996,
+      398.55,
+      238.39499999999998
+     ],
+     "evidence": "1 | Е06-01-001-01 | Устройство монолитной фундаментной плиты, бетон B25 | м³ | 501,35 | 97 212,76 | 48 737 617,23",
+     "source": "table"
+    }
+   ],
+   "message": "Бетон B25 (фундаменты): КР и Смета совпадают (501.35 м³).",
+   "delta_abs": 0.0,
+   "delta_rel": 0.0,
+   "notes": [],
+   "low_confidence": false,
+   "object": null,
+   "object_name": null,
+   "needs_expert": false
+  },
+  {
+   "type": "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+   "field": "concrete_b30_frame_m3",
+   "verdict": "MATCH",
+   "refs": [
+    {
+     "section": "KR",
+     "field": "concrete_b30_frame_m3",
+     "value": 343.96,
+     "raw": "343,96",
+     "page": 1,
+     "bbox": [
+      449.01,
+      257.39,
+      549.92,
+      269.86
+     ],
+     "evidence": "2 | Бетон B30 колонн, стен и перекрытий | м³ | 343,96",
+     "source": "table"
+    },
+    {
+     "section": "SMETA",
+     "field": "local_qty.concrete_b30_frame_m3",
+     "value": 343.96,
+     "raw": "343,96",
+     "page": 1,
+     "bbox": [
+      343.05,
+      238.39499999999998,
+      398.55,
+      263.34
+     ],
+     "evidence": "2 | Е06-01-026-02 | Устройство монолитных колонн, стен и перекрытий, бетон B30 | м³ | 343,96 | 112 063,22 | 38 545 265,15",
+     "source": "table"
+    }
+   ],
+   "message": "Бетон B30 (каркас): КР и Смета совпадают (343.96 м³).",
+   "delta_abs": 0.0,
+   "delta_rel": 0.0,
+   "notes": [],
+   "low_confidence": false,
+   "object": null,
+   "object_name": null,
+   "needs_expert": false
+  },
+  {
+   "type": "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+   "field": "rebar_a500c_t",
+   "verdict": "MATCH",
+   "refs": [
+    {
+     "section": "KR",
+     "field": "rebar_a500c_t",
+     "value": 99.108,
+     "raw": "99,108",
+     "page": 1,
+     "bbox": [
+      449.01,
+      269.86,
+      549.92,
+      282.33
+     ],
+     "evidence": "3 | Арматура класса A500С | т | 99,108",
+     "source": "table"
+    },
+    {
+     "section": "SMETA",
+     "field": "local_qty.rebar_a500c_t",
+     "value": 99.108,
+     "raw": "99,108",
+     "page": 1,
+     "bbox": [
+      343.05,
+      263.34,
+      398.55,
+      288.28499999999997
+     ],
+     "evidence": "3 | Е06-01-015-05 | Армирование монолитных конструкций, арматура A500С | т | 99,108 | 556 266,79 | 55 130 489,02",
+     "source": "table"
+    }
+   ],
+   "message": "Арматура A500С: КР и Смета совпадают (99.108 т).",
+   "delta_abs": 0.0,
+   "delta_rel": 0.0,
+   "notes": [],
+   "low_confidence": false,
+   "object": null,
+   "object_name": null,
+   "needs_expert": false
+  },
+  {
+   "type": "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+   "field": "brick_masonry_m3",
+   "verdict": "MATCH",
+   "refs": [
+    {
+     "section": "KR",
+     "field": "brick_masonry_m3",
+     "value": 170.52,
+     "raw": "170,52",
+     "page": 1,
+     "bbox": [
+      449.01,
+      282.33,
+      549.92,
+      294.80499999999995
+     ],
+     "evidence": "4 | Кладка из керамического кирпича | м³ | 170,52",
+     "source": "table"
+    },
+    {
+     "section": "SMETA",
+     "field": "local_qty.brick_masonry_m3",
+     "value": 170.52,
+     "raw": "170,52",
+     "page": 1,
+     "bbox": [
+      343.05,
+      288.28499999999997,
+      398.55,
+      313.22999999999996
+     ],
+     "evidence": "4 | Е08-02-001-03 | Кладка наружных стен из керамического кирпича | м³ | 170,52 | 59 258,08 | 10 104 687,80",
+     "source": "table"
+    }
+   ],
+   "message": "Кирпичная кладка: КР и Смета совпадают (170.52 м³).",
+   "delta_abs": 0.0,
+   "delta_rel": 0.0,
+   "notes": [],
+   "low_confidence": false,
+   "object": null,
+   "object_name": null,
+   "needs_expert": false
+  },
+  {
+   "type": "MATERIAL_VOLUME_KR_VS_LOCAL_ESTIMATE",
+   "field": "steel_structures_t",
+   "verdict": "MISMATCH",
+   "refs": [
+    {
+     "section": "KR",
+     "field": "steel_structures_t",
+     "value": 14.542,
+     "raw": "14,542",
+     "page": 1,
+     "bbox": [
+      449.01,
+      294.80499999999995,
+      549.92,
+      307.28
+     ],
+     "evidence": "5 | Стальные конструкции (С255) | т | 14,542",
+     "source": "table"
+    },
+    {
+     "section": "SMETA",
+     "field": "local_qty.steel_structures_t",
+     "value": 10.979,
+     "raw": "10,979",
+     "page": 1,
+     "bbox": [
+      343.05,
+      313.22999999999996,
+      398.55,
+      338.1749999999999
+     ],
+     "evidence": "5 | Е09-03-002-01 | Монтаж стальных конструкций С255 | т | 10,979 | 769 830,38 | 8 451 967,74",
+     "source": "table"
+    }
+   ],
+   "message": "Стальные конструкции: в КР 14.542 т, в Смета 10.979 т, расхождение +3.563 (+32.5%).",
+   "delta_abs": 3.563,
+   "delta_rel": 0.32453,
+   "notes": [],
+   "low_confidence": false,
+   "object": null,
+   "object_name": null,
+   "needs_expert": false
+  },
+  {
+   "type": "COST_OBJECT_ESTIMATE_VS_SUMMARY",
+   "field": "ssr.ch2.os_02-01_ktg",
+   "verdict": "MISMATCH",
+   "refs": [
+    {
+     "section": "SMETA",
+     "field": "os.total_ktg",
+     "value": 502198.264,
+     "raw": "502 198,264",
+     "page": 1,
+     "bbox": [
+      423.78222222222223,
+      554.46,
+      549.92,
+      566.9300000000001
+     ],
+     "evidence": "Итого по объектной смете | 502 198,264",
+     "source": "table"
+    },
+    {
+     "section": "SMETA",
+     "field": "ssr.ch2.os_02-01_ktg",
+     "value": 541333.232,
+     "raw": "541 333,232",
+     "page": 1,
+     "bbox": [
+      423.78222222222223,
+      683.4350000000001,
+      549.92,
+      695.9100000000001
+     ],
+     "evidence": "2 | ОС 02-01 | Административное здание на 70 рабочих мест | 541 333,232",
+     "source": "table"
+    }
+   ],
+   "message": "Строка 02-01 в ССР (гл. 2): в Смета 502198 тыс. тенге, в Смета 541333 тыс. тенге, расхождение -39135 (-7.2%).",
+   "delta_abs": -39134.968,
+   "delta_rel": -0.07229,
+   "notes": [],
+   "low_confidence": false,
+   "object": null,
+   "object_name": null,
+   "needs_expert": false
+  },
+  {
+   "type": "MISSING_MANDATORY_TEP",
+   "field": "estimated_cost_ktg",
+   "verdict": "MISSING",
+   "refs": [
+    {
+     "section": "PZ",
+     "field": "estimated_cost_ktg",
+     "value": null
+    },
+    {
+     "section": "SMETA",
+     "field": "ssr.total_ktg",
+     "value": 741922.828,
+     "raw": "741 922,828",
+     "page": 2,
+     "bbox": [
+      423.78,
+      120.75999999999999,
+      549.92,
+      133.23000000000002
+     ],
+     "evidence": "Всего по сводному сметному расчёту | 741 922,828",
+     "source": "table"
+    }
+   ],
+   "message": "Сметная стоимость строительства: не указан(а) в ПЗ, есть в Смета: 741923.",
+   "delta_abs": null,
+   "delta_rel": null,
+   "notes": [],
+   "low_confidence": false,
+   "object": null,
+   "object_name": null,
+   "needs_expert": false
+  }
+ ],
+ "summary": {
+  "MISMATCH": 3,
+  "MISSING": 1,
+  "MATCH": 4
+ },
+ "title": "Административное здание на 70 рабочих мест"
+}

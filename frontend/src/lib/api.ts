@@ -125,3 +125,9 @@ export async function getCheck(id: string): Promise<CheckStatus> {
   if (!r.ok) throw new Error(`Сервер ответил ${r.status}`);
   return r.json();
 }
+
+export async function requestAccess(body: { email: string; organization: string; comment: string; website: string }): Promise<void> {
+  await json(fetch("/api/access-requests", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  }), "Заявка не отправлена.");
+}

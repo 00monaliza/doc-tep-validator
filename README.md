@@ -21,6 +21,11 @@ npm --prefix frontend ci && npm --prefix frontend run build   # один раз:
 uv run uvicorn api.main:app --port 8000                       # затем открыть http://127.0.0.1:8000
 ```
 
+`/` — лендинг (RU/KZ, 3D-сцена «Расслоение», на телефоне и при «уменьшить движение» — SVG-кадры), `/demo` —
+демо-отчёт без входа на статических данных `frontend/public/demo-data/` (пересобрать: `uv run python
+scripts/export_demo.py`), форма «Запросить доступ» пишет заявки в `access_requests` (миграция
+`supabase/migrations/20261012120000_access_requests.sql` применяется до деплоя).
+
 При разработке интерфейса удобнее `npm --prefix frontend run dev` (http://localhost:5173, `/api` проксируется
 на :8000). Интерфейс: `/app` — мои проверки, `/app/new` — новая проверка (файлы → разделы → проверка),
 `/app/checks/<id>` — отчёт в три колонки. Клавиши: `j`/`k` — замечания, `←`/`→` — места, `s` — рядом/по одному,

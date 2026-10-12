@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -349,3 +350,42 @@ def test_failed_title_write_keeps_the_report(client, monkeypatch):
     check_id = client.post("/api/demo/ru").json()["id"]
     body = _wait(client, check_id)
     assert body["status"] == "done" and body["report"]["summary"]["MISMATCH"] == 3
+
+
+def _ask(client, **over):
+    body = {"email": "expert@bureau.kz", "organization": "ТОО «Бюро»", "comment": "", "website": ""} | over
+    return client.post("/api/access-requests", json=body)
+
+
+def test_access_request_is_stored(client, tmp_path):
+    assert _ask(client, comment="хотим попробовать").json() == {"ok": True}
+    rows = [json.loads(line) for line in (tmp_path / "_access_requests.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert rows[0]["email"] == "expert@bureau.kz" and rows[0]["organization"] == "ТОО «Бюро»"
+
+
+def test_access_request_honeypot_is_silently_dropped(client, tmp_path):
+    assert _ask(client, website="http://spam").json() == {"ok": True}
+    assert not (tmp_path / "_access_requests.jsonl").exists()
+
+
+def test_access_request_validation(client):
+    assert _ask(client, email="not-an-email").status_code == 422
+    assert _ask(client, organization="").status_code == 422
+    assert _ask(client, comment="я" * 1001).status_code == 422
+
+
+def test_access_request_limit_per_email(client):
+    for _ in range(5):
+        assert _ask(client).status_code == 200
+    r = _ask(client)
+    assert r.status_code == 429 and "завтра" in r.json()["detail"]
+    assert _ask(client, email="other@bureau.kz").status_code == 200
+
+
+def test_access_request_needs_no_login(authed):
+    assert _ask(authed).status_code == 200
+
+
+def test_access_requests_do_not_show_up_as_checks(client):
+    _ask(client)
+    assert client.get("/api/checks").json()["checks"] == []
