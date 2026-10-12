@@ -10,7 +10,7 @@ export default function LiveExample() {
   return (
     <Block id="example" title={tl("example.title")} lead={tl("example.lead")}>
       <div className="h-[640px] border border-line bg-sheet overflow-hidden">
-        <Suspense fallback={null}><DemoReport height="640px" /></Suspense>
+        <Suspense fallback={null}><DemoReport height="640px" embedded /></Suspense>
       </div>
       <Link to="/demo" className="text-blue underline self-start">{tl("example.open")}</Link>
     </Block>

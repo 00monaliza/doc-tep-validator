@@ -47,10 +47,12 @@ export default function ReportPage() {
   return <ReportBody checkId={id} report={state.data.report} title={state.data.title ?? ""} initial={state.data.reviews ?? {}} />;
 }
 
-export function ReportBody({ checkId, report, title, initial, onSave }: {
+export function ReportBody({ checkId, report, title, initial, onSave, titleLevel = 1 }: {
   checkId: string; report: Report; title: string; initial: Reviews;
   onSave?: (finding: number, r: Review) => Promise<void>; // the demo keeps verdicts in the page
+  titleLevel?: 1 | 3; // 3 when the report is embedded in a page that has its own <h1> (landing)
 }) {
+  const Title = titleLevel === 1 ? "h1" : "h3";
   const toast = useToast();
   const qc = useQueryClient();
   const [reviews, setReviews] = useState<Reviews>(initial);
@@ -98,7 +100,7 @@ export function ReportBody({ checkId, report, title, initial, onSave }: {
   return (
     <div className="flex flex-col lg:h-full">
       <header className="flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2 bg-sheet border-b border-line">
-        <h1 className="text-lg font-semibold truncate max-w-full lg:max-w-[40%]" title={title}>{title}</h1>
+        <Title className="text-lg font-semibold truncate max-w-full lg:max-w-[40%]" title={title}>{title}</Title>
         <span className="flex gap-1">{SECTIONS.map(x => <SectionChip key={x} section={x} present={c.present.includes(x)} />)}</span>
         <span className="flex-1" />
         <Button size="sm" onClick={() => exportXlsx(report, reviews, checkId).catch(e => toast((e as Error).message, "error"))}>{t("report.export")}</Button>

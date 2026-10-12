@@ -23,9 +23,11 @@ export default function Research() {
         })}
       </div>
       <p className="bg-sheet border border-line p-5">
-        <span className="num text-blue font-semibold">{r.tep}</span> · <span className="num text-blue font-semibold">{r.findings}</span> ·{" "}
-        <span className="num font-semibold">{r.falsePositives}</span>
-        <span className="block text-sm text-ink-2 mt-1">{tl("research.real", { tep: r.tep, findings: r.findings, fp: r.falsePositives })}</span>
+        {/* the sentence with its numbers set in bold */}
+        {tl("research.real", { tep: "\u0000tep\u0000", findings: "\u0000findings\u0000", fp: "\u0000fp\u0000" }).split("\u0000").map((part, i) => {
+          const value = { tep: r.tep, findings: r.findings, fp: String(r.falsePositives) }[part];
+          return value ? <b key={i} className="num text-blue">{value}</b> : <span key={i}>{part}</span>;
+        })}
       </p>
       <p className="text-ink-2 max-w-3xl">{tl("research.limits")}</p>
       <p className="text-xs text-ink-2">{tl("research.source")}</p>

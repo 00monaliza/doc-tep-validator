@@ -35,7 +35,7 @@ function Building({ progress }: { progress: number }) {
       {LAYERS.map((key, i) => (
         <group key={key} position={[0, y(i), 0]}>
           <lineSegments geometry={FLOOR}><lineBasicMaterial color={blue} /></lineSegments>
-          <Html position={[-2.6, 0, 0]} center className="font-cond font-semibold text-sm text-ink-2 select-none">{NAMES[key]}</Html>
+          <Html position={[-2.2, 0.3, 1.5]} center className="font-cond font-semibold text-sm text-ink-2 select-none">{NAMES[key]}</Html>
         </group>
       ))}
       {numbers > 0 && (
