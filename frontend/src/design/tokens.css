@@ -1,0 +1,20 @@
+:root, [data-theme="light"] {
+  --paper: #F4F6F3; --sheet: #FFFFFF; --ink: #1E2A2B; --ink-2: #55615E; --line: #C9D2CD; --control: #7F8C87;
+  --blue: #1E3A8A; --blue-wash: #E6EAF5; --pencil: #B3122E; --pencil-wash: #F8E4E7;
+  --amber: #8A5A00; --amber-wash: #F5EBD6; --green: #1F6B4A; --green-wash: #E3F0E9; --doc-bg: #DDE3DF;
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --paper: #0F1E3D; --sheet: #132548; --ink: #E6EDF7; --ink-2: #A9B8D1; --line: #2A4478; --control: #5D77A8;
+  --blue: #8FB4FF; --blue-wash: #1B3260; --pencil: #FF6B7D; --pencil-wash: #3A1B33;
+  --amber: #F2C46D; --amber-wash: #3A3020; --green: #6FD3A0; --green-wash: #163A33; --doc-bg: #0B1630;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1E3D; --sheet: #132548; --ink: #E6EDF7; --ink-2: #A9B8D1; --line: #2A4478; --control: #5D77A8;
+    --blue: #8FB4FF; --blue-wash: #1B3260; --pencil: #FF6B7D; --pencil-wash: #3A1B33;
+    --amber: #F2C46D; --amber-wash: #3A3020; --green: #6FD3A0; --green-wash: #163A33; --doc-bg: #0B1630;
+    color-scheme: dark;
+  }
+}

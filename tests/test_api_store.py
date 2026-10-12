@@ -284,3 +284,68 @@ def test_upload_flow_belongs_to_its_owner(authed):
     authed.put(r["uploads"]["PZ.pdf"], content=(SAMPLE / "PZ.pdf").read_bytes())
     assert authed.post(f"/api/checks/{r['id']}/uploaded", headers=B).status_code == 404
     assert authed.post(f"/api/checks/{r['id']}/uploaded", headers=A).status_code == 200
+
+
+def test_list_checks_shows_own_newest_first_with_summary(authed):
+    first = authed.post("/api/demo/ru", headers=A).json()["id"]
+    time.sleep(0.01)
+    second = authed.post("/api/demo/kz", headers=A).json()["id"]
+    authed.post("/api/demo/ru", headers=B)  # someone else's
+    for cid in (first, second):
+        for _ in range(200):
+            if authed.get(f"/api/checks/{cid}", headers=A).json()["status"] == "done":
+                break
+            time.sleep(0.05)
+    authed.put(f"/api/checks/{first}/reviews/0", json={"verdict": "confirmed"}, headers=A)
+    rows = authed.get("/api/checks", headers=A).json()["checks"]
+    assert [r["id"] for r in rows] == [second, first]
+    row = rows[1]
+    assert row["status"] == "done" and row["summary"]["MISMATCH"] == 3
+    assert set(row["sections"]) == {"PZ", "AR", "KR", "SMETA"}
+    assert row["reviewed"] == 1 and row["title"] and row["expires_at"] > row["created_at"]
+
+
+def test_list_checks_needs_login(authed):
+    assert authed.get("/api/checks").status_code == 401
+
+
+def test_rename_check(authed):
+    cid = authed.post("/api/demo/ru", headers=A).json()["id"]
+    r = authed.patch(f"/api/checks/{cid}", json={"title": "  ЖК «Алатау», блок 2  "}, headers=A)
+    assert r.status_code == 200 and r.json()["title"] == "ЖК «Алатау», блок 2"
+    assert authed.get(f"/api/checks/{cid}", headers=A).json()["title"] == "ЖК «Алатау», блок 2"
+    assert authed.patch(f"/api/checks/{cid}", json={"title": "x"}, headers=B).status_code == 404
+    assert authed.patch(f"/api/checks/{cid}", json={"title": "   "}, headers=A).status_code == 422
+    assert authed.patch(f"/api/checks/{cid}", json={"title": "я" * 201}, headers=A).status_code == 422
+
+
+def test_default_title_prefers_the_object_of_the_explanatory_note():
+    from api.main import default_title
+    report = {"objects": {"b1": "Жилой дом №1"}, "pz_building": "b1", "documents": []}
+    assert default_title(report, ["PZ.pdf"]) == "Жилой дом №1"
+    report = {"objects": {}, "pz_building": None, "documents": [{"file": "ПЗ Школа.pdf", "section": "PZ"}]}
+    assert default_title(report, ["ПЗ Школа.pdf"]) == "ПЗ Школа"
+    assert default_title({}, ["a.pdf", "b.pdf"]) == "a.pdf и ещё 1"
+
+
+def test_spa_routes_serve_the_interface(client):
+    for path in ("/app", "/app/checks/" + "a" * 32, "/login"):
+        r = client.get(path)
+        assert r.status_code == 200 and "<" in r.text
+    assert client.get("/api/nope").status_code == 404
+
+
+def test_default_title_uses_the_object_heading_of_the_note_before_its_file_name():
+    from api.main import default_title
+    report = {"objects": {}, "pz_building": None,
+              "documents": [{"file": "PZ.pdf", "section": "PZ", "object_title": "Жилой дом по ул. Абая"}]}
+    assert default_title(report, ["PZ.pdf"]) == "Жилой дом по ул. Абая"
+
+
+def test_failed_title_write_keeps_the_report(client, monkeypatch):
+    def broken(self, check_id, title):
+        raise OSError("title column missing")
+    monkeypatch.setattr(LocalStore, "set_title", broken)
+    check_id = client.post("/api/demo/ru").json()["id"]
+    body = _wait(client, check_id)
+    assert body["status"] == "done" and body["report"]["summary"]["MISMATCH"] == 3

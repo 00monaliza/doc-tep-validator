@@ -22,12 +22,19 @@ uv run uvicorn api.main:app --port 8000                       # затем от�
 ```
 
 При разработке интерфейса удобнее `npm --prefix frontend run dev` (http://localhost:5173, `/api` проксируется
-на :8000). Клавиши в отчёте: `j`/`k` — замечания, `←`/`→` — места замечания, `s` — два места рядом.
+на :8000). Интерфейс: `/app` — мои проверки, `/app/new` — новая проверка (файлы → разделы → проверка),
+`/app/checks/<id>` — отчёт в три колонки. Клавиши: `j`/`k` — замечания, `←`/`→` — места, `s` — рядом/по одному,
+`1`/`2` — вердикт, `⌘K` — поиск и команды. Тесты фронта: `npm --prefix frontend test`, сквозные —
+`npm --prefix frontend run e2e` (Playwright поднимает свой бэкенд на :8010 и Vite на :5180), бюджет сборки —
+`npm --prefix frontend run budget`.
 
 Публичная тестовая версия: Vercel (сборка `frontend/`, функция `api/main.py`, см. `vercel.json`) + Supabase
 (таблица `checks`, приватный bucket `checks`), переменные `SUPABASE_URL`, `SUPABASE_SECRET_KEY`. Проверки
 старше `RETENTION_DAYS` (по умолчанию 7) раз в сутки удаляет Vercel Cron через `/api/cron/cleanup`
 (`CRON_SECRET`). Сканы там не распознаются: на Vercel нет Tesseract.
+
+**Миграции Supabase** лежат в `supabase/migrations/` и применяются вручную (SQL Editor) **до** деплоя кода,
+который их использует: без колонки `checks.title` API отвечает 500 на открытие любой проверки.
 
 Пользователь загружает пакет (ПЗ, АР, КР, смета; PDF или DOCX; RU или KZ) и получает отчёт с тремя вкладками:
 

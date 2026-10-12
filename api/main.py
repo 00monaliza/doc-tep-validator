@@ -26,12 +26,14 @@ Checks are kept in data/uploads/, or in Supabase when SUPABASE_URL and SUPABASE_
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import shutil
 import tempfile
 import traceback
 import uuid
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
@@ -59,6 +61,8 @@ RETENTION_DAYS = float(os.environ.get("RETENTION_DAYS", "7"))
 SYNC_ANALYSIS = bool(os.environ.get("VERCEL") or os.environ.get("SYNC_ANALYSIS"))
 # a check still "pending" after this long was cut off (function time limit, server restart)
 STALE_AFTER_S = 330 if SYNC_ANALYSIS else 1800  # 300 s = maxDuration in vercel.json
+
+log = logging.getLogger("tep.api")
 
 app = FastAPI(title="ТЭП-валидатор", version="0.1.0")
 
@@ -90,6 +94,21 @@ def _owned(store: LocalStore | SupabaseStore, check_id: str, user: str | None) -
     return status
 
 
+def default_title(report: dict, files: list[str]) -> str:
+    """The object of the explanatory note (its building, else its heading), else its file name, else the first file."""
+    objects, building = report.get("objects") or {}, report.get("pz_building")
+    if building and objects.get(building):
+        return objects[building][:200]
+    pz = next((d for d in report.get("documents", []) if d.get("section") == "PZ"), None)
+    if pz and pz.get("object_title"):
+        return pz["object_title"][:200]
+    if pz:
+        return Path(pz["file"]).stem[:200]
+    if not files:
+        return "Проверка"
+    return files[0] if len(files) == 1 else f"{files[0]} и ещё {len(files) - 1}"
+
+
 def _run(store: LocalStore | SupabaseStore, check_id: str) -> None:
     try:
         chosen = store.sections(check_id)  # the user's choice before the start, if any
@@ -103,6 +122,12 @@ def _run(store: LocalStore | SupabaseStore, check_id: str) -> None:
         store.finish(check_id, "done", report=report)
     except Exception as e:  # noqa: BLE001 — surface any analysis failure to the client
         store.finish(check_id, "error", error=f"{type(e).__name__}: {e}", trace=traceback.format_exc(limit=3))
+        return
+    try:  # the title is a nicety: failing to store it must not touch the finished report
+        if not (store.get(check_id) or {}).get("title"):
+            store.set_title(check_id, default_title(report, store.names(check_id)))
+    except Exception:  # noqa: BLE001
+        log.exception("title of check %s not stored", check_id)
 
 
 def _schedule(store: LocalStore | SupabaseStore, check_id: str, background: BackgroundTasks) -> None:
@@ -288,6 +313,33 @@ class Review(BaseModel):
     comment: str = Field(default="", max_length=2000)
 
 
+@app.get("/api/checks")
+def list_checks(user: str | None = User) -> dict:
+    rows = _store().list_checks(user)
+    for r in rows:
+        files = r.pop("files", None) or []
+        if not r["title"]:
+            r["title"] = default_title({}, files)
+        created = datetime.fromisoformat(r["created_at"])
+        r["expires_at"] = (created + timedelta(days=RETENTION_DAYS)).isoformat()
+    return {"checks": rows}
+
+
+class Rename(BaseModel):
+    title: str = Field(max_length=400)
+
+
+@app.patch("/api/checks/{check_id}")
+def rename_check(check_id: str, body: Rename, user: str | None = User) -> dict:
+    store = _store()
+    _owned(store, check_id, user)
+    title = body.title.strip()
+    if not 1 <= len(title) <= 200:
+        raise HTTPException(422, "название: от 1 до 200 символов")
+    store.set_title(check_id, title)
+    return {"id": check_id, "title": title}
+
+
 @app.put("/api/checks/{check_id}/reviews/{finding}")
 def put_review(check_id: str, finding: int, review: Review, user: str | None = User) -> dict:
     store = _store()
@@ -345,8 +397,11 @@ if (FRONTEND / "assets").is_dir():
     app.mount("/assets", StaticFiles(directory=FRONTEND / "assets"), name="assets")
 
 
-@app.get("/", response_class=HTMLResponse)
-def index() -> str:
+@app.get("/{path:path}", response_class=HTMLResponse, include_in_schema=False)
+def spa(path: str) -> str:
+    """The interface for every route that is not the API or a built asset (/app/…, /login, …)."""
+    if path.startswith(("api/", "assets/")):
+        raise HTTPException(404, "not found")
     page = FRONTEND / "index.html"
     if page.is_file():
         return page.read_text(encoding="utf-8")

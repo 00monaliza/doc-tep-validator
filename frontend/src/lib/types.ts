@@ -1,0 +1,81 @@
+export type Section = "PZ" | "AR" | "KR" | "SMETA";
+export type Verdict = "MISMATCH" | "MISSING" | "MATCH";
+
+export interface Ref {
+  section: Section;
+  value: number | string | null;
+  raw?: string;
+  page?: number;
+  bbox?: [number, number, number, number];
+  evidence?: string;
+  derived?: string;
+  label?: string;
+}
+
+export interface Finding {
+  type: string;
+  field: string;
+  verdict: Verdict;
+  refs: Ref[];
+  delta_rel?: number | null;
+  notes: string[];
+  message?: string;
+  object_name?: string;
+  low_confidence?: boolean;
+  needs_expert?: boolean;
+}
+
+export interface TepEntry {
+  raw: string;
+  value?: number | string;
+  page?: number;
+  bbox?: [number, number, number, number];
+  evidence?: string;
+  object?: string;
+}
+
+export interface DocumentInfo {
+  file: string;
+  section: Section | null;
+  ocr?: boolean;
+}
+
+export interface Report {
+  lang: string;
+  documents: DocumentInfo[];
+  findings: Finding[];
+  summary: Record<Verdict, number>;
+  completeness: {
+    required: Section[];
+    present: Section[];
+    missing: Section[];
+    unrecognised: string[];
+    duplicates: string[];
+  };
+  tep: Partial<Record<Section, Record<string, TepEntry>>>;
+  objects?: Record<string, string>;
+  pz_building?: string;
+  warnings?: string[];
+}
+
+export type ExpertVerdict = "confirmed" | "false_positive";
+export interface Review { verdict: ExpertVerdict | null; comment: string }
+/** Expert reviews keyed by the finding's index in report.findings. */
+export type Reviews = Record<string, Review>;
+
+/** A file waiting for the start, with the section the server detected (or the user chose). */
+export interface UploadedFile { section: Section | null; how: string; use: boolean; user: boolean }
+export type Choice = Section | "auto" | "skip";
+
+export type CheckStatus =
+  | { id: string; status: "receiving" }
+  | { id: string; status: "uploaded"; files: Record<string, UploadedFile> }
+  | { id: string; status: "pending" }
+  | { id: string; status: "error"; error: string }
+  | { id: string; status: "done"; report: Report; reviews?: Reviews; title?: string };
+
+/** A row of «Мои проверки» (GET /api/checks). */
+export interface CheckRow {
+  id: string; title: string; status: "receiving" | "uploaded" | "pending" | "done" | "error";
+  created_at: string; sections: Section[]; summary: Record<Verdict, number> | null; reviewed: number; expires_at: string;
+}
