@@ -121,6 +121,23 @@ class LocalStore:
         path = self._dir(check_id) / "files" / name
         return FileResponse(path) if path.is_file() else None
 
+    def _requests_path(self) -> Path:
+        return self.root / "_access_requests.jsonl"
+
+    def add_access_request(self, email: str, organization: str, comment: str) -> None:
+        self.root.mkdir(parents=True, exist_ok=True)
+        row = {"email": email, "organization": organization, "comment": comment,
+               "created_at": datetime.now(UTC).isoformat()}
+        with self._requests_path().open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    def count_access_requests(self, email: str, since: datetime) -> int:
+        path = self._requests_path()
+        if not path.is_file():
+            return 0
+        rows = (json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+        return sum(1 for r in rows if r["email"] == email and datetime.fromisoformat(r["created_at"]) >= since)
+
     def set_title(self, check_id: str, title: str) -> None:
         meta_path = self._dir(check_id) / "meta.json"
         meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.is_file() else {}
@@ -310,6 +327,15 @@ class SupabaseStore:
 
     def set_title(self, check_id: str, title: str) -> None:
         self._set(check_id, title=title)
+
+    def add_access_request(self, email: str, organization: str, comment: str) -> None:
+        self._rows("POST", table="access_requests",
+                   json={"email": email, "organization": organization, "comment": comment})
+
+    def count_access_requests(self, email: str, since: datetime) -> int:
+        params = {"email": f"eq.{email}", "created_at": f"gte.{since.isoformat()}", "select": "id"}
+        rows = self._rows("GET", table="access_requests", params=params).json()
+        return len(rows)
 
     def list_checks(self, owner: str | None) -> list[dict]:
         query = ("?select=id,title,status,created_at,files,summary:report->summary,"
