@@ -1,9 +1,9 @@
 import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import Button from "../../design/Button";
-import { fileLink } from "../../lib/api";
 import { SECTION, SECTION_FULL } from "../../lib/labels";
+import { FileSourceContext } from "./fileSource";
 import type { Finding, Ref, Report } from "../../lib/types";
 import { t } from "../../lib/i18n";
 
@@ -35,6 +35,7 @@ interface Props {
 
 /** One document page with the value circled, plus a switch between the finding's places. */
 export default function RefPane({ checkId, report, refs, idx, onIdx, finding, showSwitch }: Props) {
+  const source = useContext(FileSourceContext);
   const wrapRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const [note, setNote] = useState("");
@@ -59,7 +60,7 @@ export default function RefPane({ checkId, report, refs, idx, onIdx, finding, sh
     (async () => {
       const key = `${checkId}/${doc.file}`;
       // the link is signed for 10 minutes: the whole file is read at once, not in ranges later
-      pdfCache[key] ??= fileLink(checkId, doc.file)
+      pdfCache[key] ??= source(checkId, doc.file)
         .then(url => pdfjs.getDocument({ url, disableRange: true, disableStream: true }).promise)
         .catch(e => { delete pdfCache[key]; throw e; });
       const pdf = await pdfCache[key];

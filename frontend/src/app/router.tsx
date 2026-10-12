@@ -10,6 +10,7 @@ import { t } from "../lib/i18n";
 const ChecksPage = lazy(() => import("../platform/checks/ChecksPage"));
 const NewCheckPage = lazy(() => import("../platform/new/NewCheckPage"));
 const ReportPage = lazy(() => import("../platform/report/ReportPage"));
+const DemoPage = lazy(() => import("../demo/DemoPage"));
 const page = (el: JSX.Element) => <Suspense fallback={<p className="p-6 text-ink-2">{t("common.loading")}</p>}>{el}</Suspense>;
 
 const ID_RE = /^[0-9a-f]{32}$/;
@@ -52,6 +53,7 @@ const RouteErrorElement = () => <RouteError error={useRouteError()} />;
 export const routes: RouteObject[] = [
   { path: "/", element: <Root /> },
   { path: "/login", element: <LoginPage /> },
+  { path: "/demo", element: page(<DemoPage />), errorElement: <RouteErrorElement /> },
   {
     path: "/app",
     element: <RequireAuth><AppShell /></RequireAuth>,

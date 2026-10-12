@@ -394,6 +394,9 @@ def cleanup(authorization: str | None = Header(default=None)) -> dict:
     return {"deleted": _store().cleanup(RETENTION_DAYS), "retention_days": RETENTION_DAYS}
 
 
+if (FRONTEND / "demo-data").is_dir():
+    app.mount("/demo-data", StaticFiles(directory=FRONTEND / "demo-data"), name="demo-data")
+
 if (FRONTEND / "assets").is_dir():
     app.mount("/assets", StaticFiles(directory=FRONTEND / "assets"), name="assets")
 
@@ -428,7 +431,7 @@ def access_request(body: AccessRequest) -> dict:
 @app.get("/{path:path}", response_class=HTMLResponse, include_in_schema=False)
 def spa(path: str) -> str:
     """The interface for every route that is not the API or a built asset (/app/…, /login, …)."""
-    if path.startswith(("api/", "assets/")):
+    if path.startswith(("api/", "assets/", "demo-data/")):
         raise HTTPException(404, "not found")
     page = FRONTEND / "index.html"
     if page.is_file():

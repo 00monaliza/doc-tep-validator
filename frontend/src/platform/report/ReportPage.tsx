@@ -47,14 +47,17 @@ export default function ReportPage() {
   return <ReportBody checkId={id} report={state.data.report} title={state.data.title ?? ""} initial={state.data.reviews ?? {}} />;
 }
 
-function ReportBody({ checkId, report, title, initial }: { checkId: string; report: Report; title: string; initial: Reviews }) {
+export function ReportBody({ checkId, report, title, initial, onSave }: {
+  checkId: string; report: Report; title: string; initial: Reviews;
+  onSave?: (finding: number, r: Review) => Promise<void>; // the demo keeps verdicts in the page
+}) {
   const toast = useToast();
   const qc = useQueryClient();
   const [reviews, setReviews] = useState<Reviews>(initial);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<Filter>(NO_FILTER);
   const [matchesOpen, setMatchesOpen] = useState(false);
-  const queue = useRef(createReviewQueue((n, r) => saveReview(checkId, n, r)));
+  const queue = useRef(createReviewQueue((n, r) => (onSave ?? ((f, rv) => saveReview(checkId, f, rv)))(n, r)));
   const reviewOf = useCallback((f: Finding) => reviews[String(report.findings.indexOf(f))], [reviews, report]);
   const allBad = useMemo(() => report.findings.filter(f => f.verdict !== "MATCH"), [report]);
   const bad = useMemo(() => applyFilter(allBad, filter, reviewOf), [allBad, filter, reviewOf]);

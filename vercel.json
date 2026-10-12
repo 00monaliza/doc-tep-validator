@@ -16,7 +16,7 @@
       "destination": "/api/main"
     },
     {
-      "source": "/((?!api/|assets/|demo/).*)",
+      "source": "/((?!api/|assets/|demo-data/).*)",
       "destination": "/index.html"
     }
   ],

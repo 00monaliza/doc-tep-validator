@@ -144,6 +144,9 @@ const RU = {
   "new.sample.ru": "Пример на русском",
   "new.sample.kz": "Қазақша мысал",
   "new.sample.scan": "Пример-скан",
+  "demo.banner": "Это пример отчёта на демонстрационном пакете: вердикты не сохраняются.",
+  "demo.request": "Запросить доступ",
+  "demo.login": "Войти",
 } as const;
 
 export type Key = keyof typeof RU;
