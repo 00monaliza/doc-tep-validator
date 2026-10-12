@@ -2,6 +2,7 @@ import Footer from "./Footer";
 import Header from "./Header";
 import { LangContext, useLang } from "./i18n";
 import Fallback from "./scene/Fallback";
+import SceneSlot from "./scene/SceneSlot";
 import AccessRequest from "./sections/AccessRequest";
 import Checks from "./sections/Checks";
 import Hero from "./sections/Hero";
@@ -23,7 +24,7 @@ export default function LandingPage() {
           <div className="max-w-6xl mx-auto grid md:grid-cols-[1fr_minmax(0,46%)]">
             <div><Hero /><Problem /><HowItWorks /></div>
             <div className="hidden md:block">
-              <div className="sticky top-14 h-[calc(100vh-3.5rem)] flex items-center p-6"><Fallback /></div>
+              <div className="sticky top-14 h-[calc(100vh-3.5rem)] flex items-center p-6"><SceneSlot /></div>
             </div>
           </div>
           <div className="md:hidden px-4 pb-8"><Fallback /></div>
