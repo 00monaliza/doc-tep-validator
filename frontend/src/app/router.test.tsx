@@ -7,6 +7,8 @@ import { describe, expect, it, vi } from "vitest";
 import { legacyRedirect, RouteError, routes } from "./router";
 import { SessionContext, type Session } from "./providers";
 
+vi.mock("../landing/LandingPage", () => ({ default: () => <h1>landing</h1> }));
+
 const session = (over: Partial<Session> = {}): Session => ({
   ready: true, enabled: true, email: null, ocr: true, signOut: vi.fn(), refresh: vi.fn(), ...over,
 });
@@ -72,4 +74,11 @@ describe("email links and errors", () => {
     render(<RouteError error={new Error("boom")} />);
     expect(screen.getByRole("button", { name: "Обновить страницу" })).toBeInTheDocument();
   });
+});
+
+it("/ shows the landing, links from emails still go to /login (Review Focus 1)", async () => {
+  at("/", session());
+  expect(await screen.findByRole("heading", { name: "landing" })).toBeInTheDocument();
+  const router = at("/#access_token=x&type=recovery", session());
+  await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
 });
