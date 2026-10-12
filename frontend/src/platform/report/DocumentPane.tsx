@@ -11,10 +11,10 @@ const readSplit = () => { try { return localStorage.getItem(SPLIT_KEY) !== "0"; 
 const typing = (e: KeyboardEvent) =>
   e.target instanceof HTMLElement && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName);
 
-interface Props { checkId: string; report: Report; selection: { refs: Ref[]; finding?: Finding } | null }
+interface Props { checkId: string; report: Report; selection: { refs: Ref[]; finding?: Finding } | null; keys?: boolean }
 
 /** The centre of the report: the pages of the open finding, side by side or one at a time. */
-export default function DocumentPane({ checkId, report, selection }: Props) {
+export default function DocumentPane({ checkId, report, selection, keys = true }: Props) {
   const refs = selection?.refs ?? [];
   const [split, setSplit] = useState(readSplit);
   const [left, setLeft] = useState(0);
@@ -35,6 +35,7 @@ export default function DocumentPane({ checkId, report, selection }: Props) {
 
   // ←/→ walk the places: the only pane in single mode, the right (compared) pane side by side
   useEffect(() => {
+    if (!keys) return;
     const onKey = (e: KeyboardEvent) => {
       if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === "s" || e.key === "ы") { setSplit(v => !v); return; }
@@ -51,7 +52,7 @@ export default function DocumentPane({ checkId, report, selection }: Props) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [refs, sideBySide, left]);
+  }, [refs, sideBySide, left, keys]);
 
   const pane = (idx: number, onIdx: (i: number) => void) => (
     <RefPane

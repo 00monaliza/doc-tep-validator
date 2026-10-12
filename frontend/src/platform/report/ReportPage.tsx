@@ -47,10 +47,11 @@ export default function ReportPage() {
   return <ReportBody checkId={id} report={state.data.report} title={state.data.title ?? ""} initial={state.data.reviews ?? {}} />;
 }
 
-export function ReportBody({ checkId, report, title, initial, onSave, titleLevel = 1 }: {
+export function ReportBody({ checkId, report, title, initial, onSave, titleLevel = 1, keys = true }: {
   checkId: string; report: Report; title: string; initial: Reviews;
   onSave?: (finding: number, r: Review) => Promise<void>; // the demo keeps verdicts in the page
   titleLevel?: 1 | 3; // 3 when the report is embedded in a page that has its own <h1> (landing)
+  keys?: boolean; // false when embedded: the landing's keys and arrows are the visitor's, not the report's
 }) {
   const Title = titleLevel === 1 ? "h1" : "h3";
   const toast = useToast();
@@ -93,7 +94,7 @@ export function ReportBody({ checkId, report, title, initial, onSave, titleLevel
     const f = Number(params.get("f"));
     if (params.has("f") && report.findings[f]) pick(report.findings[f]);
   }, [params]);
-  useReportKeys({ list: matchesOpen ? [...bad, ...ok] : bad, current, pick, toggleVerdict, enabled: true });
+  useReportKeys({ list: matchesOpen ? [...bad, ...ok] : bad, current, pick, toggleVerdict, enabled: keys });
 
   const s = report.summary, c = report.completeness;
   const reviewed = allBad.filter(f => reviewOf(f)?.verdict).length;
@@ -118,7 +119,7 @@ export function ReportBody({ checkId, report, title, initial, onSave, titleLevel
             onMatchesOpen={setMatchesOpen} current={current} onPick={pick} reviewOf={reviewOf}
             onPickRefs={refs => setSelection({ refs })} />
         </aside>
-        <DocumentPane checkId={checkId} report={report} selection={selection} />
+        <DocumentPane checkId={checkId} report={report} selection={selection} keys={keys} />
         <aside className="min-h-0 overflow-auto bg-sheet lg:border-l border-t lg:border-t-0 border-line">
           <FindingDetail finding={current} review={(current && reviewOf(current)) ?? EMPTY} saving={saving}
             onReview={r => current && review(current, r)} />

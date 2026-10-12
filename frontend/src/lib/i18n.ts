@@ -147,6 +147,7 @@ const RU = {
   "demo.banner": "Это пример отчёта на демонстрационном пакете: вердикты не сохраняются.",
   "demo.request": "Запросить доступ",
   "demo.login": "Войти",
+  "demo.open": "Открыть платформу",
 } as const;
 
 export type Key = keyof typeof RU;

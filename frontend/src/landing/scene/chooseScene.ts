@@ -3,5 +3,9 @@ export function chooseScene(env: { reducedMotion: boolean; width: number; webgl:
 }
 
 export function hasWebGL(): boolean {
-  try { return !!document.createElement("canvas").getContext("webgl2"); } catch { return false; }
+  try {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    gl?.getExtension("WEBGL_lose_context")?.loseContext(); // only a probe: give the context back
+    return !!gl;
+  } catch { return false; }
 }

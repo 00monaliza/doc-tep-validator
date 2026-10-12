@@ -109,8 +109,14 @@ export default function FindingsColumn(
 ) {
   const [tab, setTab] = useState<Tab>("findings");
   const listRef = useRef<HTMLDivElement>(null);
+  // scroll the column only: scrollIntoView would also scroll the window, and the report may sit inside the landing
   useEffect(() => {
-    listRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView?.({ block: "nearest" });
+    const box = listRef.current?.parentElement;
+    const el = listRef.current?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!box || !el) return;
+    const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+    if (top < box.scrollTop) box.scrollTop = top;
+    else if (top + el.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = top + el.offsetHeight - box.clientHeight;
   }, [current, matchesOpen]);
   const c = report.completeness;
   const tabs: [Tab, string, string][] = [

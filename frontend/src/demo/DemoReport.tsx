@@ -23,8 +23,8 @@ export default function DemoReport({ height = "100%", embedded = false }: { heig
   if (!data) return <p className="p-6 text-ink-2">{t("common.loading")}</p>;
   return (
     <FileSourceContext.Provider value={source}>
-      <div style={{ height }} className="flex flex-col min-h-0 bg-tracing">
-        <ReportBody checkId={DEMO} report={data.report} title={data.title} initial={{}} onSave={async () => {}} titleLevel={embedded ? 3 : 1} />
+      <div style={{ height }} className="flex flex-col min-h-0 overflow-auto bg-tracing">
+        <ReportBody checkId={DEMO} report={data.report} title={data.title} initial={{}} onSave={async () => {}} titleLevel={embedded ? 3 : 1} keys={!embedded} />
       </div>
     </FileSourceContext.Provider>
   );

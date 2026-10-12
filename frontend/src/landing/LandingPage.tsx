@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router";
 import Footer from "./Footer";
 import Header from "./Header";
 import { LangContext, useLang } from "./i18n";
@@ -15,6 +17,9 @@ import Security from "./sections/Security";
 
 export default function LandingPage() {
   const lang = useLang();
+  // the router does not scroll to #hash, and the browser looked for it before this lazy page existed
+  const { hash } = useLocation();
+  useEffect(() => { if (hash) document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView(); }, [hash]);
   return (
     <LangContext.Provider value={lang}>
       <div className="min-h-full bg-paper text-ink">

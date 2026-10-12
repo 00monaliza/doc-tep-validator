@@ -39,3 +39,18 @@ test("access request is accepted", async ({ page }) => {
   await page.getByRole("button", { name: "Отправить заявку" }).click();
   await expect(page.getByText(/Спасибо! Заявка отправлена/)).toBeVisible();
 });
+
+test("the landing stays on its first screen, and the embedded demo loads when it comes near", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("heading", { level: 1 }).waitFor();
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page.locator("#example").scrollIntoViewIfNeeded();
+  await expect(page.locator("#example").getByRole("heading", { level: 3 })).toBeVisible();
+});
+
+test("«Запросить доступ» on the demo page leads to the form", async ({ page }) => {
+  await page.goto("/demo");
+  await page.getByRole("link", { name: "Запросить доступ" }).click();
+  await expect(page.locator("#access form")).toBeInViewport();
+});

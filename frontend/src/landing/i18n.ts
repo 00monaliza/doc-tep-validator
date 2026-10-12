@@ -148,7 +148,10 @@ export const tlFor = (lang: Lang) => (key: LKey, vars: Record<string, string | n
 
 export function useLang() {
   const [lang, setLangState] = useState<Lang>(read);
-  useEffect(() => { document.documentElement.lang = lang === "kz" ? "kk" : "ru"; }, [lang]);
+  useEffect(() => {
+    document.documentElement.lang = lang === "kz" ? "kk" : "ru";
+    return () => { document.documentElement.lang = "ru"; }; // the platform is Russian
+  }, [lang]);
   const setLang = useCallback((l: Lang) => {
     try { localStorage.setItem(KEY, l); } catch { /* blocked storage */ }
     setLangState(l);

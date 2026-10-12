@@ -51,3 +51,28 @@ describe("landing", () => {
     return screen.findByRole("heading", { level: 1, name: KZ["hero.title"] });
   });
 });
+
+describe("landing: review fixes", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("the embedded demo (pdf.js, PDFs) loads only when block 04 comes near, not with the first screen", () => {
+    show(); // the test IntersectionObserver never reports the block as visible
+    expect(screen.queryByText("demo report")).toBeNull();
+  });
+
+  it("/#access from the demo page scrolls to the form once the lazy landing is drawn", () => {
+    const spy = vi.fn();
+    Element.prototype.scrollIntoView = spy;
+    render(<SessionContext.Provider value={session()}><MemoryRouter initialEntries={["/#access"]}><LandingPage /></MemoryRouter></SessionContext.Provider>);
+    expect(spy).toHaveBeenCalled();
+    expect(spy.mock.contexts[0]).toBe(document.getElementById("access"));
+  });
+
+  it("leaving the landing in KZ gives the platform back <html lang=ru>", () => {
+    localStorage.setItem("tep.lang", "kz");
+    const { unmount } = show();
+    expect(document.documentElement.lang).toBe("kk");
+    unmount();
+    expect(document.documentElement.lang).toBe("ru");
+  });
+});
