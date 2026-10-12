@@ -20,7 +20,7 @@ export default function ChecksPage() {
         <Link to="/app/new"><Button variant="primary">+ {t("nav.new")}</Button></Link>
       </div>
       {rows.length === 0
-        ? <EmptyState title={t("checks.empty")} action={<a href="/demo" className="text-blue underline">{t("nav.demo")}</a>}>{t("checks.empty.body")}</EmptyState>
+        ? <EmptyState title={t("checks.empty")} action={<Link to="/app/new" className="text-blue underline">{t("nav.new")}</Link>}>{t("checks.empty.body")}</EmptyState>
         : <ChecksTable rows={rows} onRename={(id, title) => rename.mutate({ id, title }, { onError: e => toast((e as Error).message, "error") })} />}
     </section>
   );

@@ -10,8 +10,6 @@ export default function Sidebar() {
       <p className="font-cond font-semibold text-white px-2.5 pb-3">{t("app.name")}</p>
       <NavLink to="/app" end className={item}>{t("nav.checks")}</NavLink>
       <NavLink to="/app/new" className={item}>+ {t("nav.new")}</NavLink>
-      <a href="/demo" className={item({ isActive: false })}>{t("nav.demo")}</a>
-      <a href="/#research" className={item({ isActive: false })}>{t("nav.method")}</a>
       <span className="flex-1" />
       <NavLink to="/app/settings" className={item}>{t("nav.settings")}</NavLink>
     </nav>
@@ -29,8 +27,6 @@ export function MobileMenu() {
       <nav className="absolute left-0 top-10 z-30 w-56 bg-[#1E2A2B] p-2 flex flex-col gap-0.5 shadow-lg rounded">
         <NavLink to="/app" end className={item}>{t("nav.checks")}</NavLink>
         <NavLink to="/app/new" className={item}>+ {t("nav.new")}</NavLink>
-        <a href="/demo" className={item({ isActive: false })}>{t("nav.demo")}</a>
-        <a href="/#research" className={item({ isActive: false })}>{t("nav.method")}</a>
         <NavLink to="/app/settings" className={item}>{t("nav.settings")}</NavLink>
       </nav>
     </details>

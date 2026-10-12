@@ -68,6 +68,11 @@ export async function requestPasswordReset(email: string): Promise<void> {
   }
 }
 
+/** Forgets the session in this browser only (the server already refused it); no network call needed. */
+export function signOutLocal(): void {
+  void client?.auth.signOut({ scope: "local" });
+}
+
 export async function signOut(): Promise<void> {
   await client?.auth.signOut();
 }

@@ -3,7 +3,7 @@ const RU = {
   "nav.checks": "Проверки", "nav.new": "Новая проверка", "nav.demo": "Демо", "nav.method": "Методика", "nav.settings": "Настройки",
   "search.placeholder": "Найти проверку или замечание…", "search.hint": "Поиск",
   "checks.count": "Мои проверки · {n}", "checks.empty": "Проверок пока нет",
-  "checks.empty.body": "Загрузите ПЗ, АР, КР и смету — или посмотрите демо-отчёт.",
+  "checks.empty.body": "Загрузите ПЗ, АР, КР и смету или попробуйте пример в новой проверке.",
   "checks.col.title": "Объект", "checks.col.sections": "Разделы", "checks.col.result": "Итог",
   "checks.col.expert": "Эксперт", "checks.col.date": "Дата", "checks.col.expires": "Хранится до",
   "checks.status.pending": "идёт проверка…", "checks.status.receiving": "загрузка не завершена",
@@ -138,6 +138,12 @@ const RU = {
   "completeness.unrecognised": "{file}: раздел не определён.",
   "completeness.duplicate": "{file}: второй документ того же раздела не учитывался.",
   "shell.menu": "Меню",
+  "error.title": "Страница не открылась",
+  "error.reload": "Обновить страницу",
+  "new.samples": "Нет своих документов? Пример:",
+  "new.sample.ru": "Пример на русском",
+  "new.sample.kz": "Қазақша мысал",
+  "new.sample.scan": "Пример-скан",
 } as const;
 
 export type Key = keyof typeof RU;

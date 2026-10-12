@@ -26,6 +26,7 @@ Checks are kept in data/uploads/, or in Supabase when SUPABASE_URL and SUPABASE_
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import shutil
@@ -60,6 +61,8 @@ RETENTION_DAYS = float(os.environ.get("RETENTION_DAYS", "7"))
 SYNC_ANALYSIS = bool(os.environ.get("VERCEL") or os.environ.get("SYNC_ANALYSIS"))
 # a check still "pending" after this long was cut off (function time limit, server restart)
 STALE_AFTER_S = 330 if SYNC_ANALYSIS else 1800  # 300 s = maxDuration in vercel.json
+
+log = logging.getLogger("tep.api")
 
 app = FastAPI(title="ТЭП-валидатор", version="0.1.0")
 
@@ -117,10 +120,14 @@ def _run(store: LocalStore | SupabaseStore, check_id: str) -> None:
         for doc in report["documents"]:
             doc.pop("path", None)  # do not leak server paths
         store.finish(check_id, "done", report=report)
-        if not (store.get(check_id) or {}).get("title"):
-            store.set_title(check_id, default_title(report, store.names(check_id)))
     except Exception as e:  # noqa: BLE001 — surface any analysis failure to the client
         store.finish(check_id, "error", error=f"{type(e).__name__}: {e}", trace=traceback.format_exc(limit=3))
+        return
+    try:  # the title is a nicety: failing to store it must not touch the finished report
+        if not (store.get(check_id) or {}).get("title"):
+            store.set_title(check_id, default_title(report, store.names(check_id)))
+    except Exception:  # noqa: BLE001
+        log.exception("title of check %s not stored", check_id)
 
 
 def _schedule(store: LocalStore | SupabaseStore, check_id: str, background: BackgroundTasks) -> None:

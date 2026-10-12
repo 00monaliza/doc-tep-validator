@@ -26,3 +26,18 @@ describe("new check wizard", () => {
     expect(reduceWizard(s, { type: "reset" })).toEqual({ step: "files" });
   });
 });
+
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
+import { SessionContext } from "../../app/providers";
+import NewCheckPage from "./NewCheckPage";
+
+describe("demo samples (Final 5)", () => {
+  it("the wizard offers the bundled samples, the scan one only with OCR", () => {
+    const s = { ready: true, enabled: false, email: null, ocr: false, signOut: async () => {}, refresh: async () => {} };
+    render(<SessionContext.Provider value={s}><MemoryRouter><NewCheckPage /></MemoryRouter></SessionContext.Provider>);
+    expect(screen.getByRole("button", { name: "Пример на русском" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Қазақша мысал" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Пример-скан" })).toBeNull();
+  });
+});

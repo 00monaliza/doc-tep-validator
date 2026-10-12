@@ -9,7 +9,8 @@ import { saveReview, Unauthorized } from "../../lib/api";
 import { exportXlsx } from "../../lib/export";
 import { t } from "../../lib/i18n";
 import { SECTIONS } from "../../lib/labels";
-import { toLogin, useCheck } from "../../lib/queries";
+import { useQueryClient } from "@tanstack/react-query";
+import { toLogin, useCheck, withReview } from "../../lib/queries";
 import { createReviewQueue } from "../../lib/reviewQueue";
 import type { CheckStatus, ExpertVerdict, Finding, Ref, Report, Review, Reviews } from "../../lib/types";
 import DocumentPane from "./DocumentPane";
@@ -48,6 +49,7 @@ export default function ReportPage() {
 
 function ReportBody({ checkId, report, title, initial }: { checkId: string; report: Report; title: string; initial: Reviews }) {
   const toast = useToast();
+  const qc = useQueryClient();
   const [reviews, setReviews] = useState<Reviews>(initial);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<Filter>(NO_FILTER);
@@ -68,7 +70,9 @@ function ReportBody({ checkId, report, title, initial }: { checkId: string; repo
     const prev = reviews[key];
     setReviews(r => { const { [key]: _, ...rest } = r; return next.verdict || next.comment ? { ...rest, [key]: next } : rest; });
     setSaving(true);
-    queue.current.push(Number(key), next).catch(e => {
+    queue.current.push(Number(key), next).then(() => {
+      qc.setQueryData<CheckStatus>(["check", checkId], d => (d ? withReview(d, Number(key), next) : d));
+    }, e => {
       if (e instanceof Unauthorized) { toLogin(e); return; }
       setReviews(r => { const { [key]: _, ...rest } = r; return prev ? { ...rest, [key]: prev } : rest; });
       toast((e as Error).message, "error");

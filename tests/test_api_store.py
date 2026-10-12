@@ -340,3 +340,12 @@ def test_default_title_uses_the_object_heading_of_the_note_before_its_file_name(
     report = {"objects": {}, "pz_building": None,
               "documents": [{"file": "PZ.pdf", "section": "PZ", "object_title": "Жилой дом по ул. Абая"}]}
     assert default_title(report, ["PZ.pdf"]) == "Жилой дом по ул. Абая"
+
+
+def test_failed_title_write_keeps_the_report(client, monkeypatch):
+    def broken(self, check_id, title):
+        raise OSError("title column missing")
+    monkeypatch.setattr(LocalStore, "set_title", broken)
+    check_id = client.post("/api/demo/ru").json()["id"]
+    body = _wait(client, check_id)
+    assert body["status"] == "done" and body["report"]["summary"]["MISMATCH"] == 3

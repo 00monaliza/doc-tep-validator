@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { describe, expect, it, vi } from "vitest";
-import { legacyRedirect, routes } from "./router";
+import { legacyRedirect, RouteError, routes } from "./router";
 import { SessionContext, type Session } from "./providers";
 
 const session = (over: Partial<Session> = {}): Session => ({
@@ -50,4 +50,26 @@ it("a 401 anywhere sends the user to login and back", () => {
   toLogin(new Error("not auth"));
   expect(assign).toHaveBeenCalledTimes(1);
   vi.unstubAllGlobals();
+});
+describe("email links and errors", () => {
+  it("an invitation or reset link on / goes to /login with its fragment intact (Final 1)", async () => {
+    const router = at("/#access_token=x&type=invite", session());
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+    expect(router.state.location.hash).toBe("#access_token=x&type=invite");
+  });
+
+  it("an expired-link error on / also goes to /login", async () => {
+    const router = at("/#error=access_denied&error_code=otp_expired", session());
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+  });
+
+  it("every app route has an error screen (Final 4)", () => {
+    const app = routes.find(r => r.path === "/app")!;
+    expect(app.errorElement).toBeTruthy();
+  });
+
+  it("the error screen offers a reload", () => {
+    render(<RouteError error={new Error("boom")} />);
+    expect(screen.getByRole("button", { name: "Обновить страницу" })).toBeInTheDocument();
+  });
 });

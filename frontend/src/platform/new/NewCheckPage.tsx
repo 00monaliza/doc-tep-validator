@@ -1,7 +1,8 @@
 import { useEffect, useReducer, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import Button from "../../design/Button";
-import { getCheck, startUploaded, uploadFiles } from "../../lib/api";
+import { useSession } from "../../app/providers";
+import { getCheck, startDemo, startUploaded, uploadFiles } from "../../lib/api";
 import { t } from "../../lib/i18n";
 import type { UploadedFile } from "../../lib/types";
 import FileReview from "../report/FileReview";
@@ -36,6 +37,12 @@ export default function NewCheckPage() {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const input = useRef<HTMLInputElement>(null);
+  const { ocr } = useSession();
+  const demo = async (lang: "ru" | "kz", kind: "text" | "scan") => {
+    dispatch({ type: "upload", total: 0 });
+    try { nav(`/app/checks/${await startDemo(lang, kind)}`); }
+    catch (e) { dispatch({ type: "fail", message: (e as Error).message }); }
+  };
 
   useEffect(() => {  // a link to an unfinished wizard resumes at "sections"
     const id = params.get("id");
@@ -67,6 +74,14 @@ export default function NewCheckPage() {
           <span className="text-sm text-ink-2">{t("new.drop.hint")}</span>
           <input ref={input} type="file" multiple accept=".pdf,.docx" className="sr-only" onChange={e => e.target.files && upload(e.target.files)} />
         </label>
+      )}
+      {(s.step === "files" || s.step === "failed") && (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
+          {t("new.samples")}
+          <Button size="sm" onClick={() => demo("ru", "text")}>{t("new.sample.ru")}</Button>
+          <Button size="sm" onClick={() => demo("kz", "text")}>{t("new.sample.kz")}</Button>
+          {ocr && <Button size="sm" onClick={() => demo("kz", "scan")}>{t("new.sample.scan")}</Button>}
+        </div>
       )}
       {s.step === "failed" && <p role="alert" className="text-pencil">{s.message}</p>}
       {s.step === "uploading" && (
